@@ -9,13 +9,14 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 public class App {
     public static void main(String[] args) {
-        LanguageServer server = new Server();
+        Server server = new Server();
         Launcher<LanguageClient> launcher = LSPLauncher.createServerLauncher(
             server,
             System.in,
             System.out,
             false,
             new PrintWriter(System.err));
+        server.connect(launcher.getRemoteProxy());
         launcher.startListening();
     }
 }
