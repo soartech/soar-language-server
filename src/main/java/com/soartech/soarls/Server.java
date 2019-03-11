@@ -11,10 +11,11 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 
 public class Server implements LanguageServer {
     private final TextDocumentService documentService = new SoarDocumentService();
+    private final WorkspaceService workspaceService = new SoarWorkspaceService();
 
     @Override
     public WorkspaceService getWorkspaceService() {
-        return null;
+        return workspaceService;
     }
 
     @Override
