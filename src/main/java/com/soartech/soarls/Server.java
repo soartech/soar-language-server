@@ -3,11 +3,15 @@ package com.soartech.soarls;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.ServerCapabilities;
+import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
 
 public class Server implements LanguageServer {
+    private final TextDocumentService documentService = new SoarDocumentService();
+
     @Override
     public WorkspaceService getWorkspaceService() {
         return null;
@@ -15,7 +19,7 @@ public class Server implements LanguageServer {
 
     @Override
     public TextDocumentService getTextDocumentService() {
-        return null;
+        return documentService;
     }
 
     @Override
@@ -29,6 +33,9 @@ public class Server implements LanguageServer {
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        return CompletableFuture.completedFuture(null);
+        ServerCapabilities capabilities = new ServerCapabilities();
+        capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
+
+        return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }
 }
