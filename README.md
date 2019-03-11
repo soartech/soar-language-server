@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/soartech/soar-language-server.svg?branch=master)](https://travis-ci.com/soartech/soar-language-server)
+
 # Soar Language Server
 
 This project provides editor/IDE support for the [Soar
