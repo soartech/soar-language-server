@@ -12,3 +12,8 @@ Protocol](https://langserver.org/).
 $ gradle test
 $ gradle installDist
 ```
+
+# Clients
+
+We don't yet have any officially supported plugins. Work in progress
+plugins can be found in the [integrations](./integrations) directory.
