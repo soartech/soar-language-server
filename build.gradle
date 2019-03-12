@@ -43,7 +43,7 @@ dependencies {
 }
 
 task compileMavenProject(type: Exec) {
-    workingDir "jsoar/jsoar-core/"
+    workingDir "jsoar/"
     commandLine "mvn", "--batch-mode", "-Dmaven.test.skip=true", "install"
 }
 
