@@ -3,3 +3,7 @@
 
 # Ignore Gradle build output directory
 build
+
+# Ignore JetBrains IDE files 
+.idea/
+*.iml

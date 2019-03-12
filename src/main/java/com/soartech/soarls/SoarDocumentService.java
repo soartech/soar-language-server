@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
@@ -20,7 +21,7 @@ import org.jsoar.kernel.SoarException;
 import org.jsoar.util.commands.SoarCommands;
 
 class SoarDocumentService implements TextDocumentService {
-    private Map<String, String> documents = new HashMap();
+    private Map<String, String> documents = new HashMap<>();
 
     private LanguageClient client;
 
@@ -64,14 +65,19 @@ class SoarDocumentService implements TextDocumentService {
         Agent agent = new Agent();
 
         for (String uri: documents.keySet()) {
-            List<Diagnostic> diagnosticList = new ArrayList();
+            List<Diagnostic> diagnosticList = new ArrayList<>();
 
             try {
                 SoarCommands.source(agent.getInterpreter(), uri);
             } catch (SoarException e) {
                 // Hard code a location, but include the exception
                 // text.
-                diagnosticList.add(new Diagnostic(new Range(new Position(0, 0), new Position(0, 8)), "Failed to source production in this file: " + e));
+                Diagnostic diagnostic = new Diagnostic(
+                        new Range(new Position(0, 0), new Position(0, 8)),
+                        "Failed to source production in this file: " + e,
+                        DiagnosticSeverity.Error,
+                        "soar");
+                diagnosticList.add(diagnostic);
             }
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
