@@ -1,3 +1,3 @@
 [submodule "jsoar"]
 	path = jsoar
-	url = git@hq-git.soartech.com:git/jsoar.git
+	url = https://hq-git.soartech.com/git/jsoar.git
