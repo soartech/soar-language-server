@@ -1,14 +1,23 @@
 package com.soartech.soarls;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
+import org.jsoar.kernel.Agent;
+import org.jsoar.kernel.SoarException;
+import org.jsoar.util.commands.SoarCommands;
 
 class SoarDocumentService implements TextDocumentService {
     private Map<String, String> documents = new HashMap();
@@ -22,6 +31,7 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public void didSave(DidSaveTextDocumentParams params) {
+        reportDiagnostics();
     }
 
     @Override
@@ -49,6 +59,23 @@ class SoarDocumentService implements TextDocumentService {
     }
 
     private void reportDiagnostics() {
-        client.publishDiagnostics(null);
+        // This is a stub implementation, just so we can see some
+        // errors published to the client.
+        Agent agent = new Agent();
+
+        for (String uri: documents.keySet()) {
+            List<Diagnostic> diagnosticList = new ArrayList();
+
+            try {
+                SoarCommands.source(agent.getInterpreter(), uri);
+            } catch (SoarException e) {
+                // Hard code a location, but include the exception
+                // text.
+                diagnosticList.add(new Diagnostic(new Range(new Position(0, 0), new Position(0, 8)), "Failed to source production in this file: " + e));
+            }
+
+            PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
+            client.publishDiagnostics(diagnostics);
+        }
     }
 }
