@@ -44,7 +44,7 @@ dependencies {
 
 task compileMavenProject(type: Exec) {
     workingDir "jsoar/jsoar-core/"
-    commandLine "mvn", "-Dmaven.test.skip=true", "install"
+    commandLine "mvn", "--batch-mode", "-Dmaven.test.skip=true", "install"
 }
 
 // Define the main class for the application
