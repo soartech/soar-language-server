@@ -21,13 +21,16 @@ import org.jsoar.kernel.SoarException;
 import org.jsoar.util.commands.SoarCommands;
 
 class SoarDocumentService implements TextDocumentService {
-    private Map<String, String> documents = new HashMap<>();
+    private Map<String, SoarFile> documents = new HashMap<>();
 
     private LanguageClient client;
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
-        documents.put(params.getTextDocument().getUri(), params.getTextDocument().getText());
+        TextDocumentItem doc = params.getTextDocument();
+        SoarFile soarFile = new SoarFile(doc.getUri(), doc.getText());
+        documents.put(doc.getUri(), soarFile);
+        reportDiagnostics();
     }
 
     @Override
@@ -47,7 +50,8 @@ class SoarDocumentService implements TextDocumentService {
             // using full or incremental updates.
             if (change.getRange() == null) {
                 // We are using full document updates.
-                documents.put(params.getTextDocument().getUri(), change.getText());
+                SoarFile soarFile = new SoarFile(params.getTextDocument().getUri(), change.getText());
+                documents.put(params.getTextDocument().getUri(), soarFile);
             } else {
                 // We are using incremental updates.
                 System.err.println("Incremental document updates are not implemented.");
