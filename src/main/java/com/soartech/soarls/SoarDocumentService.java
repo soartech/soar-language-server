@@ -12,6 +12,8 @@ import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentHighlight;
+import org.eclipse.lsp4j.FoldingRange;
+import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
@@ -24,6 +26,7 @@ import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
 import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.SoarCommands;
+import static java.util.stream.Collectors.toList;
 
 class SoarDocumentService implements TextDocumentService {
     private Map<String, SoarFile> documents = new HashMap<>();
@@ -85,6 +88,21 @@ class SoarDocumentService implements TextDocumentService {
 
         return CompletableFuture.completedFuture(highlights);
     }
+
+    @Override
+    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        // List<FoldingRange> ranges = new ArrayList();
+        List<FoldingRange> ranges =
+            file.commands.stream()
+            .map(
+                c -> new FoldingRange(
+                    file.position(c.getLocation().getOffset() - 1).getLine(),
+                    file.position(c.getLocation().getOffset() - 1 + c.getLocation().getLength()).getLine()))
+            .collect(toList());
+        return CompletableFuture.completedFuture(ranges);
+    }
+
 
     public void connect(LanguageClient client) {
         this.client = client;

@@ -39,6 +39,7 @@ public class Server implements LanguageServer, LanguageClientAware {
         ServerCapabilities capabilities = new ServerCapabilities();
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
         capabilities.setDocumentHighlightProvider(true);
+        capabilities.setFoldingRangeProvider(true);
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }
