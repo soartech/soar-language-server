@@ -1,0 +1,8 @@
+# comment
+
+sp "propose*init
+    (state <s> ^superstate nil)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name init)
+"
