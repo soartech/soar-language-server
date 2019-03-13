@@ -38,6 +38,7 @@ public class Server implements LanguageServer, LanguageClientAware {
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         ServerCapabilities capabilities = new ServerCapabilities();
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
+        capabilities.setDocumentHighlightProvider(true);
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }

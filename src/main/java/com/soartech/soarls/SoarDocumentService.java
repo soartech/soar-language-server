@@ -4,21 +4,25 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
+import org.eclipse.lsp4j.DocumentHighlight;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
+import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
+import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.SoarCommands;
 
 class SoarDocumentService implements TextDocumentService {
@@ -58,6 +62,28 @@ class SoarDocumentService implements TextDocumentService {
                 System.err.println("Incremental document updates are not implemented.");
             }
         }
+    }
+
+    @Override
+    public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams params) {
+        List<DocumentHighlight> highlights = new ArrayList();
+
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        if (file != null) {
+            // Position position = params.getPosition();
+            int offset = file.offset(params.getPosition());
+            for (ParsedCommand command: file.commands) {
+                int start = command.getLocation().getOffset() - 1;
+                int end = start + command.getLocation().getLength();
+                if (start <= offset && offset <= end) {
+                    Range range = new Range(file.position(start), file.position(end + 1));
+                    highlights.add(new DocumentHighlight(range));
+                    break;
+                }
+            }
+        }
+
+        return CompletableFuture.completedFuture(highlights);
     }
 
     public void connect(LanguageClient client) {
