@@ -14,6 +14,7 @@ import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
