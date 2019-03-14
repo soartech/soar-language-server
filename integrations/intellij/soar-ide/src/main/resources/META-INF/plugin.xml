@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>com.soartech.soar-ide</id>
+    <name>Soar IDE</name>
+    <vendor email="robert.picking@soartech.com" url="http://www.yourcompany.com">SoarTech</vendor>
+
+    <description><![CDATA[
+    Enter short description for your plugin here.<br>
+    <em>most HTML tags may be used</em>
+    ]]></description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends> -->
+
+
+    <extensions defaultExtensionNs="com.intellij">
+    <!-- Add your extensions here -->
+    <preloadingActivity implementation="SoarPreloadingActivity" id="SoarPreloader" />
+</extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+
+    <depends>com.github.gtache.lsp</depends>
+</idea-plugin>
