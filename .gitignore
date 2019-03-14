@@ -7,3 +7,10 @@ build
 # Ignore JetBrains IDE files 
 .idea/
 *.iml
+
+# Ignore VSCode IDE files
+.project
+.vscode
+
+# Ignore Maven build directory
+target/
