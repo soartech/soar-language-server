@@ -15,6 +15,11 @@ public class Server implements LanguageServer, LanguageClientAware {
     private final SoarDocumentService documentService = new SoarDocumentService();
     private final WorkspaceService workspaceService = new SoarWorkspaceService();
 
+    Server() {
+        // NOTE: I'm not sure where the proper place to set this is.
+        System.setProperty("jsoar.agent.interpreter", "tcl");
+    }
+
     @Override
     public WorkspaceService getWorkspaceService() {
         return workspaceService;

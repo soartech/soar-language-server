@@ -35,6 +35,7 @@ dependencies {
 
     // We are currently depending on a JSoar version that is in flux.
     implementation 'com.soartech:jsoar-core:4.0-SNAPSHOT'
+    implementation 'com.soartech:jsoar-tcl:4.0-SNAPSHOT'
 
     compile files("jsoar/target/classes") {
         builtBy "compileMavenProject"
