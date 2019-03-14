@@ -1,0 +1,8 @@
+set NGS_YES *YES*
+set NGS_NO *NO*
+
+sp "propose*initialize
+    [ngs-match-top-state <s>]
+    [ngs-nex <s> initialized]
+-->
+    [ngs-create-attribute-by-operator <s> <s> initialized $

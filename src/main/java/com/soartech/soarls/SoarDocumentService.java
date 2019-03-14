@@ -1,10 +1,16 @@
 package com.soartech.soarls;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
@@ -20,6 +26,7 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
@@ -32,6 +39,8 @@ class SoarDocumentService implements TextDocumentService {
     private Map<String, SoarFile> documents = new HashMap<>();
 
     private LanguageClient client;
+
+    private Set<String> variables = new HashSet();
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
@@ -65,6 +74,15 @@ class SoarDocumentService implements TextDocumentService {
                 System.err.println("Incremental document updates are not implemented.");
             }
         }
+    }
+
+    @Override
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        List<CompletionItem> completions = new ArrayList();
+        for (String variable: variables) {
+            completions.add(new CompletionItem(variable));
+        }
+        return CompletableFuture.completedFuture(Either.forLeft(completions));
     }
 
     @Override
@@ -131,6 +149,11 @@ class SoarDocumentService implements TextDocumentService {
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
             client.publishDiagnostics(diagnostics);
+        }
+
+        try {
+            this.variables = new HashSet(Arrays.asList(agent.getInterpreter().eval("info vars").split(" ")));
+        } catch (SoarException e) {
         }
     }
 }

@@ -1,6 +1,8 @@
 package com.soartech.soarls;
 
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
+import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.ServerCapabilities;
@@ -45,6 +47,7 @@ public class Server implements LanguageServer, LanguageClientAware {
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setFoldingRangeProvider(true);
+        capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$")));
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }
