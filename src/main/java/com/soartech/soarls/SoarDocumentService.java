@@ -22,6 +22,8 @@ import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
+import org.jsoar.kernel.exceptions.SoarInterpreterException;
+import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.SoarCommands;
 
@@ -66,7 +68,7 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams params) {
-        List<DocumentHighlight> highlights = new ArrayList();
+        List<DocumentHighlight> highlights = new ArrayList<>();
 
         SoarFile file = documents.get(params.getTextDocument().getUri());
         if (file != null) {
@@ -100,9 +102,20 @@ class SoarDocumentService implements TextDocumentService {
 
             try {
                 SoarCommands.source(agent.getInterpreter(), uri);
+            } catch (SoarInterpreterException ex) {
+                SoarFile file = documents.get(uri);
+                SourceLocation location = ex.getSourceLocation();
+                Position start = file.position(location.getOffset() - 1);   // -1 to include starting character in diagnostic
+                Position end = file.position(location.getOffset() + location.getLength());
+                Diagnostic diagnostic = new Diagnostic(
+                        new Range(start, end),
+                        "Failed to source production in this file: " + ex,
+                        DiagnosticSeverity.Error,
+                        "soar");
+                diagnosticList.add(diagnostic);
             } catch (SoarException e) {
-                // Hard code a location, but include the exception
-                // text.
+                // Hard code a location, but include the exception text
+                // Default exception will highlight first 8 characters of first line
                 Diagnostic diagnostic = new Diagnostic(
                         new Range(new Position(0, 0), new Position(0, 8)),
                         "Failed to source production in this file: " + e,
@@ -110,6 +123,9 @@ class SoarDocumentService implements TextDocumentService {
                         "soar");
                 diagnosticList.add(diagnostic);
             }
+
+            // add any diagnostics found while initially parsing file
+            diagnosticList.addAll(documents.get(uri).getDiagnostics());
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
             client.publishDiagnostics(diagnostics);
