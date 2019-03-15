@@ -46,17 +46,19 @@ class LanguageServerTestFixture implements LanguageClient {
         this.languageServer = languageServer;
     }
 
-    TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {
+    TextDocumentIdentifier fileId(String relativePath) {
         Path file = workspaceRoot.resolve(relativePath);
-        TextDocumentIdentifier fileId = new TextDocumentIdentifier(file.toUri().toString());
+        return new TextDocumentIdentifier(file.toUri().toString());
+    }
+
+    TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {
+        TextDocumentIdentifier fileId = fileId(relativePath);
         Position position = new Position(line - 1, column - 1);
         return new TextDocumentPositionParams(fileId, position);
     }
 
     void open(String relativePath) throws Exception {
         Path path = workspaceRoot.resolve(relativePath);
-        System.out.println("Workspace root: " + workspaceRoot);
-        System.out.println("Opening " + path);
         String content = new String(Files.readAllBytes(path));
         TextDocumentItem document = new TextDocumentItem(path.toUri().toString(), "Soar", 0, content);
 

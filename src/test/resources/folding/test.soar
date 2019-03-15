@@ -1,0 +1,21 @@
+# Test for folding ranges.
+#
+# This comment block at the top of the file should be foldable.
+
+# Propose to initialize the state.
+#
+# This comment block should be foldable.
+sp "propose*init
+    (state <s> ^superstate nil
+              -^initialized)
+-->
+    (<s> ^operator <o> + =)
+    (<o> ^name init)
+"
+
+# Apply the init operator. This is too short to fold.
+sp "apply*init
+    (state <s> ^operator.name init)
+-->
+    (<s> ^initialized *YES*)
+"

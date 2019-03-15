@@ -1,10 +1,16 @@
 package com.soartech.soarls;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionList;
+import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
@@ -12,12 +18,15 @@ import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentHighlight;
+import org.eclipse.lsp4j.FoldingRange;
+import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
@@ -26,11 +35,14 @@ import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.SoarCommands;
+import static java.util.stream.Collectors.toList;
 
 class SoarDocumentService implements TextDocumentService {
     private Map<String, SoarFile> documents = new HashMap<>();
 
     private LanguageClient client;
+
+    private Set<String> variables = new HashSet();
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
@@ -67,6 +79,15 @@ class SoarDocumentService implements TextDocumentService {
     }
 
     @Override
+    public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        List<CompletionItem> completions = new ArrayList();
+        for (String variable: variables) {
+            completions.add(new CompletionItem(variable));
+        }
+        return CompletableFuture.completedFuture(Either.forLeft(completions));
+    }
+
+    @Override
     public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams params) {
         List<DocumentHighlight> highlights = new ArrayList<>();
 
@@ -87,6 +108,21 @@ class SoarDocumentService implements TextDocumentService {
 
         return CompletableFuture.completedFuture(highlights);
     }
+
+    @Override
+    public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        // List<FoldingRange> ranges = new ArrayList();
+        List<FoldingRange> ranges =
+            file.commands.stream()
+            .map(
+                c -> new FoldingRange(
+                    file.position(c.getLocation().getOffset() - 1).getLine(),
+                    file.position(c.getLocation().getOffset() - 1 + c.getLocation().getLength()).getLine()))
+            .collect(toList());
+        return CompletableFuture.completedFuture(ranges);
+    }
+
 
     public void connect(LanguageClient client) {
         this.client = client;
@@ -129,6 +165,11 @@ class SoarDocumentService implements TextDocumentService {
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
             client.publishDiagnostics(diagnostics);
+        }
+
+        try {
+            this.variables = new HashSet(Arrays.asList(agent.getInterpreter().eval("info vars").split(" ")));
+        } catch (SoarException e) {
         }
     }
 }
