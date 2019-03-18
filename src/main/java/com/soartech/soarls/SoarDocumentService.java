@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.Diagnostic;
@@ -91,14 +92,19 @@ class SoarDocumentService implements TextDocumentService {
         int start = -1;
         // The set of completions to draw from.
         Set<String> source = null;
+        CompletionItemKind kind = CompletionItemKind.Function;
 
         // Find the start of the token and determine its type.
         for (int i = cursor; i >= 0; --i) {
             switch (line.charAt(i)) {
-            case '$': source = variables;
+            case '$':
+                source = variables;
+                kind = CompletionItemKind.Constant;
                 break;
             case ' ':
-            case '[': source = procedures;
+            case '[':
+                source = procedures;
+                kind = CompletionItemKind.Function;
                 break;
             }
             if (source != null) {
@@ -108,14 +114,18 @@ class SoarDocumentService implements TextDocumentService {
         }
         if (source == null) {
             source = procedures;
+            kind = CompletionItemKind.Function;
             start = 0;
         }
+
+        CompletionItemKind itemKind = kind;
 
         String prefix = line.substring(start, cursor);
         List<CompletionItem> completions = source
             .stream()
             .filter(s -> s.startsWith(prefix))
             .map(s -> new CompletionItem(s))
+            .map(item -> { item.setKind(itemKind); return item; })
             .collect(Collectors.toList());
 
         return CompletableFuture.completedFuture(Either.forLeft(completions));

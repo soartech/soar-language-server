@@ -3,6 +3,7 @@ package com.soartech.soarls;
 import java.util.List;
 import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.CompletionItem;
+import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.Position;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -50,6 +51,30 @@ public class CompletionTest extends SingleFileTestFixture {
         // These are variables.
         assertNotCompletion(completions, "NGS_NO");
         assertNotCompletion(completions, "NGS_YES");
+    }
+
+    @Test
+    public void variableItemKind() throws Exception {
+        CompletionParams params = new CompletionParams(
+            fileId(file),
+            new Position(12, 59));
+        List<CompletionItem> completions = languageServer.getTextDocumentService().completion(params).get().getLeft();
+
+        for (CompletionItem completion: completions) {
+            assertEquals(completion.getKind(), CompletionItemKind.Constant);
+        }
+    }
+
+    @Test
+    public void procedureItemKind() throws Exception {
+        CompletionParams params = new CompletionParams(
+            fileId(file),
+            new Position(11, 10));
+        List<CompletionItem> completions = languageServer.getTextDocumentService().completion(params).get().getLeft();
+
+        for (CompletionItem completion: completions) {
+            assertEquals(completion.getKind(), CompletionItemKind.Function);
+        }
     }
 
     /** Test that the completion list contains this item. */
