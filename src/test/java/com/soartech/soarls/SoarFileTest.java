@@ -46,4 +46,13 @@ public class SoarFileTest {
             assertEquals(offset, offsetRoundtrip);
         }
     }
+
+    @Test
+    public void lines() {
+        assertEquals(file.line(0), "# comment\n");
+        assertEquals(file.line(1), "\n");
+        assertEquals(file.line(2), "sp \"propose*init\n");
+        // ...
+        assertEquals(file.line(7), "\"\n");
+    }
 }

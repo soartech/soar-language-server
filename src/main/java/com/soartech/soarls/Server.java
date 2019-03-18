@@ -47,7 +47,7 @@ public class Server implements LanguageServer, LanguageClientAware {
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setFoldingRangeProvider(true);
-        capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$")));
+        capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }

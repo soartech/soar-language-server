@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
@@ -43,6 +44,8 @@ class SoarDocumentService implements TextDocumentService {
     private LanguageClient client;
 
     private Set<String> variables = new HashSet();
+
+    private Set<String> procedures = new HashSet();
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
@@ -80,10 +83,41 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
-        List<CompletionItem> completions = new ArrayList();
-        for (String variable: variables) {
-            completions.add(new CompletionItem(variable));
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        String line = file.line(params.getPosition().getLine());
+
+        int cursor = params.getPosition().getCharacter();
+        // The position of the start of the token.
+        int start = -1;
+        // The set of completions to draw from.
+        Set<String> source = null;
+
+        // Find the start of the token and determine its type.
+        for (int i = cursor; i >= 0; --i) {
+            switch (line.charAt(i)) {
+            case '$': source = variables;
+                break;
+            case ' ':
+            case '[': source = procedures;
+                break;
+            }
+            if (source != null) {
+                start = i + 1;
+                break;
+            }
         }
+        if (source == null) {
+            source = procedures;
+            start = 0;
+        }
+
+        String prefix = line.substring(start, cursor);
+        List<CompletionItem> completions = source
+            .stream()
+            .filter(s -> s.startsWith(prefix))
+            .map(s -> new CompletionItem(s))
+            .collect(Collectors.toList());
+
         return CompletableFuture.completedFuture(Either.forLeft(completions));
     }
 
@@ -167,8 +201,15 @@ class SoarDocumentService implements TextDocumentService {
             client.publishDiagnostics(diagnostics);
         }
 
+        // Collect variables.
         try {
             this.variables = new HashSet(Arrays.asList(agent.getInterpreter().eval("info vars").split(" ")));
+        } catch (SoarException e) {
+        }
+
+        // Collect procedures.
+        try {
+            this.procedures = new HashSet(Arrays.asList(agent.getInterpreter().eval("info proc").split(" ")));
         } catch (SoarException e) {
         }
     }

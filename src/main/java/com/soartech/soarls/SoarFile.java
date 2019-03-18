@@ -97,6 +97,18 @@ class SoarFile {
         }
     }
 
+    /** Get a single line as a string. */
+    String line(int lineNumber) {
+        int start = offset(new Position(lineNumber, 0));
+        int end = offset(new Position(lineNumber + 1, 0));
+        // This avoids choking on the last line of the file.
+        if (end < 0) {
+            return contents.substring(start);
+        } else {
+            return contents.substring(start, end);
+        }
+    }
+
     /** Get the 0-based offset at the given position. */
     int offset(Position position) {
         int offset = 0;
