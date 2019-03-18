@@ -21,6 +21,7 @@ import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentHighlight;
 import org.eclipse.lsp4j.FoldingRange;
+import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -156,13 +157,15 @@ class SoarDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
         SoarFile file = documents.get(params.getTextDocument().getUri());
-        // List<FoldingRange> ranges = new ArrayList();
         List<FoldingRange> ranges =
             file.commands.stream()
-            .map(
-                c -> new FoldingRange(
-                    file.position(c.getLocation().getOffset() - 1).getLine(),
-                    file.position(c.getLocation().getOffset() - 1 + c.getLocation().getLength()).getLine()))
+            .map(c -> {
+                    FoldingRange range = new FoldingRange(
+                        file.position(c.getLocation().getOffset() - 1).getLine(),
+                        file.position(c.getLocation().getOffset() - 1 + c.getLocation().getLength()).getLine());
+                    range.setKind(FoldingRangeKind.Region);
+                    return range;
+                })
             .collect(toList());
         return CompletableFuture.completedFuture(ranges);
     }

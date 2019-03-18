@@ -28,26 +28,34 @@ public class FoldingRangeTest extends SingleFileTestFixture {
 
     @Test
     public void foldFileComment() {
-        assertRange(ranges.get(0), FoldingRangeKind.Comment, 0, 2);
+        assertRange(FoldingRangeKind.Comment, 0, 2);
     }
 
     @Test
     public void foldProductionComment() {
-        assertRange(ranges.get(1), FoldingRangeKind.Comment, 4, 6);
+        assertRange(FoldingRangeKind.Comment, 4, 6);
 
         // Not sure if single line comments should be foldable or not.
-        assertRange(ranges.get(3), FoldingRangeKind.Comment, 15, 15);
+        assertRange(FoldingRangeKind.Comment, 15, 15);
     }
 
     @Test
     public void foldProductions() {
-        assertRange(ranges.get(2), FoldingRangeKind.Region, 6, 13);
-        assertRange(ranges.get(4), FoldingRangeKind.Region, 16, 20);
+        assertRange(FoldingRangeKind.Region, 7, 13);
+        assertRange(FoldingRangeKind.Region, 16, 20);
     }
 
-    static void assertRange(FoldingRange range, String kind, int startLine, int endLine) {
-        assertEquals(range.getKind(), kind);
-        assertEquals(range.getStartLine(), startLine);
+    /** Test that a range exists matching the given parameters. */
+    void assertRange(String kind, int startLine, int endLine) {
+        FoldingRange range = ranges
+            .stream()
+            .filter(r -> r.getStartLine() == startLine)
+            .findFirst()
+            .orElse(null);
+        if (range == null) {
+            fail("no range starting at line " + startLine);
+        }
         assertEquals(range.getEndLine(), endLine);
+        assertEquals(range.getKind(), kind);
     }
 }
