@@ -1,12 +1,8 @@
 package com.soartech.soarls;
 
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.PushbackReader;
 import java.io.Reader;
 import java.io.StringReader;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -41,24 +37,7 @@ class SoarFile {
     
     public SoarFile(String uri, String contents) {
         this.uri = uri;
-
-        // try to get 'complete' file from reading from uri (jsoar will include \r\n as 2 chars in offset
-        // contents parameter will not include \r if it exists for new lines and so positions calculated from offsets will be wrong
-        try {
-            URI test = new URI(uri);
-
-            FileReader reader = new FileReader(test.toURL().getFile());
-            int ch;
-            StringBuilder builder = new StringBuilder();
-
-            while ((ch = reader.read()) != -1) {
-                builder.append((char)ch);
-            }
-            this.contents = builder.toString();
-        } catch (URISyntaxException | IOException e) {
-            // default to using contents given from plugin if unable to get contents from file
-            this.contents = contents;
-        }
+        this.contents = contents;
 
         try {
             List<ParsedCommand> commands = new ArrayList<>();
