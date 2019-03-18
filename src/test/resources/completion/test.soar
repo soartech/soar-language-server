@@ -1,8 +1,13 @@
 set NGS_YES *YES*
 set NGS_NO *NO*
 
+# Stubs for a few NGS commands
+proc ngs-bind { obj_id args } {}
+proc ngs-ex { obj_id attribute } {}
+
 sp "propose*initialize
     [ngs-match-top-state <s>]
     [ngs-nex <s> initialized]
 -->
+    [ngs-b
     [ngs-create-attribute-by-operator <s> <s> initialized $
