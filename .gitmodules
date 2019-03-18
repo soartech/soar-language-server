@@ -1,3 +1,4 @@
 [submodule "jsoar"]
 	path = jsoar
 	url = https://github.com/soartech/jsoar.git
+    branch = language-server
