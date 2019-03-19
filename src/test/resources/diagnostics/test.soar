@@ -1,0 +1,26 @@
+# All of these productions are well formed commands (that is, they
+# don't trigger any errors in the Tcl interpreter) but are _not_ valid
+# Soar productions.
+
+sp "missing-arrow
+    (state <s> ^superstate nil)
+    (<s> ^attr value)
+"
+
+sp "missing-state-keyword
+    (<s> ^superstate nil)
+-->
+    (<s> ^attr value)
+"
+
+sp "unbound-rhs-variable
+    (state <s> ^superstate nil)
+-->
+    (<foo> ^attr value)
+"
+
+sp "missing-caret
+    (state <s> superstate nil)
+-->
+    (<s> ^attr value)
+"

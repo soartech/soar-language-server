@@ -34,6 +34,9 @@ class LanguageServerTestFixture implements LanguageClient {
 
     final LanguageServer languageServer;
 
+    /** The most recent diagnostics that were sent from the server. */
+    PublishDiagnosticsParams diagnostics = null;
+
     LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
         URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
         workspaceRoot = Paths.get(anchorUri).getParent().resolve(relativeWorkspaceRoot);
@@ -74,6 +77,8 @@ class LanguageServerTestFixture implements LanguageClient {
 
     @Override
     public void publishDiagnostics(PublishDiagnosticsParams params) {
+        System.out.println(params.toString());
+        this.diagnostics = params;
     }
 
     @Override
