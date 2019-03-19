@@ -14,9 +14,11 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.SoarParserException;
+import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
 import org.jsoar.util.commands.DefaultInterpreterParser;
 import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.ParserBuffer;
+import org.jsoar.util.commands.SoarTclContextManager;
 
 /**
  * This class keeps track of the contents of a Soar source file along
@@ -159,5 +161,27 @@ class SoarFile {
 
     List<Diagnostic> getDiagnostics() {
         return diagnostics;
+    }
+
+    List<Diagnostic> getDiagnostics(SoarTclContextManager contextManager) {
+        List<Diagnostic> allDiagnostics = new ArrayList<>(diagnostics);
+
+        for (SoftTclInterpreterException e : contextManager.getExceptions()) {
+            allDiagnostics.add(new Diagnostic(
+                    getCommandRange(e.getCommand()),
+                    e.getMessage(),
+                    DiagnosticSeverity.Error,
+                    "soar"
+            ));
+        }
+
+        return allDiagnostics;
+    }
+
+    private Range getCommandRange(String command) {
+        int offset = contents.indexOf(command);
+        if (offset < 0) offset = 0;
+
+        return new Range(position(offset), position(offset + command.length()));
     }
 }

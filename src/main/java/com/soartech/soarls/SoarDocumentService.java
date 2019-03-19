@@ -35,6 +35,7 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
+import org.jsoar.kernel.exceptions.TclInterpreterException;
 import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.SoarCommands;
@@ -196,15 +197,20 @@ class SoarDocumentService implements TextDocumentService {
                         DiagnosticSeverity.Error,
                         "soar");
                 diagnosticList.add(diagnostic);
-            } catch (SoarException e) {
+            } catch (TclInterpreterException ex) {
+            } catch (SoarException ex) {
                 // Hard code a location, but include the exception text
                 // Default exception will highlight first 8 characters of first line
                 Diagnostic diagnostic = new Diagnostic(
                         new Range(new Position(0, 0), new Position(0, 8)),
-                        "Failed to source production in this file: " + e,
+                        "PLACEHOLDER: Failed to source production in this file: " + ex,
                         DiagnosticSeverity.Error,
                         "soar");
                 diagnosticList.add(diagnostic);
+            } finally {
+                // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
+                SoarFile file = documents.get(uri);
+                diagnosticList.addAll(file.getDiagnostics(agent.getInterpreter().getContextManager()));
             }
 
             // add any diagnostics found while initially parsing file
@@ -216,13 +222,13 @@ class SoarDocumentService implements TextDocumentService {
 
         // Collect variables.
         try {
-            this.variables = new HashSet(Arrays.asList(agent.getInterpreter().eval("info vars").split(" ")));
+            this.variables = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info vars").split(" ")));
         } catch (SoarException e) {
         }
 
         // Collect procedures.
         try {
-            this.procedures = new HashSet(Arrays.asList(agent.getInterpreter().eval("info proc").split(" ")));
+            this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info proc").split(" ")));
         } catch (SoarException e) {
         }
     }
