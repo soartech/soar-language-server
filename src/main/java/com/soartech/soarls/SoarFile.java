@@ -1,5 +1,7 @@
 package com.soartech.soarls;
 
+import com.soartech.soarls.tcl.TclAstNode;
+import com.soartech.soarls.tcl.TclParser;
 import java.io.PushbackReader;
 import java.io.Reader;
 import java.io.StringReader;
@@ -34,6 +36,8 @@ class SoarFile {
     public List<ParsedCommand> commands = new ArrayList<>();
 
     public List<Diagnostic> diagnostics = new ArrayList<>();
+
+    public TclAstNode ast = null;
     
     public SoarFile(String uri, String contents) {
         this.uri = uri;
@@ -74,6 +78,10 @@ class SoarFile {
             this.commands = commands;
         } catch (Exception e) {
         }
+
+        TclParser parser = new TclParser();
+        parser.setInput(this.contents.toCharArray(), 0, this.contents.length());
+        this.ast = parser.parse();
     }
 
     /** Get a single line as a string. */
