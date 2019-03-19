@@ -6,6 +6,7 @@ import org.eclipse.lsp4j.CompletionOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.ServerCapabilities;
+import org.eclipse.lsp4j.SignatureHelpOptions;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageClientAware;
@@ -48,6 +49,7 @@ public class Server implements LanguageServer, LanguageClientAware {
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setFoldingRangeProvider(true);
         capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
+        capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }

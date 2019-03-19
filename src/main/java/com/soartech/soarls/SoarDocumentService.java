@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -23,9 +25,12 @@ import org.eclipse.lsp4j.DocumentHighlight;
 import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
+import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.SignatureHelp;
+import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
@@ -45,6 +50,8 @@ class SoarDocumentService implements TextDocumentService {
     private Map<String, SoarFile> documents = new HashMap<>();
 
     private LanguageClient client;
+
+    private Agent agent = new Agent();
 
     private Set<String> variables = new HashSet();
 
@@ -171,15 +178,49 @@ class SoarDocumentService implements TextDocumentService {
         return CompletableFuture.completedFuture(ranges);
     }
 
+    @Override
+    public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        String line = file.line(params.getPosition().getLine());
+
+        List<SignatureInformation> signatures = new ArrayList<>();
+
+        // Find the token that the cursor is currently hovering
+        // over. It would be better to do this using the Tcl AST,
+        // because then we could figure out thing like when the cursor
+        // is on an argument.
+        Matcher matcher = Pattern.compile("[a-zA-Z-]+").matcher(line);
+        while (matcher.find()) {
+            if (matcher.start() <= params.getPosition().getCharacter() && params.getPosition().getCharacter() < matcher.end()) {
+                String token = line.substring(matcher.start(), matcher.end());
+                if (!procedures.contains(token)) {
+                    break;
+                }
+
+                String args = "";
+                try {
+                    args = agent.getInterpreter().eval("info args " + token);
+                } catch (Exception e) {
+                }
+                List<ParameterInformation> arguments = Arrays.stream(args.split(" "))
+                    .map(arg -> new ParameterInformation(arg))
+                    .collect(Collectors.toList());
+                String label = token + " " + args;
+                SignatureInformation info = new SignatureInformation(label, "", arguments);
+                signatures.add(info);
+                break;
+            }
+        }
+        SignatureHelp help = new SignatureHelp(signatures, 0, 0);
+        return CompletableFuture.completedFuture(help);
+    }
 
     public void connect(LanguageClient client) {
         this.client = client;
     }
 
     private void reportDiagnostics() {
-        // This is a stub implementation, just so we can see some
-        // errors published to the client.
-        Agent agent = new Agent();
+        agent = new Agent();
 
         for (String uri: documents.keySet()) {
             List<Diagnostic> diagnosticList = new ArrayList<>();
@@ -228,7 +269,7 @@ class SoarDocumentService implements TextDocumentService {
 
         // Collect procedures.
         try {
-            this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info proc").split(" ")));
+            this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info procs").split(" ")));
         } catch (SoarException e) {
         }
     }
