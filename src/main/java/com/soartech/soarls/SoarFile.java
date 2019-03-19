@@ -18,7 +18,7 @@ import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
 import org.jsoar.util.commands.DefaultInterpreterParser;
 import org.jsoar.util.commands.ParsedCommand;
 import org.jsoar.util.commands.ParserBuffer;
-import org.jsoar.util.commands.SoarTclContextManager;
+import org.jsoar.util.commands.SoarTclExceptionsManager;
 
 /**
  * This class keeps track of the contents of a Soar source file along
@@ -163,10 +163,10 @@ class SoarFile {
         return diagnostics;
     }
 
-    List<Diagnostic> getDiagnostics(SoarTclContextManager contextManager) {
+    List<Diagnostic> getDiagnostics(SoarTclExceptionsManager exceptionsManager) {
         List<Diagnostic> allDiagnostics = new ArrayList<>(diagnostics);
 
-        for (SoftTclInterpreterException e : contextManager.getExceptions()) {
+        for (SoftTclInterpreterException e : exceptionsManager.getExceptions()) {
             allDiagnostics.add(new Diagnostic(
                     getCommandRange(e.getCommand()),
                     e.getMessage(),

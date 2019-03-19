@@ -210,7 +210,7 @@ class SoarDocumentService implements TextDocumentService {
             } finally {
                 // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
                 SoarFile file = documents.get(uri);
-                diagnosticList.addAll(file.getDiagnostics(agent.getInterpreter().getContextManager()));
+                diagnosticList.addAll(file.getDiagnostics(agent.getInterpreter().getExceptionsManager()));
             }
 
             // add any diagnostics found while initially parsing file
