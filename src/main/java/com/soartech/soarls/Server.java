@@ -50,6 +50,7 @@ public class Server implements LanguageServer, LanguageClientAware {
         capabilities.setFoldingRangeProvider(true);
         capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
         capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
+        capabilities.setHoverProvider(true);
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }

@@ -1,0 +1,18 @@
+set NGS_YES *YES*
+set NGS_NO *NO*
+
+# Match the top state.
+proc ngs-match-top-state { id } {}
+
+# This is a stub for NGS bind.
+proc ngs-bind { id args } {}
+
+# Create an attribute.
+proc ngs-create-attribute { id attr value } {}
+
+sp "test
+    [ngs-match-top-state <s>]
+    [ngs-bind <s> path.to.object]
+-->
+    [ngs-create-attribute <object> matched $NGS_YES]
+"

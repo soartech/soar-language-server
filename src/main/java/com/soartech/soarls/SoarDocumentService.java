@@ -26,6 +26,9 @@ import org.eclipse.lsp4j.DocumentHighlight;
 import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
+import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.MarkupContent;
+import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -187,6 +190,39 @@ class SoarDocumentService implements TextDocumentService {
     }
 
     @Override
+    public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        String line = file.line(params.getPosition().getLine());
+
+        Hover hover = null;
+
+        // Find the token that the cursor is currently hovering
+        // over. It would be better to do this using the Tcl AST,
+        // because then we could figure out thing like when the cursor
+        // is on an argument.
+        Matcher matcher = Pattern.compile("[a-zA-Z-_]+").matcher(line);
+        while (matcher.find()) {
+            if (matcher.start() <= params.getPosition().getCharacter() && params.getPosition().getCharacter() < matcher.end()) {
+                String token = line.substring(matcher.start(), matcher.end());
+                if (variables.contains(token)) {
+                    String value = "";
+                    try {
+                        value = agent.getInterpreter().eval("return $" + token);
+                    } catch (SoarException e) {
+                    }
+                    Range range = new Range(
+                        new Position(params.getPosition().getLine(), matcher.start() - 1), // Include the leading '$'
+                        new Position(params.getPosition().getLine(), matcher.end() - 1)); // Range endings are inclusive
+                    hover = new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+                    break;
+                }
+            }
+        }
+
+        return CompletableFuture.completedFuture(hover);
+    }
+
+    @Override
     public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
         SoarFile file = documents.get(params.getTextDocument().getUri());
         String line = file.line(params.getPosition().getLine());
@@ -197,7 +233,7 @@ class SoarDocumentService implements TextDocumentService {
         // over. It would be better to do this using the Tcl AST,
         // because then we could figure out thing like when the cursor
         // is on an argument.
-        Matcher matcher = Pattern.compile("[a-zA-Z-]+").matcher(line);
+        Matcher matcher = Pattern.compile("[a-zA-Z-_]+").matcher(line);
         while (matcher.find()) {
             if (matcher.start() <= params.getPosition().getCharacter() && params.getPosition().getCharacter() < matcher.end()) {
                 String token = line.substring(matcher.start(), matcher.end());
@@ -208,7 +244,7 @@ class SoarDocumentService implements TextDocumentService {
                 String args = "";
                 try {
                     args = agent.getInterpreter().eval("info args " + token);
-                } catch (Exception e) {
+                } catch (SoarException e) {
                 }
                 List<ParameterInformation> arguments = Arrays.stream(args.split(" "))
                     .map(arg -> new ParameterInformation(arg))
