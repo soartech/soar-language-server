@@ -1,5 +1,6 @@
 package com.soartech.soarls;
 
+import com.soartech.soarls.tcl.TclAstNode;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -166,14 +167,21 @@ class SoarDocumentService implements TextDocumentService {
     public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
         SoarFile file = documents.get(params.getTextDocument().getUri());
         List<FoldingRange> ranges =
-            file.commands.stream()
+            file.ast.getChildren().stream()
             .map(c -> {
                     FoldingRange range = new FoldingRange(
-                        file.position(c.getLocation().getOffset() - 1).getLine(),
-                        file.position(c.getLocation().getOffset() - 1 + c.getLocation().getLength()).getLine());
-                    range.setKind(FoldingRangeKind.Region);
+                        file.position(c.getStart()).getLine(),
+                        file.position(c.getStart() + c.getLength() - 1).getLine());
+
+                    if (c.getType() == TclAstNode.COMMAND) {
+                        range.setKind(FoldingRangeKind.Region);
+                    } else if (c.getType() == TclAstNode.COMMENT) {
+                        range.setKind(FoldingRangeKind.Comment);
+                    }
+
                     return range;
                 })
+            .filter(r -> r.getStartLine() < r.getEndLine())
             .collect(toList());
         return CompletableFuture.completedFuture(ranges);
     }

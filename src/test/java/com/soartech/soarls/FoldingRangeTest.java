@@ -15,7 +15,6 @@ import static org.junit.Assert.*;
  * server spec) because Soar projects tend to have dedicated load.soar
  * files, and they tend to not be very long.
  */
-@org.junit.Ignore
 public class FoldingRangeTest extends SingleFileTestFixture {
     final List<FoldingRange> ranges;
     
@@ -35,8 +34,8 @@ public class FoldingRangeTest extends SingleFileTestFixture {
     public void foldProductionComment() {
         assertRange(FoldingRangeKind.Comment, 4, 6);
 
-        // Not sure if single line comments should be foldable or not.
-        assertRange(FoldingRangeKind.Comment, 15, 15);
+        // Single line comments are not to be included.
+        assertNoRange(15);
     }
 
     @Test
@@ -57,5 +56,19 @@ public class FoldingRangeTest extends SingleFileTestFixture {
         }
         assertEquals(range.getEndLine(), endLine);
         assertEquals(range.getKind(), kind);
+    }
+
+    /** Test for the _absence_ of a range at the given line. */
+    void assertNoRange(int line) {
+        boolean present = ranges
+            .stream()
+            .filter(r -> r.getStartLine() <= line)
+            .filter(r -> r.getEndLine() >= line)
+            .findAny()
+            .isPresent();
+
+        if (present) {
+            fail("there should be no range covering line " + line);
+        }
     }
 }
