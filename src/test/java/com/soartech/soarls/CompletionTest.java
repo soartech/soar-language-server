@@ -13,15 +13,6 @@ public class CompletionTest extends SingleFileTestFixture {
         super("completion", "test.soar");
     }
 
-    /** I'm not sure if this is a relevant thing to test, or if logic
-     * surrounding trigger characters is entirely handled
-     * client-side. */
-    @org.junit.Ignore
-    @Test
-    public void triggerOnCharacter() {
-        fail("unimplemented");
-    }
-
     @Test
     public void tclVariable() throws Exception {
         CompletionParams params = new CompletionParams(
