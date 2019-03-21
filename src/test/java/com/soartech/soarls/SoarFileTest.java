@@ -1,29 +1,20 @@
 package com.soartech.soarls;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import org.eclipse.lsp4j.Position;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
-public class SoarFileTest {
+public class SoarFileTest extends LanguageServerTestFixture {
     final SoarFile file;
 
-    /**
-     * Defining test fixtures inline is fine for now, but soon we
-     * should build a little infrastructure so we can read from the
-     * file system. The Kotlin language server has a nice example of
-     * how this can work.
-     */
-    public SoarFileTest() {
-        String contents = ""
-            + "# comment\n"
-            + "\n"
-            + "sp \"propose*init\n"
-            + "    (state <s> ^superstate nil)\n"
-            + "-->\n"
-            + "    (<s> ^operator <o> + =)\n"
-            + "    (<o> ^name init)\n"
-            + "\"\n";
-        file = new SoarFile("path", contents);
+    public SoarFileTest() throws Exception {
+        super("file");
+
+        Path path = workspaceRoot.resolve("test.soar");
+        String content = new String(Files.readAllBytes(path));
+        this.file = new SoarFile(path.toUri().toString(), content);
     }
 
     @Test
@@ -38,7 +29,7 @@ public class SoarFileTest {
         assertEquals(position.getLine(), 0);
         assertEquals(position.getCharacter(), 0);
     }
-    
+
     @Test
     public void offsetsRoundtrip() {
         for (int offset = 0; offset != file.contents.length(); ++offset) {
