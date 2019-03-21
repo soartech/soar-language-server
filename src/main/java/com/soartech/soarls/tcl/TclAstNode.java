@@ -81,6 +81,11 @@ public class TclAstNode
         return start;
     }
 
+    /** Get the offset of the character after the node. */
+    public int getEnd() {
+        return start + length;
+    }
+
     public boolean containsOffset(int offset)
     {
     	int end = start + length;

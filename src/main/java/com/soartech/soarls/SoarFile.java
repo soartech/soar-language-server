@@ -40,7 +40,7 @@ class SoarFile {
     public List<Diagnostic> diagnostics = new ArrayList<>();
 
     public TclAstNode ast = null;
-    
+
     public SoarFile(String uri, String contents) {
         this.uri = uri;
         this.contents = contents;
@@ -84,6 +84,33 @@ class SoarFile {
         TclParser parser = new TclParser();
         parser.setInput(this.contents.toCharArray(), 0, this.contents.length());
         this.ast = parser.parse();
+        this.ast.printTree(System.err, this.contents.toCharArray(), 1);
+    }
+
+    /** Get the Tcl AST node at the given position. */
+    TclAstNode tclNode(Position position) {
+        return tclNode(offset(position));
+    }
+
+    /** Get the Tcl AST node at the given offset. */
+    TclAstNode tclNode(int offset) {
+        TclAstNode node = this.ast;
+
+        // Find a child that contains this position.
+        while (true) {
+            TclAstNode child = node
+                .getChildren()
+                .stream()
+                .filter(c -> c.getStart() <= offset)
+                .filter(c -> offset < c.getEnd())
+                .findFirst()
+                .orElse(null);
+            if (child != null) {
+                node = child;
+            } else {
+                return node;
+            }
+        }
     }
 
     /** Get a single line as a string. */

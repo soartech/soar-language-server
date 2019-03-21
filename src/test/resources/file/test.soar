@@ -6,3 +6,10 @@ sp "propose*init
     (<s> ^operator <o> + =)
     (<o> ^name init)
 "
+
+sp "propose*init*ngs
+    [ngs-match-top-state <s>]
+    [ngs-not [ngs-eq <s> initialized] ]
+-->
+    [ngs-create-attribute-by-operator <s> <s> initialized $NGS_YES]
+"
