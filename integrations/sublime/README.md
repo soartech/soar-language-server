@@ -13,7 +13,7 @@ package:
 
 ```json
 {
-    "clients" {
+    "clients": {
         "soarls": {
             "command": ["path/to/soar-language-server"],
             "languageId": "soar",
