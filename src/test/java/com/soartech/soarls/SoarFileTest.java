@@ -10,6 +10,8 @@ import static org.junit.Assert.*;
 public class SoarFileTest extends LanguageServerTestFixture {
     final SoarFile file;
 
+    static Position endPosition = new Position(15, 0);
+
     public SoarFileTest() throws Exception {
         super("file");
 
@@ -46,6 +48,21 @@ public class SoarFileTest extends LanguageServerTestFixture {
         assertEquals(file.line(2), "sp \"propose*init\n");
         // ...
         assertEquals(file.line(7), "\"\n");
+    }
+
+    @Test
+    public void lastLine() {
+        int offset = file.offset(endPosition);
+        System.out.println("endPosition: " + endPosition);
+        System.out.println("offset: " + offset);
+        assert(offset > 0);
+    }
+
+    @Test
+    public void lastPosition() {
+        Position position = file.position(file.contents.length());
+        assertEquals(position.getLine(), endPosition.getLine());
+        assertEquals(position.getCharacter(), endPosition.getCharacter());
     }
 
     @Test

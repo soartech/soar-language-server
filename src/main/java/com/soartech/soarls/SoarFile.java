@@ -138,27 +138,22 @@ class SoarFile {
             }
             offset += 1;
         }
-        return -1;
+        return contents.length();
     }
 
     /** Get the line/column of the given 0-based offset. */
     Position position(int offset) {
         int line = 0;
         int character = 0;
-        for (int i = 0; i != contents.length(); ++i) {
-            if (i == offset) {
-                return new Position(line, character);
-            }
-
-            char ch = contents.charAt(i);
-            if (ch == '\n') {
+        for (int i = 0; i != offset; ++i) {
+            if (contents.charAt(i) == '\n') {
                 line += 1;
                 character = 0;
             } else {
                 character += 1;
             }
         }
-        return null;
+        return new Position(line, character);
     }
 
     private String fixLineEndings(String contents) {
