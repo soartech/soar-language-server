@@ -20,19 +20,19 @@ public class TclAstNode
     public static final int QUOTED_WORD = 4;
     public static final int BRACED_WORD = 5;
     public static final int COMMAND_WORD = 6;
-    
+
     private static final String TYPES[] = new String[] {
         "ROOT", "COMMENT", "COMMAND", "NORMAL_WORD", "QUOTED_WORD",
         "BRACED_WORD", "COMMAND_WORD"
     };
-    
+
     private int type;
     private int start;
     private int length;
     private List<TclAstNode> children;
     private TclAstNode previousChild = null;
     private TclParserError error;
-    
+
     public TclAstNode(int type, int start)
     {
         this.type = type;
@@ -47,7 +47,7 @@ public class TclAstNode
         }
         return children;
     }
-    
+
     public void addChild(TclAstNode node)
     {
         List<TclAstNode> kids = getChildren();
@@ -61,7 +61,7 @@ public class TclAstNode
         }
         kids.add(node);
     }
-    
+
     public TclAstNode getPrevious()
     {
         return previousChild;
@@ -80,16 +80,16 @@ public class TclAstNode
     {
         return start;
     }
-    
+
     public boolean containsOffset(int offset)
     {
     	int end = start + length;
-    	
+
     	if(offset >= start && offset <= end)
     	{
     		return true;
     	}
-    	
+
     	return false;
     }
 
@@ -97,7 +97,7 @@ public class TclAstNode
     {
         return type;
     }
-    
+
     /**
      * @return the error
      */
@@ -122,31 +122,31 @@ public class TclAstNode
         return type == NORMAL_WORD || type == QUOTED_WORD ||
                type == BRACED_WORD || type == COMMAND_WORD;
     }
-    
+
     public boolean isExpandable()
     {
         return type == QUOTED_WORD || type == COMMAND_WORD;
     }
-    
+
     public String getInternalText(char[] buffer)
     {
         int internalStart = start;
         int internalLength = length;
-        
+
         if(type == BRACED_WORD || type == QUOTED_WORD)
         {
             ++internalStart;
             internalLength -= 2;
         }
-        
+
         if(internalLength <= 0 || (internalStart + internalLength > buffer.length))
         {
             return "";
         }
-        
+
         return new String(buffer, internalStart, internalLength);
     }
-    
+
     public TclAstNode getChild(int type)
     {
         if(children == null)
@@ -162,7 +162,7 @@ public class TclAstNode
         }
         return null;
     }
-    
+
     public List<TclAstNode> getWordChildren()
     {
         List<TclAstNode> words = new ArrayList<TclAstNode>();
@@ -177,9 +177,9 @@ public class TclAstNode
             }
         }
         return words;
-        
+
     }
-    
+
     public void printTree(PrintStream stream, char input[], int depth)
     {
         for(int i = 0; i < depth; ++i)
@@ -209,7 +209,7 @@ public class TclAstNode
         b.append(" [" + start + ", " + length + ")");
         return b.toString();
     }
-    
+
     /**
      * Check whether this node contains the given word type.
      * @param type <pre>
@@ -225,14 +225,14 @@ public class TclAstNode
     	if (this.type == type) {
             return true;
     	}
-    	
+
     	for (TclAstNode child: getChildren()) {
             if (child.containsType(type)) return true;
     	}
-    	
+
     	return false;
     }
-    
+
 //    /**
 //     * Find a child with a particular line and column anywhere in the tree.
 //     *
@@ -243,7 +243,7 @@ public class TclAstNode
 //    static public TclAstNode findChild(TclAstNode ast, int line, int column)
 //    {
 //    	TclAstNode node = null;
-//    	
+//
 ////        for(TclAstNode c = ast.getFirstChild(); c != null; c = c.getNextSibling())
 //    	for(TclAstNode n:ast.getChildren())
 //        {
@@ -262,15 +262,15 @@ public class TclAstNode
 //        }
 //        return node;
 //    }
-//    
+//
 //    private static boolean evaluateNode(TclAstNode node, int line, int column)
 //    {
 //    	if(node == null)
 //    	{
 //    		return false;
 //    	}
-//    	
+//
 ////    	node.
 //    }
-    
+
 }
