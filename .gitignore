@@ -7,6 +7,7 @@ build
 # Ignore JetBrains IDE files 
 .idea/
 *.iml
+out/
 
 # Ignore VSCode IDE files
 .project

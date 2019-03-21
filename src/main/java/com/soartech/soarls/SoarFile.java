@@ -43,7 +43,7 @@ class SoarFile {
 
     public SoarFile(String uri, String contents) {
         this.uri = uri;
-        this.contents = contents;
+        this.contents = fixLineEndings(contents);
 
         try {
             List<ParsedCommand> commands = new ArrayList<>();
@@ -161,6 +161,12 @@ class SoarFile {
         return null;
     }
 
+    private String fixLineEndings(String contents) {
+        contents = contents.replace("\r\n", "\n");
+        contents = contents.replace("\r", "\n");
+        return contents;
+    }
+
     // returns offset location of specific char before the startOffset
     // if no previous occurrence is found then return 0
     // currently unused
@@ -186,23 +192,30 @@ class SoarFile {
         return new Range(new Position(line, 0), getEndofLinePosition(line));
     }
 
+    List<Diagnostic> getAllDiagnostics(SoarTclExceptionsManager exceptionsManager) {
+        List<Diagnostic> allDiagnostics = new ArrayList<>();
+        allDiagnostics.addAll(diagnostics);
+        allDiagnostics.addAll(getDiagnosticsFromExceptionsManager(exceptionsManager));
+        return allDiagnostics;
+    }
+
     List<Diagnostic> getDiagnostics() {
         return diagnostics;
     }
 
-    List<Diagnostic> getDiagnostics(SoarTclExceptionsManager exceptionsManager) {
-        List<Diagnostic> allDiagnostics = new ArrayList<>(diagnostics);
+    List<Diagnostic> getDiagnosticsFromExceptionsManager(SoarTclExceptionsManager exceptionsManager) {
+        List<Diagnostic> managerDiagnostics = new ArrayList<>();
 
         for (SoftTclInterpreterException e : exceptionsManager.getExceptions()) {
-            allDiagnostics.add(new Diagnostic(
+            managerDiagnostics.add(new Diagnostic(
                     getCommandRange(e.getCommand()),
-                    e.getMessage(),
+                    e.getMessage().trim(),
                     DiagnosticSeverity.Error,
                     "soar"
             ));
         }
 
-        return allDiagnostics;
+        return managerDiagnostics;
     }
 
     private Range getCommandRange(String command) {

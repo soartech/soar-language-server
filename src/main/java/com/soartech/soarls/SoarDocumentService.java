@@ -292,14 +292,12 @@ class SoarDocumentService implements TextDocumentService {
                         DiagnosticSeverity.Error,
                         "soar");
                 diagnosticList.add(diagnostic);
-            } finally {
-                // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
-                SoarFile file = documents.get(uri);
-                diagnosticList.addAll(file.getDiagnostics(agent.getInterpreter().getExceptionsManager()));
             }
 
+            SoarFile file = documents.get(uri);
             // add any diagnostics found while initially parsing file
-            diagnosticList.addAll(documents.get(uri).getDiagnostics());
+            // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
+            diagnosticList.addAll(file.getAllDiagnostics(agent.getInterpreter().getExceptionsManager()));
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
             client.publishDiagnostics(diagnostics);

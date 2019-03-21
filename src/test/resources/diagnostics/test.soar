@@ -24,3 +24,9 @@ sp "missing-caret
 -->
     (<s> ^attr value)
 "
+
+sp missing-quote
+   (state <s> superstate nil)
+-->
+   (<s> ^attr value)
+"
