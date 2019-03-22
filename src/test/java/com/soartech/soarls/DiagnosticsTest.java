@@ -16,7 +16,6 @@ import static org.junit.Assert.*;
  * These tests are for Soar productions where any Tcl is successfully
  * interpreted, but the resulting Soar code is invalid.
  */
-
 public class DiagnosticsTest extends SingleFileTestFixture {
     public DiagnosticsTest() throws Exception {
         super("diagnostics", "test.soar");
@@ -24,14 +23,14 @@ public class DiagnosticsTest extends SingleFileTestFixture {
 
     @Test
     public void diagnosticsReported() {
-        assertNotNull(this.diagnostics);
-        assertEquals(6, this.diagnostics.getDiagnostics().size());
+        assertNotNull(this.getFileDiagnostics());
+        assertEquals(6, this.getFileDiagnostics().size());
     }
 
     @Test
     public void missingArrow() {
         boolean diagnosticFound = false;
-        for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+        for (Diagnostic diagnostic : getFileDiagnostics()) {
             if (diagnostic.getMessage().contains("In production 'missing-arrow', expected --> in production")) {
                 Position start = diagnostic.getRange().getStart();
                 Position end = diagnostic.getRange().getEnd();
@@ -50,7 +49,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     @Test
     public void missingStateKeyword() {
         boolean diagnosticFound = false;
-        for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+        for (Diagnostic diagnostic : getFileDiagnostics()) {
             if (diagnostic.getMessage().equals("Warning: On the LHS of production missing-state-keyword, identifier <s> is not connected to any goal or impasse.")) {
                 Position start = diagnostic.getRange().getStart();
                 Position end = diagnostic.getRange().getEnd();
@@ -68,7 +67,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     @Test
     public void unboundRhsVariable() {
         boolean diagnosticFound = false;
-        for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+        for (Diagnostic diagnostic : getFileDiagnostics()) {
             if (diagnostic.getMessage().contains("Error: production unbound-rhs-variable has a bad RHS--")) {
                 Position start = diagnostic.getRange().getStart();
                 Position end = diagnostic.getRange().getEnd();
@@ -86,7 +85,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     @Test
     public void missingCaret() {
         boolean diagnosticFound = false;
-        for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+        for (Diagnostic diagnostic : getFileDiagnostics()) {
             if (diagnostic.getMessage().contains("In production 'missing-caret', expected ^ followed by attribute")) {
                 Position start = diagnostic.getRange().getStart();
                 Position end = diagnostic.getRange().getEnd();
@@ -105,7 +104,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     public void missingProductionQuote() {
         // check for diagnostic created by parser at last quote due to mismatched quotes
         boolean parserDiagnosticFound = false;
-        for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+        for (Diagnostic diagnostic : getFileDiagnostics()) {
             if (diagnostic.getMessage().equals("Unexpected end of input. Unmatched quote.")) {
                 Position start = diagnostic.getRange().getStart();
                 Position end = diagnostic.getRange().getEnd();
@@ -120,7 +119,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
         assertTrue(parserDiagnosticFound);
 
         boolean sourcedDiagnosticFound = false;
-        for (Diagnostic diagnostic : diagnostics.getDiagnostics()) {
+        for (Diagnostic diagnostic : getFileDiagnostics()) {
             if (diagnostic.getMessage().contains("In production 'missing-quote', expected ( to begin condition element")) {
                 Position start = diagnostic.getRange().getStart();
                 Position end = diagnostic.getRange().getEnd();

@@ -1,5 +1,8 @@
 package com.soartech.soarls;
 
+import java.util.List;
+import org.eclipse.lsp4j.Diagnostic;
+
 /**
  * Create a Soar file at
  * tests/resources/<relativeWorkspaceRoot>/<file>, then extend this to
@@ -16,5 +19,10 @@ class SingleFileTestFixture extends LanguageServerTestFixture {
         super(relativeWorkspaceRoot);
         this.file = file;
         open(file);
+    }
+
+    /** Get the diagnostics for this file. */
+    List<Diagnostic> getFileDiagnostics() {
+        return diagnosticsForFile(file);
     }
 }

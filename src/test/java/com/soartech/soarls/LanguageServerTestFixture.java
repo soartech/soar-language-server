@@ -5,7 +5,11 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.MessageActionItem;
@@ -34,8 +38,10 @@ class LanguageServerTestFixture implements LanguageClient {
 
     final LanguageServer languageServer;
 
-    /** The most recent diagnostics that were sent from the server. */
-    PublishDiagnosticsParams diagnostics = null;
+    /** The most recent diagnostics that were sent from the server for
+     * each file.
+     */
+    Map<String, PublishDiagnosticsParams> diagnostics = new HashMap<>();
 
     LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
         URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
@@ -68,6 +74,11 @@ class LanguageServerTestFixture implements LanguageClient {
         languageServer.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(document));
     }
 
+    List<Diagnostic> diagnosticsForFile(String relativePath) {
+        Path path = workspaceRoot.resolve(relativePath);
+        return diagnostics.get(path.toUri().toString()).getDiagnostics();
+    }
+
     // Implement LanguageClient
 
     @Override
@@ -78,7 +89,7 @@ class LanguageServerTestFixture implements LanguageClient {
     @Override
     public void publishDiagnostics(PublishDiagnosticsParams params) {
         System.out.println(params.toString());
-        this.diagnostics = params;
+        this.diagnostics.put(params.getUri(), params);
     }
 
     @Override
