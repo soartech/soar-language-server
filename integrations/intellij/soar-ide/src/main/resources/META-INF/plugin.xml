@@ -3,16 +3,15 @@
     <name>Soar IDE</name>
     <vendor email="robert.picking@soartech.com" url="http://www.soartech.com">SoarTech</vendor>
 
-    <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
-    ]]></description>
+    <description>Adds Soar Language Support with connection to Soar Language Server</description>
+
+    <idea-version since-build="182"/>
 
     <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
          on how to target different products -->
-    <!-- uncomment to enable plugin in all products
-    <depends>com.intellij.modules.lang</depends> -->
-
+    <!-- uncomment to enable plugin in all products -->
+    <depends>com.intellij.modules.lang</depends>
+    
 
     <extensions defaultExtensionNs="com.intellij">
         <!-- Add your extensions here -->

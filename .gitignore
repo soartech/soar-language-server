@@ -15,3 +15,6 @@ out/
 
 # Ignore Maven build directory
 target/
+
+# Ignore IntelliJ Plugin output
+integrations/intellij/soar-ide/out
