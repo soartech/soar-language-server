@@ -1,8 +1,8 @@
+
 import com.intellij.openapi.application.PreloadingActivity;
 import com.intellij.openapi.progress.ProgressIndicator;
 import org.jetbrains.annotations.NotNull;
-import com.github.gtache.lsp.client.languageserver.serverdefinition.LanguageServerDefinition;
-import com.github.gtache.lsp.client.languageserver.serverdefinition.ExeLanguageServerDefinition;
+import settings.SoarState;
 
 
 public class SoarPreloadingActivity extends PreloadingActivity {
@@ -13,9 +13,7 @@ public class SoarPreloadingActivity extends PreloadingActivity {
 
     @Override
     public void preload(@NotNull ProgressIndicator indicator) {
-        LanguageServerDefinition.register(new ExeLanguageServerDefinition(
-                "soar",
-                "",
-                new String[0]));
+        SoarState settings = SoarState.getInstance();
+        settings.registerServer();
     }
 }

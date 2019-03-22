@@ -15,9 +15,16 @@
 
 
     <extensions defaultExtensionNs="com.intellij">
-    <!-- Add your extensions here -->
-    <preloadingActivity implementation="SoarPreloadingActivity" id="SoarPreloader" />
-</extensions>
+        <!-- Add your extensions here -->
+        <preloadingActivity implementation="SoarPreloadingActivity" id="SoarPreloader" />
+
+        <applicationConfigurable instance="settings.SoarSettings" id="SoarSettings"
+                                 groupId="language" displayName="Soar IDE Settings" />
+
+        <applicationService id="SoarState"
+                            serviceInterface="settings.SoarState"
+                            serviceImplementation="settings.SoarState" />
+    </extensions>
 
     <actions>
         <!-- Add your actions here -->
