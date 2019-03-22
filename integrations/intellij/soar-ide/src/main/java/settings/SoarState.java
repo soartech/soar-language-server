@@ -5,16 +5,15 @@ import com.github.gtache.lsp.client.connection.ProcessStreamConnectionProvider;
 import com.github.gtache.lsp.client.connection.StreamConnectionProvider;
 import com.github.gtache.lsp.client.languageserver.serverdefinition.ExeLanguageServerDefinition;
 import com.github.gtache.lsp.client.languageserver.serverdefinition.LanguageServerDefinition;
+import com.intellij.ide.plugins.IdeaPluginDescriptor;
 import com.intellij.ide.plugins.PluginManager;
 import com.intellij.openapi.application.ApplicationManager;
+import com.intellij.openapi.components.ApplicationComponent;
+import com.intellij.openapi.components.ComponentConfig;
 import com.intellij.openapi.components.PersistentStateComponent;
 import com.intellij.openapi.components.ServiceManager;
 import com.intellij.openapi.components.State;
 import com.intellij.openapi.components.Storage;
-import com.intellij.openapi.extensions.PluginDescriptor;
-import com.intellij.openapi.project.Project;
-import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.roots.ModuleRootManager;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.util.xmlb.XmlSerializerUtil;
@@ -23,10 +22,8 @@ import org.jetbrains.annotations.Nullable;
 
 import scala.collection.JavaConverters;
 import scala.collection.Map;
-import scala.collection.convert.Wrappers;
 
 import java.io.File;
-import java.util.HashMap;
 import java.util.Set;
 
 
@@ -66,11 +63,15 @@ public class SoarState implements PersistentStateComponent<SoarState> {
 
     public void setLanguageServerExecutablePath(String languageServerExecutablePath) {
         this.languageServerExecutablePath = languageServerExecutablePath;
-        registerServer();
+        registerServer(true);
     }
 
     public void registerServer() {
-        if(!checkIfExecutableExists()) return;
+        registerServer(false);
+    }
+
+    public void registerServer(boolean askToRestart) {
+        if(!checkIfExecutableExists(askToRestart)) return;
 
         System.out.println("Register Server");
         stopServers();
@@ -80,7 +81,7 @@ public class SoarState implements PersistentStateComponent<SoarState> {
                 new String[0]));
     }
 
-    private boolean checkIfExecutableExists() {
+    private boolean checkIfExecutableExists(boolean askToRestart) {
         File executableFile = new File(this.languageServerExecutablePath);
         if (!executableFile.exists() || executableFile.isDirectory()) {
             ApplicationManager.getApplication().invokeLater(() ->
@@ -90,7 +91,8 @@ public class SoarState implements PersistentStateComponent<SoarState> {
             return false;
         }
 
-        askUserToRestart();
+        if (askToRestart)
+            askUserToRestart();
         return true;
     }
 
