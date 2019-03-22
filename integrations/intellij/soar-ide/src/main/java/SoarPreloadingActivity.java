@@ -14,6 +14,6 @@ public class SoarPreloadingActivity extends PreloadingActivity {
     @Override
     public void preload(@NotNull ProgressIndicator indicator) {
         SoarState settings = SoarState.getInstance();
-        settings.registerServer(true);
+        settings.registerServer();
     }
 }
