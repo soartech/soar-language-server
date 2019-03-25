@@ -1,8 +1,4 @@
-language: shell
-
-os:
-  - windows
-  - linux
+language: java
 
 # This comes from the docs at
 # https://docs.travis-ci.com/user/languages/java/#caching
@@ -13,7 +9,3 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
-
-script:
-  - ./gradlew assemble
-  - ./gradlew check
