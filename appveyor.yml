@@ -1,3 +1,5 @@
+version: "{branch} {build}"
+
 build_script:
   - gradlew.bat assemble
 
@@ -6,4 +8,4 @@ test_script:
 
 cache:
   - C:\Users\appveyor\.gradle
-
+  - C:\Users\appveyor\build
