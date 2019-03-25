@@ -10,6 +10,7 @@ plugins {
     id 'java'
     id 'jacoco'
     id 'application'
+    id 'com.github.dkorotych.gradle-maven-exec' version '2.1'
 }
 
 applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999']
@@ -36,11 +37,22 @@ dependencies {
     implementation 'com.soartech:jsoar-tcl:4.0-SNAPSHOT'
 
     compile files("jsoar/target/classes") {
-        builtBy "compileMavenProject"
+        builtBy 'compileJSoar'
     }
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
+}
+
+task compileJSoar(type: MavenExec) {
+    workingDir 'jsoar/'
+    goals 'install'
+    options {
+        define = [
+            'maven.test.skip': 'true',
+            'maven.javadoc.skip': 'true'
+        ]
+    }
 }
 
 task compileMavenProject(type: Exec) {
