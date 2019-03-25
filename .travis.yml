@@ -1,5 +1,9 @@
 language: java
 
+os:
+  - linux
+  - windows
+
 # This comes from the docs at
 # https://docs.travis-ci.com/user/languages/java/#caching
 before_cache:
