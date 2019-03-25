@@ -55,23 +55,5 @@ task compileJSoar(type: MavenExec) {
     }
 }
 
-task compileMavenProject(type: Exec) {
-    workingDir "jsoar/"
-    commandLine osAdaptiveCommand("mvn", "--batch-mode", "-Dmaven.test.skip=true", "-Dmaven.javadoc.skip=true", "install")
-}
-
-// Commands on Windows need to be prefixed with `cmd /c`
-// See https://stackoverflow.com/a/54315477
-import org.apache.tools.ant.taskdefs.condition.Os
-private static Iterable<String> osAdaptiveCommand(String... commands) {
-    def newCommands = []
-    if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-        newCommands = ['cmd', '/c']
-    }
-
-    newCommands.addAll(commands)
-    return newCommands
-}
-
 // Define the main class for the application
 mainClassName = 'com.soartech.soarls.App'
