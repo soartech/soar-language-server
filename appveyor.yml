@@ -1,5 +1,8 @@
 version: "{branch} {build}"
 
+install:
+  - cmd: git submodule -q update --init
+
 build_script:
   - gradlew.bat assemble
 
