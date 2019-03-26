@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.com/soartech/soar-language-server.svg?branch=master)](https://travis-ci.com/soartech/soar-language-server)
-[![Build status](https://ci.appveyor.com/api/projects/status/odm1cx7f8phh99pw?svg=true)](https://ci.appveyor.com/project/soartech/soar-language-server/branch/master)
+[![Build status](https://ci.appveyor.com/api/projects/status/odm1cx7f8phh99pw/branch/master?svg=true)](https://ci.appveyor.com/project/soartech/soar-language-server/branch/master)
 
 # Soar Language Server
 
