@@ -133,6 +133,9 @@ class SoarDocumentService implements TextDocumentService {
 
         CompletionItemKind itemKind = kind;
 
+        if (start >= line.length()) start = line.length() - 1;
+        if (start < 0) start = 0;
+
         if (cursor > line.length()) cursor = line.length();
         if (cursor < start) cursor = start;
 
