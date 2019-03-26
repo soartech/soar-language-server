@@ -133,11 +133,14 @@ class SoarDocumentService implements TextDocumentService {
 
         CompletionItemKind itemKind = kind;
 
+        if (cursor > line.length()) cursor = line.length();
+        if (cursor < start) cursor = start;
+
         String prefix = line.substring(start, cursor);
         List<CompletionItem> completions = source
             .stream()
             .filter(s -> s.startsWith(prefix))
-            .map(s -> new CompletionItem(s))
+            .map(CompletionItem::new)
             .map(item -> { item.setKind(itemKind); return item; })
             .collect(Collectors.toList());
 
