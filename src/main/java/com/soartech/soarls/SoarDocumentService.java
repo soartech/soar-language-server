@@ -1,6 +1,7 @@
 package com.soartech.soarls;
 
 import com.soartech.soarls.tcl.TclAstNode;
+import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -374,7 +375,7 @@ class SoarDocumentService implements TextDocumentService {
                 @Override
                 public String execute(SoarCommandContext context, String[] args) throws SoarException {
                     try {
-                        Path root = Paths.get(new URI("file://" + context.getSourceLocation().getFile())).getParent();
+                        Path root = new File(context.getSourceLocation().getFile()).getParentFile().toPath();
                         String path = root.resolve(args[1]).toUri().toString();
                         sourcedFiles.add(path);
                     } catch (Exception e) {
