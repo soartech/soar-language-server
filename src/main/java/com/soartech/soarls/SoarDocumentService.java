@@ -1,6 +1,9 @@
 package com.soartech.soarls;
 
 import com.soartech.soarls.tcl.TclAstNode;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -47,19 +50,42 @@ import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.TclInterpreterException;
 import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.ParsedCommand;
+import org.jsoar.util.commands.SoarCommand;
+import org.jsoar.util.commands.SoarCommandContext;
 import org.jsoar.util.commands.SoarCommands;
 import static java.util.stream.Collectors.toList;
 
 class SoarDocumentService implements TextDocumentService {
+    /** Soar and Tcl files in the workspace. This is just for
+     * maintaining the state of the files, which includes their raw
+     * contents, parsed syntax tree, and convenience methods for
+     * working with this representation. It does not include
+     * diagnostics information.
+     */
     private Map<String, SoarFile> documents = new HashMap<>();
+
+    /** Diagnostics information about each file. This includes things
+     * like the other files that get sourced, declarations of Tcl
+     * procedures and variables, production declarations, and so
+     * on. The analyseFile method is the entry point for how this
+     * information gets generated.
+     */
+    private Map<String, FileAnalysis> analyses = new HashMap<>();
 
     private LanguageClient client;
 
     private Agent agent = new Agent();
 
+    /** The names of all the Tcl variables that are defined by the agent. */
     private Set<String> variables = new HashSet();
 
+    /** The names of all the Tcl procedures that are defined by the agent. */
     private Set<String> procedures = new HashSet();
+
+    /** Retrieve the analysis for the given file. */
+    public FileAnalysis getAnalysis(String uri) {
+        return analyses.get(uri);
+    }
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
@@ -269,9 +295,26 @@ class SoarDocumentService implements TextDocumentService {
     }
 
     private void reportDiagnostics() {
+        reportDiagnosticsForOpenFiles();
+    }
+
+    /** This implementation tries to load each open file and computes
+     * diagnostics on a per-file basis. The problem with this approach
+     * is that a file might rely on variables and procedures having
+     * been defined before it is loaded.
+     */
+    private void reportDiagnosticsForOpenFiles() {
         agent = new Agent();
 
+        System.err.println("Reporting diagnostics for " + documents.keySet());
+
         for (String uri: documents.keySet()) {
+            try {
+                analyseFile(uri);
+            } catch (SoarException e) {
+                System.err.println("analyse error: " + e);
+            }
+
             List<Diagnostic> diagnosticList = new ArrayList<>();
 
             try {
@@ -319,5 +362,38 @@ class SoarDocumentService implements TextDocumentService {
             this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info procs").split(" ")));
         } catch (SoarException e) {
         }
+    }
+
+    private void analyseFile(String uri) throws SoarException {
+        Agent agent = new Agent();
+
+        List<String> sourcedFiles = new ArrayList<>();
+
+        SoarCommand sourceCommand = agent.getInterpreter().getCommand("source", null);
+        SoarCommand newCommand = new SoarCommand() {
+                @Override
+                public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                    try {
+                        Path root = Paths.get(new URI("file://" + context.getSourceLocation().getFile())).getParent();
+                        String path = root.resolve(args[1]).toUri().toString();
+                        sourcedFiles.add(path);
+                    } catch (Exception e) {
+                        System.err.println("exception while tracing source: " + e);
+                    }
+                    return "";
+                }
+
+                @Override
+                public Object getCommand() { return this; }
+            };
+        agent.getInterpreter().addCommand("source", newCommand);
+
+        SoarFile file = documents.get(uri);
+
+        SoarCommands.source(agent.getInterpreter(), uri);
+
+        FileAnalysis analysis = new FileAnalysis(uri);
+        analysis.filesSourced = sourcedFiles;
+        this.analyses.put(uri, analysis);
     }
 }

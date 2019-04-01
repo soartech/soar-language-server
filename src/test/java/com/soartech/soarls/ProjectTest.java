@@ -5,6 +5,11 @@ import org.eclipse.lsp4j.Diagnostic;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
+/** These are full-workspace integration tests that should be
+ * expressed in terms of the language server API. Internal state of
+ * the language server should not be tested here. For those tests, see
+ * AnalysisTest.
+ */
 @org.junit.Ignore
 public class ProjectTest extends LanguageServerTestFixture {
     public ProjectTest() throws Exception {
