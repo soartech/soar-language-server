@@ -52,6 +52,8 @@ public class Server implements LanguageServer, LanguageClientAware {
         capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
         capabilities.setHoverProvider(true);
 
+        capabilities.setDefinitionProvider(true);
+
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }
 

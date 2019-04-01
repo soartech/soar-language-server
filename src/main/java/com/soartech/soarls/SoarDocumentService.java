@@ -5,6 +5,7 @@ import java.io.File;
 import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -16,10 +17,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
+import org.eclipse.lsp4j.CreateFile;
+import org.eclipse.lsp4j.CreateFileOptions;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
@@ -31,6 +36,8 @@ import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
@@ -42,6 +49,8 @@ import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
@@ -77,11 +86,9 @@ class SoarDocumentService implements TextDocumentService {
 
     private Agent agent = new Agent();
 
-    /** The names of all the Tcl variables that are defined by the agent. */
-    private Set<String> variables = new HashSet();
+    private Set<String> variables = new HashSet<>();
 
-    /** The names of all the Tcl procedures that are defined by the agent. */
-    private Set<String> procedures = new HashSet();
+    private Set<String> procedures = new HashSet<>();
 
     /** Retrieve the analysis for the given file. */
     public FileAnalysis getAnalysis(String uri) {
@@ -114,6 +121,48 @@ class SoarDocumentService implements TextDocumentService {
             SoarFile soarFile = documents.get(uri);
             soarFile.applyChange(change);
         }
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams position) {
+        SoarFile file = documents.get(position.getTextDocument().getUri());
+        TclAstNode node = file.tclNode(position.getPosition());
+
+
+        // find unparsed command from structure
+//        ParsedCommand command = file.getCommandAtPosition(position.getPosition());
+        String expanded_soar;
+        try {
+            expanded_soar = file.getExpandedCommand(agent, node);
+        } catch (SoarException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        String old_uri = position.getTextDocument().getUri();
+        int index = old_uri.lastIndexOf("/") + 1;
+        String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
+
+        // create new "buffer" file to show expanded soar code
+        CreateFile createFile = new CreateFile(new_uri, new CreateFileOptions(true, false));
+        WorkspaceEdit workspaceEdit = new WorkspaceEdit();
+        workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
+        ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
+        client.applyEdit(workspaceEditParams);
+
+        // set new content of file to expanded_soar
+        Map<String, List<TextEdit>> edit_map = new HashMap<>();
+        Position start = new Position(0, 0);
+        List<TextEdit> edits = new ArrayList<>();
+        edits.add(new TextEdit(new Range(start, start), expanded_soar));
+        edit_map.put(new_uri, edits);
+        workspaceEdit = new WorkspaceEdit(edit_map);
+        client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
+
+        List<Location> goToLocation = new ArrayList<>();
+        goToLocation.add(new Location(new_uri, new Range(start, start)));
+
+        return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
     }
 
     @Override

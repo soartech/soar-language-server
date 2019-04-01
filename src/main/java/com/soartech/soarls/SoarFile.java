@@ -13,6 +13,8 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.jsoar.kernel.Agent;
+import org.jsoar.kernel.SoarException;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.SoarParserException;
 import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
@@ -197,6 +199,56 @@ class SoarFile {
         contents = contents.replace("\r\n", "\n");
         contents = contents.replace("\r", "\n");
         return contents;
+    }
+
+    public String getExpandedCommand(Agent agent, TclAstNode node) throws SoarException {
+
+
+        // compare children of node to ast root
+        // if they are the same then assume that done on production "name" so expand the whole thing
+        // otherwise return the unexpanded text
+
+        // if not on quoted production return null
+        if (node.getType() != TclAstNode.QUOTED_WORD) return null;
+
+        // find production node
+        TclAstNode parent = null;
+        for (TclAstNode child : this.ast.getChildren()) {
+            if (branchContainsNode(child, node)) {
+                parent = child;
+                break;
+            }
+        }
+
+        if (parent == null) return node.getInternalText(contents.toCharArray());
+
+        String parent_command = parent.getInternalText(contents.toCharArray());
+        // strip beginning sp from command (up till first ")
+        int first_quote_index = parent_command.indexOf('"');
+        String beginning = parent_command.substring(0, first_quote_index + 1);
+        parent_command = parent_command.substring(first_quote_index);
+
+        try {
+            String test = "return " + parent_command;
+            return beginning + agent.getInterpreter().eval(test) + '"';
+        } catch (SoarException e) {
+            return parent_command;
+        }
+    }
+
+    private boolean branchContainsNode(TclAstNode treeNode, TclAstNode searchNode) {
+        if (treeNode == searchNode) return true;
+
+        for (TclAstNode child : treeNode.getChildren()) {
+            if (branchContainsNode(child, searchNode))
+                return true;
+        }
+
+        return false;
+    }
+
+    private String getSubstringOfContents(int start, int length) {
+        return contents.substring(start, start + length);
     }
 
     // returns offset location of specific char before the startOffset
