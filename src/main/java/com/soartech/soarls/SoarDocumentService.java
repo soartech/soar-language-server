@@ -362,7 +362,7 @@ class SoarDocumentService implements TextDocumentService {
 
         for (String uri: documents.keySet()) {
             try {
-                analyseFile(uri);
+                analyseFile(new Agent(), uri);
             } catch (SoarException e) {
                 System.err.println("analyse error: " + e);
             }
@@ -416,10 +416,9 @@ class SoarDocumentService implements TextDocumentService {
         }
     }
 
-    private void analyseFile(String uri) throws SoarException {
-        Agent agent = new Agent();
-
+    private void analyseFile(Agent agent, String uri) throws SoarException {
         List<String> sourcedFiles = new ArrayList<>();
+        List<String> productions = new ArrayList<>();
 
         SoarCommand sourceCommand = agent.getInterpreter().getCommand("source", null);
         SoarCommand newCommand = new SoarCommand() {
@@ -429,6 +428,8 @@ class SoarDocumentService implements TextDocumentService {
                         Path root = new File(context.getSourceLocation().getFile()).getParentFile().toPath();
                         String path = root.resolve(args[1]).toUri().toString();
                         sourcedFiles.add(path);
+
+                        analyseFile(agent, path);
                     } catch (Exception e) {
                         System.err.println("exception while tracing source: " + e);
                     }
@@ -444,8 +445,11 @@ class SoarDocumentService implements TextDocumentService {
 
         SoarCommands.source(agent.getInterpreter(), uri);
 
+        agent.getInterpreter().addCommand("source", sourceCommand);
+
         FileAnalysis analysis = new FileAnalysis(uri);
         analysis.filesSourced = sourcedFiles;
+        analysis.productions = productions;
         this.analyses.put(uri, analysis);
     }
 }

@@ -10,3 +10,7 @@ proc ngs-match-top-state { id } {
 proc ngs-create-attribute { id attr value } {
     return "($id ^$attr $value)"
 }
+
+proc ngs-bind { id angs } {
+    return ""
+}

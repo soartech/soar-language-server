@@ -37,11 +37,35 @@ public class AnalysisTest extends LanguageServerTestFixture {
     }
 
     @Test
+    public void analysesSourcedFiles() {
+        assertNotNull(analysis("micro-ngs.tcl"));
+        assertNotNull(analysis("productions.soar"));
+        // I'm not sure whether we should create analysis objects for files that don't exist.
+        // assertNotNull(analysis("missing-file.soar"));
+    }
+
+    @Test
     public void detectSourcedFiles() {
         FileAnalysis analysis = analysis("load.soar");
 
         assertEquals(analysis.filesSourced.get(0), resolve("micro-ngs.tcl"));
         assertEquals(analysis.filesSourced.get(1), resolve("productions.soar"));
         assertEquals(analysis.filesSourced.get(2), resolve("missing-file.soar"));
+    }
+
+    @Test
+    public void leafFileSourcesNothing() {
+        FileAnalysis analysis = analysis("micro-ngs.tcl");
+
+        assertNotNull(analysis);
+        assert(analysis.filesSourced.isEmpty());
+    }
+
+    @Test
+    public void detectProductions() {
+        FileAnalysis analysis = analysis("load.soar");
+
+        assertNotNull(analysis.productions);
+        assert(analysis.productions.isEmpty());
     }
 }
