@@ -13,7 +13,7 @@ plugins {
     id 'com.github.dkorotych.gradle-maven-exec' version '2.1'
 }
 
-applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999']
+// applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999']
 
 repositories {
     // Use jcenter for resolving your dependencies.
