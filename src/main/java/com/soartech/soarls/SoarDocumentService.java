@@ -263,6 +263,7 @@ class SoarDocumentService implements TextDocumentService {
         return CompletableFuture.completedFuture(help);
     }
 
+    /** Wire up a reference to the client, so that we can send diagnostics. */
     public void connect(LanguageClient client) {
         this.client = client;
     }
