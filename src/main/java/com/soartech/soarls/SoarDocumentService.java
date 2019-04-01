@@ -101,6 +101,10 @@ class SoarDocumentService implements TextDocumentService {
         String line = file.line(params.getPosition().getLine());
 
         int cursor = params.getPosition().getCharacter();
+        if (cursor >= line.length()) {
+            return CompletableFuture.completedFuture(Either.forLeft(new ArrayList<>()));
+        }
+
         // The position of the start of the token.
         int start = -1;
         // The set of completions to draw from.
