@@ -45,7 +45,7 @@ public class Server implements LanguageServer, LanguageClientAware {
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
         ServerCapabilities capabilities = new ServerCapabilities();
-        capabilities.setTextDocumentSync(TextDocumentSyncKind.Full);
+        capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
         capabilities.setDocumentHighlightProvider(true);
         capabilities.setFoldingRangeProvider(true);
         capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));

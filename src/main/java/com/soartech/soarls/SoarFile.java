@@ -12,6 +12,7 @@ import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.SoarParserException;
 import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
@@ -25,10 +26,17 @@ import org.jsoar.util.commands.SoarTclExceptionsManager;
  * with a (currently primitive) parse tree and some utilities for
  * converting between offsets and line/column positions.
  *
- * We are currently using full document sync, which means that we
- * re-allocate and re-parse the entire file on every change. This is
- * probably not going to be a bottleneck early on, but it is a
- * candidate for optimization later.
+ * We are using incremental document sync, which means that when the
+ * client makes changes we receive notifications about only what
+ * changed. However, since we are representing the contents as a
+ * String, we still have to re-allocate and re-parse the entire file
+ * on every change. This is probably not going to be a bottleneck
+ * early on, but it is a candidate for optimization later.
+ *
+ * That said, we can't simply replace the backing data structure with
+ * something like a rope, because the Tcl parser still expects a char
+ * array - we would have to copy the contents of any data structure
+ * into a new buffer no matter what.
  */
 class SoarFile {
     public String uri;
@@ -45,6 +53,36 @@ class SoarFile {
         this.uri = uri;
         this.contents = fixLineEndings(contents);
 
+        parseFile();
+    }
+
+    /** Apply the changes from a textDocument/didChange notification. */
+    void applyChange(TextDocumentContentChangeEvent change) {
+        // The parameters which are set depends on whether we are
+        // using full or incremental updates.
+        if (change.getRange() == null) {
+            // We are using full document updates.
+            this.contents = change.getText();
+        } else {
+            // We are using incremental updates.
+
+            // This is not the most efficient way of modifying strings,
+            // but it's definitely the most convenient.
+            int start = offset(change.getRange().getStart());
+            int end = offset(change.getRange().getEnd());
+            String prefix = this.contents.substring(0, start);
+            String suffix = this.contents.substring(end);
+            this.contents = prefix + change.getText() + suffix;
+        }
+
+        parseFile();
+    }
+
+    /** Parse the contents of the file and pull out the following information:
+     * - Soar commands, for which we use the JSoar interpreter.
+     * - A Tcl AST, for which we use the Tcl parser borrowed from the SoarIDE.
+     */
+    void parseFile() {
         try {
             List<ParsedCommand> commands = new ArrayList<>();
             final DefaultInterpreterParser parser = new DefaultInterpreterParser();
@@ -84,7 +122,6 @@ class SoarFile {
         TclParser parser = new TclParser();
         parser.setInput(this.contents.toCharArray(), 0, this.contents.length());
         this.ast = parser.parse();
-        this.ast.printTree(System.err, this.contents.toCharArray(), 1);
     }
 
     /** Get the Tcl AST node at the given position. */

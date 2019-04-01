@@ -81,17 +81,11 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
+        String uri = params.getTextDocument().getUri();
+
         for (TextDocumentContentChangeEvent change: params.getContentChanges()) {
-            // The parameters which are set depends on whether we are
-            // using full or incremental updates.
-            if (change.getRange() == null) {
-                // We are using full document updates.
-                SoarFile soarFile = new SoarFile(params.getTextDocument().getUri(), change.getText());
-                documents.put(params.getTextDocument().getUri(), soarFile);
-            } else {
-                // We are using incremental updates.
-                System.err.println("Incremental document updates are not implemented.");
-            }
+            SoarFile soarFile = documents.get(uri);
+            soarFile.applyChange(change);
         }
     }
 
