@@ -86,8 +86,10 @@ class SoarDocumentService implements TextDocumentService {
 
     private Agent agent = new Agent();
 
+    /** The names of all the Tcl variables that are defined by the agent. */
     private Set<String> variables = new HashSet<>();
 
+    /** The names of all the Tcl procedures that are defined by the agent. */
     private Set<String> procedures = new HashSet<>();
 
     /** Retrieve the analysis for the given file. */
