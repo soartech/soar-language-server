@@ -302,6 +302,11 @@ class SoarFile {
         return managerDiagnostics;
     }
 
+    /** Get the range that encompasses the given Tcl AST node. */
+    Range rangeForNode(TclAstNode node) {
+        return new Range(position(node.getStart()), position(node.getEnd()));
+    }
+
     private Range getCommandRange(String command) {
         int offset = contents.indexOf(command);
         if (offset < 0) offset = 0;

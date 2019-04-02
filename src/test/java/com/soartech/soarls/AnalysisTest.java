@@ -1,6 +1,8 @@
 package com.soartech.soarls;
 
 import com.soartech.soarls.FileAnalysis;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -76,16 +78,26 @@ public class AnalysisTest extends LanguageServerTestFixture {
         System.out.println(analysis.productions);
 
         assertNotNull(analysis.productions);
-        assertProduction(analysis, "elaborate*top-state");
-        assertProduction(analysis, "proc-not-defined");
+        assertProduction(analysis, "elaborate*top-state", range(0, 0, 4, 1));
+        assertProduction(analysis, "proc-not-defined", range(7, 0, 12, 1));
     }
 
     /** Assert that a file contains the given production. */
-    void assertProduction(FileAnalysis file, String name) {
-        assert(file.productions
-               .stream()
-               .filter(p -> p.name.equals(name))
-               .findAny()
-               .isPresent());
+    void assertProduction(FileAnalysis file, String name, Range range) {
+        Production production = file.productions
+            .stream()
+            .filter(p -> p.name.equals(name))
+            .findAny()
+            .orElse(null);
+
+        assertNotNull(production);
+        assertEquals(production.name, name);
+        assertEquals(production.location.getUri(), file.uri);
+        assertEquals(production.location.getRange(), range);
+    }
+
+    Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
+        return new Range(new Position(startLine, startCharacter),
+                         new Position(endLine, endCharacter));
     }
 }

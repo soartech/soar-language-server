@@ -1,8 +1,8 @@
 package com.soartech.soarls;
 
 import com.soartech.soarls.tcl.TclAstNode;
-import java.io.File;
 import java.net.URI;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -18,6 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import com.google.common.base.Joiner;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -346,6 +347,25 @@ class SoarDocumentService implements TextDocumentService {
         this.client = client;
     }
 
+    /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
+    SoarFile getFile(String uri) {
+        SoarFile file = documents.get(uri);
+
+        if (file == null) {
+            try {
+                Path path = Paths.get(new URI(uri));
+                List<String> lines = Files.readAllLines(path);
+                String contents = Joiner.on("\n").join(lines);
+                file = new SoarFile(uri, contents);
+                documents.put(uri, file);
+            } catch (Exception e) {
+                System.err.println("Failed to open file: " + e);
+            }
+        }
+
+        return file;
+    }
+
     private void reportDiagnostics() {
         reportDiagnosticsForOpenFiles();
     }
@@ -431,54 +451,82 @@ class SoarDocumentService implements TextDocumentService {
     }
 
     private void analyseFile(ProjectAnalysis projectAnalysis, Agent agent, String uri) throws SoarException {
+        SoarFile file = getFile(uri);
+        System.err.println("Retrieved file for " + uri + " :: " + file);
+
         List<String> sourcedFiles = new ArrayList<>();
         List<Production> productions = new ArrayList<>();
 
-        SoarCommand sourceCommand = agent.getInterpreter().getCommand("source", null);
-        agent.getInterpreter().addCommand("source", new SoarCommand() {
-                @Override
-                public String execute(SoarCommandContext context, String[] args) throws SoarException {
-                    try {
-                        Path root = new File(context.getSourceLocation().getFile()).getParentFile().toPath();
-                        String path = root.resolve(args[1]).toUri().toString();
-                        sourcedFiles.add(path);
+        /** Any information that needs to be accessable to the interpreter callbacks. */
+        class Context {
+            /** The node we are currently iterating over. */
+            TclAstNode currentNode = null;
+        }
+        final Context ctx = new Context();
 
-                        analyseFile(projectAnalysis, agent, path);
-                    } catch (Exception e) {
-                        System.err.println("exception while tracing source: " + e);
+        // We need to save the commands we override so that we can
+        // restore them later.
+        Map<String, SoarCommand> originalCommands = new HashMap<>();
+        for (String cmd: Arrays.asList("source", "sp")) {
+            originalCommands.put(cmd, agent.getInterpreter().getCommand(cmd, null));
+        }
+
+        try {
+            agent.getInterpreter().addCommand("source", new SoarCommand() {
+                    @Override
+                    public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                        System.err.println("Executing " + Arrays.toString(args) + " from " + uri);
+
+                        try {
+                            Path currentPath = Paths.get(new URI(uri));
+                            Path pathToSource = currentPath.resolveSibling(args[1]);
+                            String path = pathToSource.toUri().toString();
+                            sourcedFiles.add(path);
+
+                            analyseFile(projectAnalysis, agent, path);
+                        } catch (Exception e) {
+                            System.err.println("exception while tracing source: ");
+                            e.printStackTrace(System.out);
+                        }
+                        return "";
                     }
-                    return "";
-                }
 
-                @Override
-                public Object getCommand() { return this; }
-            });
+                    @Override
+                    public Object getCommand() { return this; }
+                });
 
-        SoarCommand spCommand = agent.getInterpreter().getCommand("sp", null);
-        agent.getInterpreter().addCommand("sp", new SoarCommand() {
-                @Override
-                public String execute(SoarCommandContext context, String[] args) throws SoarException {
-                    System.err.println("Executing " + Arrays.toString(args));
-                    productions.add(new Production(args[1], null));
-                    return "";
-                }
+            agent.getInterpreter().addCommand("sp", new SoarCommand() {
+                    @Override
+                    public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                        System.err.println("Executing " + Arrays.toString(args));
 
-                @Override
-                public Object getCommand() { return this; }
-            });
+                        Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                        productions.add(new Production(args[1], location));
+                        return "";
+                    }
 
-        SoarFile file = documents.get(uri);
+                    @Override
+                    public Object getCommand() { return this; }
+                });
 
-        SoarCommands.source(agent.getInterpreter(), uri);
+            for (TclAstNode command: file.ast.getChildren()) {
+                ctx.currentNode = command;
+                String commandText = command.getInternalText(file.contents.toCharArray());
+                agent.getInterpreter().eval(commandText);
+            }
 
-        // Restore original commands
-        agent.getInterpreter().addCommand("source", sourceCommand);
-        agent.getInterpreter().addCommand("sp", spCommand);
+            FileAnalysis analysis = new FileAnalysis(uri);
+            analysis.filesSourced = sourcedFiles;
+            analysis.productions = productions;
 
-        FileAnalysis analysis = new FileAnalysis(uri);
-        analysis.filesSourced = sourcedFiles;
-        analysis.productions = productions;
-
-        projectAnalysis.files.put(uri, analysis);
+            projectAnalysis.files.put(uri, analysis);
+        } finally {
+            // Restore original commands
+            // agent.getInterpreter().addCommand("source", sourceCommand);
+            // agent.getInterpreter().addCommand("sp", spCommand);
+            for (Map.Entry<String, SoarCommand> cmd: originalCommands.entrySet()) {
+                agent.getInterpreter().addCommand(cmd.getKey(), cmd.getValue());
+            }
+        }
     }
 }
