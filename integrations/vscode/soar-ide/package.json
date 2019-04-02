@@ -1,10 +1,15 @@
 {
 	"name": "soar-ide",
-	"displayName": "Soar-IDE",
+	"displayName": "Soar IDE",
 	"description": "Language server client for use with the Soar Language Server",
     "version": "0.0.1",
     "publisher": "soartech",
     "license": "BSD-3-Clause",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/soartech/soar-language-server.git"
+    },
+    "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/soar-ide/README.md",
 	"engines": {
 		"vscode": "^1.32.0"
 	},
@@ -68,7 +73,7 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -watch -p ./",
+		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"test": "npm run compile && node ./node_modules/vscode/bin/test"
