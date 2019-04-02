@@ -1,6 +1,11 @@
 package com.soartech.soarls;
 
 import com.soartech.soarls.tcl.TclAstNode;
+import java.io.File;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,10 +17,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
+import org.eclipse.lsp4j.CreateFile;
+import org.eclipse.lsp4j.CreateFileOptions;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
@@ -27,6 +36,8 @@ import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
@@ -38,6 +49,8 @@ import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
@@ -47,19 +60,42 @@ import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.TclInterpreterException;
 import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.ParsedCommand;
+import org.jsoar.util.commands.SoarCommand;
+import org.jsoar.util.commands.SoarCommandContext;
 import org.jsoar.util.commands.SoarCommands;
 import static java.util.stream.Collectors.toList;
 
 class SoarDocumentService implements TextDocumentService {
+    /** Soar and Tcl files in the workspace. This is just for
+     * maintaining the state of the files, which includes their raw
+     * contents, parsed syntax tree, and convenience methods for
+     * working with this representation. It does not include
+     * diagnostics information.
+     */
     private Map<String, SoarFile> documents = new HashMap<>();
+
+    /** Diagnostics information about each file. This includes things
+     * like the other files that get sourced, declarations of Tcl
+     * procedures and variables, production declarations, and so
+     * on. The analyseFile method is the entry point for how this
+     * information gets generated.
+     */
+    private Map<String, FileAnalysis> analyses = new HashMap<>();
 
     private LanguageClient client;
 
     private Agent agent = new Agent();
 
-    private Set<String> variables = new HashSet();
+    /** The names of all the Tcl variables that are defined by the agent. */
+    private Set<String> variables = new HashSet<>();
 
-    private Set<String> procedures = new HashSet();
+    /** The names of all the Tcl procedures that are defined by the agent. */
+    private Set<String> procedures = new HashSet<>();
+
+    /** Retrieve the analysis for the given file. */
+    public FileAnalysis getAnalysis(String uri) {
+        return analyses.get(uri);
+    }
 
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
@@ -81,18 +117,54 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public void didChange(DidChangeTextDocumentParams params) {
+        String uri = params.getTextDocument().getUri();
+
         for (TextDocumentContentChangeEvent change: params.getContentChanges()) {
-            // The parameters which are set depends on whether we are
-            // using full or incremental updates.
-            if (change.getRange() == null) {
-                // We are using full document updates.
-                SoarFile soarFile = new SoarFile(params.getTextDocument().getUri(), change.getText());
-                documents.put(params.getTextDocument().getUri(), soarFile);
-            } else {
-                // We are using incremental updates.
-                System.err.println("Incremental document updates are not implemented.");
-            }
+            SoarFile soarFile = documents.get(uri);
+            soarFile.applyChange(change);
         }
+    }
+
+    @Override
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams position) {
+        SoarFile file = documents.get(position.getTextDocument().getUri());
+        TclAstNode node = file.tclNode(position.getPosition());
+
+
+        // find unparsed command from structure
+//        ParsedCommand command = file.getCommandAtPosition(position.getPosition());
+        String expanded_soar;
+        try {
+            expanded_soar = file.getExpandedCommand(agent, node);
+        } catch (SoarException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        String old_uri = position.getTextDocument().getUri();
+        int index = old_uri.lastIndexOf("/") + 1;
+        String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
+
+        // create new "buffer" file to show expanded soar code
+        CreateFile createFile = new CreateFile(new_uri, new CreateFileOptions(true, false));
+        WorkspaceEdit workspaceEdit = new WorkspaceEdit();
+        workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
+        ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
+        client.applyEdit(workspaceEditParams);
+
+        // set new content of file to expanded_soar
+        Map<String, List<TextEdit>> edit_map = new HashMap<>();
+        Position start = new Position(0, 0);
+        List<TextEdit> edits = new ArrayList<>();
+        edits.add(new TextEdit(new Range(start, start), expanded_soar));
+        edit_map.put(new_uri, edits);
+        workspaceEdit = new WorkspaceEdit(edit_map);
+        client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
+
+        List<Location> goToLocation = new ArrayList<>();
+        goToLocation.add(new Location(new_uri, new Range(start, start)));
+
+        return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
     }
 
     @Override
@@ -101,6 +173,10 @@ class SoarDocumentService implements TextDocumentService {
         String line = file.line(params.getPosition().getLine());
 
         int cursor = params.getPosition().getCharacter();
+        if (cursor >= line.length()) {
+            return CompletableFuture.completedFuture(Either.forLeft(new ArrayList<>()));
+        }
+
         // The position of the start of the token.
         int start = -1;
         // The set of completions to draw from.
@@ -133,11 +209,17 @@ class SoarDocumentService implements TextDocumentService {
 
         CompletionItemKind itemKind = kind;
 
+        if (start >= line.length()) start = line.length() - 1;
+        if (start < 0) start = 0;
+
+        if (cursor > line.length()) cursor = line.length();
+        if (cursor < start) cursor = start;
+
         String prefix = line.substring(start, cursor);
         List<CompletionItem> completions = source
             .stream()
             .filter(s -> s.startsWith(prefix))
-            .map(s -> new CompletionItem(s))
+            .map(CompletionItem::new)
             .map(item -> { item.setKind(itemKind); return item; })
             .collect(Collectors.toList());
 
@@ -259,14 +341,32 @@ class SoarDocumentService implements TextDocumentService {
         return CompletableFuture.completedFuture(help);
     }
 
+    /** Wire up a reference to the client, so that we can send diagnostics. */
     public void connect(LanguageClient client) {
         this.client = client;
     }
 
     private void reportDiagnostics() {
+        reportDiagnosticsForOpenFiles();
+    }
+
+    /** This implementation tries to load each open file and computes
+     * diagnostics on a per-file basis. The problem with this approach
+     * is that a file might rely on variables and procedures having
+     * been defined before it is loaded.
+     */
+    private void reportDiagnosticsForOpenFiles() {
         agent = new Agent();
 
+        System.err.println("Reporting diagnostics for " + documents.keySet());
+
         for (String uri: documents.keySet()) {
+            try {
+                analyseFile(new Agent(), uri);
+            } catch (SoarException e) {
+                System.err.println("analyse error: " + e);
+            }
+
             List<Diagnostic> diagnosticList = new ArrayList<>();
 
             try {
@@ -314,5 +414,42 @@ class SoarDocumentService implements TextDocumentService {
             this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info procs").split(" ")));
         } catch (SoarException e) {
         }
+    }
+
+    private void analyseFile(Agent agent, String uri) throws SoarException {
+        List<String> sourcedFiles = new ArrayList<>();
+        List<String> productions = new ArrayList<>();
+
+        SoarCommand sourceCommand = agent.getInterpreter().getCommand("source", null);
+        SoarCommand newCommand = new SoarCommand() {
+                @Override
+                public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                    try {
+                        Path root = new File(context.getSourceLocation().getFile()).getParentFile().toPath();
+                        String path = root.resolve(args[1]).toUri().toString();
+                        sourcedFiles.add(path);
+
+                        analyseFile(agent, path);
+                    } catch (Exception e) {
+                        System.err.println("exception while tracing source: " + e);
+                    }
+                    return "";
+                }
+
+                @Override
+                public Object getCommand() { return this; }
+            };
+        agent.getInterpreter().addCommand("source", newCommand);
+
+        SoarFile file = documents.get(uri);
+
+        SoarCommands.source(agent.getInterpreter(), uri);
+
+        agent.getInterpreter().addCommand("source", sourceCommand);
+
+        FileAnalysis analysis = new FileAnalysis(uri);
+        analysis.filesSourced = sourcedFiles;
+        analysis.productions = productions;
+        this.analyses.put(uri, analysis);
     }
 }

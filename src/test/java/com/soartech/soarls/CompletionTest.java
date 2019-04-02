@@ -68,6 +68,18 @@ public class CompletionTest extends SingleFileTestFixture {
         }
     }
 
+    /** Although the client shouldn't normally request information for
+     * invalid positions, if we don't properly track edits then it's
+     * possible for server's model to get out of sync. This checks for
+     * completions which are far beyond the end of a line. */
+    @Test
+    public void outOfBounds() throws Exception {
+        CompletionParams params = new CompletionParams(
+            fileId(file),
+            new Position(12, 999));
+        List<CompletionItem> completions = languageServer.getTextDocumentService().completion(params).get().getLeft();
+    }
+
     /** Test that the completion list contains this item. */
     void assertCompletion(List<CompletionItem> completions, String expected) {
         boolean present = completions

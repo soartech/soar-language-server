@@ -12,6 +12,9 @@ import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.jsoar.kernel.Agent;
+import org.jsoar.kernel.SoarException;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.SoarParserException;
 import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
@@ -25,10 +28,17 @@ import org.jsoar.util.commands.SoarTclExceptionsManager;
  * with a (currently primitive) parse tree and some utilities for
  * converting between offsets and line/column positions.
  *
- * We are currently using full document sync, which means that we
- * re-allocate and re-parse the entire file on every change. This is
- * probably not going to be a bottleneck early on, but it is a
- * candidate for optimization later.
+ * We are using incremental document sync, which means that when the
+ * client makes changes we receive notifications about only what
+ * changed. However, since we are representing the contents as a
+ * String, we still have to re-allocate and re-parse the entire file
+ * on every change. This is probably not going to be a bottleneck
+ * early on, but it is a candidate for optimization later.
+ *
+ * That said, we can't simply replace the backing data structure with
+ * something like a rope, because the Tcl parser still expects a char
+ * array - we would have to copy the contents of any data structure
+ * into a new buffer no matter what.
  */
 class SoarFile {
     public String uri;
@@ -45,6 +55,36 @@ class SoarFile {
         this.uri = uri;
         this.contents = fixLineEndings(contents);
 
+        parseFile();
+    }
+
+    /** Apply the changes from a textDocument/didChange notification. */
+    void applyChange(TextDocumentContentChangeEvent change) {
+        // The parameters which are set depends on whether we are
+        // using full or incremental updates.
+        if (change.getRange() == null) {
+            // We are using full document updates.
+            this.contents = change.getText();
+        } else {
+            // We are using incremental updates.
+
+            // This is not the most efficient way of modifying strings,
+            // but it's definitely the most convenient.
+            int start = offset(change.getRange().getStart());
+            int end = offset(change.getRange().getEnd());
+            String prefix = this.contents.substring(0, start);
+            String suffix = this.contents.substring(end);
+            this.contents = prefix + change.getText() + suffix;
+        }
+
+        parseFile();
+    }
+
+    /** Parse the contents of the file and pull out the following information:
+     * - Soar commands, for which we use the JSoar interpreter.
+     * - A Tcl AST, for which we use the Tcl parser borrowed from the SoarIDE.
+     */
+    void parseFile() {
         try {
             List<ParsedCommand> commands = new ArrayList<>();
             final DefaultInterpreterParser parser = new DefaultInterpreterParser();
@@ -84,7 +124,6 @@ class SoarFile {
         TclParser parser = new TclParser();
         parser.setInput(this.contents.toCharArray(), 0, this.contents.length());
         this.ast = parser.parse();
-        this.ast.printTree(System.err, this.contents.toCharArray(), 1);
     }
 
     /** Get the Tcl AST node at the given position. */
@@ -160,6 +199,56 @@ class SoarFile {
         contents = contents.replace("\r\n", "\n");
         contents = contents.replace("\r", "\n");
         return contents;
+    }
+
+    public String getExpandedCommand(Agent agent, TclAstNode node) throws SoarException {
+
+
+        // compare children of node to ast root
+        // if they are the same then assume that done on production "name" so expand the whole thing
+        // otherwise return the unexpanded text
+
+        // if not on quoted production return null
+        if (node.getType() != TclAstNode.QUOTED_WORD) return null;
+
+        // find production node
+        TclAstNode parent = null;
+        for (TclAstNode child : this.ast.getChildren()) {
+            if (branchContainsNode(child, node)) {
+                parent = child;
+                break;
+            }
+        }
+
+        if (parent == null) return node.getInternalText(contents.toCharArray());
+
+        String parent_command = parent.getInternalText(contents.toCharArray());
+        // strip beginning sp from command (up till first ")
+        int first_quote_index = parent_command.indexOf('"');
+        String beginning = parent_command.substring(0, first_quote_index + 1);
+        parent_command = parent_command.substring(first_quote_index);
+
+        try {
+            String test = "return " + parent_command;
+            return beginning + agent.getInterpreter().eval(test) + '"';
+        } catch (SoarException e) {
+            return parent_command;
+        }
+    }
+
+    private boolean branchContainsNode(TclAstNode treeNode, TclAstNode searchNode) {
+        if (treeNode == searchNode) return true;
+
+        for (TclAstNode child : treeNode.getChildren()) {
+            if (branchContainsNode(child, searchNode))
+                return true;
+        }
+
+        return false;
+    }
+
+    private String getSubstringOfContents(int start, int length) {
+        return contents.substring(start, start + length);
     }
 
     // returns offset location of specific char before the startOffset

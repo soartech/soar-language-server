@@ -10,9 +10,10 @@ plugins {
     id 'java'
     id 'jacoco'
     id 'application'
+    id 'com.github.dkorotych.gradle-maven-exec' version '2.1'
 }
 
-applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999']
+// applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999']
 
 repositories {
     // Use jcenter for resolving your dependencies.
@@ -26,7 +27,7 @@ dependencies {
     implementation 'org.slf4j:slf4j-simple:1.7.26'
 
     // This dependency is found on compile classpath of this component and consumers.
-    implementation 'com.google.guava:guava:27.0.1-jre'
+    implementation 'com.google.guava:guava:27.1-jre'
 
     // Language server protocol types.
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.7.0'
@@ -36,16 +37,22 @@ dependencies {
     implementation 'com.soartech:jsoar-tcl:4.0-SNAPSHOT'
 
     compile files("jsoar/target/classes") {
-        builtBy "compileMavenProject"
+        builtBy 'compileJSoar'
     }
 
     // Use JUnit test framework
     testImplementation 'junit:junit:4.12'
 }
 
-task compileMavenProject(type: Exec) {
-    workingDir "jsoar/"
-    commandLine "mvn", "--batch-mode", "-Dmaven.test.skip=true", "-Dmaven.javadoc.skip=true", "install"
+task compileJSoar(type: MavenExec) {
+    workingDir 'jsoar/'
+    goals 'install'
+    options {
+        define = [
+            'maven.test.skip': 'true',
+            'maven.javadoc.skip': 'true'
+        ]
+    }
 }
 
 // Define the main class for the application
