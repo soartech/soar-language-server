@@ -11,10 +11,11 @@ out/
 
 # Ignore VSCode IDE files
 .project
-.vscode
+/.vscode
 
 # Ignore Maven build directory
 target/
 
 # Ignore IntelliJ Plugin output
 integrations/intellij/soar-ide/out
+integrations/vscode/soar-ide/node_modules/
