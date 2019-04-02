@@ -33,5 +33,5 @@ class FileAnalysis {
     List<String> filesSourced;
 
     /** Productions that were defined while sourcing this file. */
-    List<String> productions;
+    List<Production> productions;
 }

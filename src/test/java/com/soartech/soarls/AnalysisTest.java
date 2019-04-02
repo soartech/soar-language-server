@@ -27,7 +27,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
      */
     FileAnalysis analysis(String relativePath) {
         SoarDocumentService docs = (SoarDocumentService) languageServer.getTextDocumentService();
-        return docs.getAnalysis(resolve(relativePath));
+        return docs.getAnalysis(resolve("load.soar")).files.get(resolve(relativePath));
     }
 
     @Test
@@ -62,10 +62,30 @@ public class AnalysisTest extends LanguageServerTestFixture {
     }
 
     @Test
-    public void detectProductions() {
+    public void loadFileHasNoProductions() {
         FileAnalysis analysis = analysis("load.soar");
 
         assertNotNull(analysis.productions);
         assert(analysis.productions.isEmpty());
+    }
+
+    @Test
+    public void detectsProductions() {
+        FileAnalysis analysis = analysis("productions.soar");
+
+        System.out.println(analysis.productions);
+
+        assertNotNull(analysis.productions);
+        assertProduction(analysis, "elaborate*top-state");
+        assertProduction(analysis, "proc-not-defined");
+    }
+
+    /** Assert that a file contains the given production. */
+    void assertProduction(FileAnalysis file, String name) {
+        assert(file.productions
+               .stream()
+               .filter(p -> p.name.equals(name))
+               .findAny()
+               .isPresent());
     }
 }

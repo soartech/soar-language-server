@@ -80,7 +80,7 @@ class SoarDocumentService implements TextDocumentService {
      * on. The analyseFile method is the entry point for how this
      * information gets generated.
      */
-    private Map<String, FileAnalysis> analyses = new HashMap<>();
+    private Map<String, ProjectAnalysis> analyses = new HashMap<>();
 
     private LanguageClient client;
 
@@ -92,8 +92,8 @@ class SoarDocumentService implements TextDocumentService {
     /** The names of all the Tcl procedures that are defined by the agent. */
     private Set<String> procedures = new HashSet<>();
 
-    /** Retrieve the analysis for the given file. */
-    public FileAnalysis getAnalysis(String uri) {
+    /** Retrieve the analysis for the given entry point. */
+    public ProjectAnalysis getAnalysis(String uri) {
         return analyses.get(uri);
     }
 
@@ -362,7 +362,8 @@ class SoarDocumentService implements TextDocumentService {
 
         for (String uri: documents.keySet()) {
             try {
-                analyseFile(new Agent(), uri);
+                ProjectAnalysis analysis = analyse(uri);
+                this.analyses.put(analysis.entryPointUri, analysis);
             } catch (SoarException e) {
                 System.err.println("analyse error: " + e);
             }
@@ -416,12 +417,25 @@ class SoarDocumentService implements TextDocumentService {
         }
     }
 
-    private void analyseFile(Agent agent, String uri) throws SoarException {
+    /** Perform a full analysis of a project starting from the given
+     * entry point.
+     */
+    private ProjectAnalysis analyse(String uri) throws SoarException {
+        ProjectAnalysis analysis = new ProjectAnalysis(uri);
+
+        Agent agent = new Agent();
+
+        analyseFile(analysis, agent, uri);
+
+        return analysis;
+    }
+
+    private void analyseFile(ProjectAnalysis projectAnalysis, Agent agent, String uri) throws SoarException {
         List<String> sourcedFiles = new ArrayList<>();
-        List<String> productions = new ArrayList<>();
+        List<Production> productions = new ArrayList<>();
 
         SoarCommand sourceCommand = agent.getInterpreter().getCommand("source", null);
-        SoarCommand newCommand = new SoarCommand() {
+        agent.getInterpreter().addCommand("source", new SoarCommand() {
                 @Override
                 public String execute(SoarCommandContext context, String[] args) throws SoarException {
                     try {
@@ -429,7 +443,7 @@ class SoarDocumentService implements TextDocumentService {
                         String path = root.resolve(args[1]).toUri().toString();
                         sourcedFiles.add(path);
 
-                        analyseFile(agent, path);
+                        analyseFile(projectAnalysis, agent, path);
                     } catch (Exception e) {
                         System.err.println("exception while tracing source: " + e);
                     }
@@ -438,18 +452,33 @@ class SoarDocumentService implements TextDocumentService {
 
                 @Override
                 public Object getCommand() { return this; }
-            };
-        agent.getInterpreter().addCommand("source", newCommand);
+            });
+
+        SoarCommand spCommand = agent.getInterpreter().getCommand("sp", null);
+        agent.getInterpreter().addCommand("sp", new SoarCommand() {
+                @Override
+                public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                    System.err.println("Executing " + Arrays.toString(args));
+                    productions.add(new Production(args[1], null));
+                    return "";
+                }
+
+                @Override
+                public Object getCommand() { return this; }
+            });
 
         SoarFile file = documents.get(uri);
 
         SoarCommands.source(agent.getInterpreter(), uri);
 
+        // Restore original commands
         agent.getInterpreter().addCommand("source", sourceCommand);
+        agent.getInterpreter().addCommand("sp", spCommand);
 
         FileAnalysis analysis = new FileAnalysis(uri);
         analysis.filesSourced = sourcedFiles;
         analysis.productions = productions;
-        this.analyses.put(uri, analysis);
+
+        projectAnalysis.files.put(uri, analysis);
     }
 }
