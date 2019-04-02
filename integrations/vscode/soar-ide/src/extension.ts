@@ -19,12 +19,21 @@ let outputChannel: vscode.OutputChannel;
 
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
     configureLanguage();
+    loadConfigs(context);
+    vscode.workspace.onDidChangeConfiguration(() => {
+        loadConfigs(context);
+    });
+}
+
+function loadConfigs(context: vscode.ExtensionContext) {
+    if (client != null) return;
 
     const serverEnabled = vscode.workspace.getConfiguration("soar").get("languageServer.enabled");
+    const executablePath = vscode.workspace.getConfiguration("soar").get<string>("languageServer.executablePath");
 
-    if (serverEnabled) {
-        activateLanguageServer(context);
-    } else {
+    if (serverEnabled && executablePath)
+        activateLanguageServer(context, executablePath);
+    else {
         console.info("Skipping language server activation since 'soar.languageServer.enabled' is false");
     }
 }
@@ -71,7 +80,7 @@ function configureLanguage(): void {
     });
 }
 
-async function activateLanguageServer(context: vscode.ExtensionContext) {
+async function activateLanguageServer(context: vscode.ExtensionContext, executablePath: string) {
     // LOG.info('Activating Soar language server...');
     let barItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
     context.subscriptions.push(barItem);
@@ -103,8 +112,7 @@ async function activateLanguageServer(context: vscode.ExtensionContext) {
         outputChannelName: 'Soar',
         revealOutputChannelOn: RevealOutputChannelOn.Never
     }
-    // let startScriptPath = path.resolve(context.extensionPath, "server", "build", "install", "server", "bin", correctScriptName("server"))
-    let startScriptPath = "C:\\Users\\robert.picking\\Documents\\Projects\\soar-language-server\\build\\install\\soar-language-server\\bin\\soar-language-server.bat";
+    
     let args: string[];
     args = [];
 
@@ -115,7 +123,7 @@ async function activateLanguageServer(context: vscode.ExtensionContext) {
     // }
 
     let serverOptions: ServerOptions = {
-        command: startScriptPath,
+        command: executablePath,
         args: args,
         options: { cwd: vscode.workspace.rootPath }
     }
@@ -125,8 +133,6 @@ async function activateLanguageServer(context: vscode.ExtensionContext) {
     // Create the language client and start the client.
     client = new LanguageClient('soar', 'Soar Language Server', serverOptions, clientOptions);
     let languageClientDisposable = client.start();
-
-    outputChannel.appendLine("Starting Soar language server...");
 
     // Push the disposable to the context's subscriptions so that the
     // client can be deactivated on extension deactivation

@@ -1,8 +1,10 @@
 {
 	"name": "soar-ide",
-	"displayName": "soar-ide",
-	"description": "IDE for the Soar Language",
-	"version": "0.0.1",
+	"displayName": "Soar-IDE",
+	"description": "Language server client for use with the Soar Language Server",
+    "version": "0.0.1",
+    "publisher": "soartech",
+    "license": "BSD-3-Clause",
 	"engines": {
 		"vscode": "^1.32.0"
 	},
@@ -52,13 +54,17 @@
                     "type": "boolean",
                     "default": true,
                     "description": "Specifies whether the language server should be used. When enabled the extension will provide code completions and linting, otherwise just syntax highlighting. Might require a reload to apply."
+                },
+                "soar.languageServer.executablePath": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Absolute path to the Soar Language Server executable"
                 }
 			}
 		}
 	},
 	"dependencies": {
-		"vscode-languageclient": "^5.2.1",
-		"vscode": "^1.1.28"
+		"vscode-languageclient": "^5.2.1"
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
