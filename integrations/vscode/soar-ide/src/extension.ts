@@ -2,63 +2,205 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-
 import * as path from 'path';
-import { workspace, ExtensionContext } from 'vscode';
+import * as vscode from "vscode";
+import * as fs from "fs";
+import * as child_process from "child_process";
 
 import {
 	LanguageClient,
 	LanguageClientOptions,
 	ServerOptions,
-	TransportKind
+    RevealOutputChannelOn,
 } from 'vscode-languageclient';
 
 let client: LanguageClient;
+let outputChannel: vscode.OutputChannel;
 
-export function activate(context: ExtensionContext) {
-	// The server is implemented in node
-	let serverModule = context.asAbsolutePath(
-		path.join('server', 'build', 'libs', 'soar-language-server-all.jar')
-	);
-	// The debug options for the server
-	// --inspect=6009: runs the server in Node's Inspector mode so VS Code can attach to the server for debugging
-	let debugOptions = { execArgv: ['--nolazy', '--inspect=6009'] };
-  let commandLine = "D:\\CoplandUser\\Documents\\soar-language-server\\build\\install\\soar-language-server\\bin\\soar-language-server.bat";
-	// If the extension is launched in debug mode then the debug server options are used
-	// Otherwise the run options are used
-	let serverOptions: ServerOptions = {
-		run: { command: commandLine, transport: TransportKind.socket },
-		debug: {
-			command: commandLine,
-			transport: TransportKind.socket,
-		}
-	};
+export async function activate(context: vscode.ExtensionContext): Promise<void> {
+    configureLanguage();
 
-	// Options to control the language client
-	let clientOptions: LanguageClientOptions = {
-		// Register the server for plain text documents
-		documentSelector: [{ scheme: 'file', language: 'soar' }],
-		synchronize: {
-			// Notify the server about file changes to '.clientrc files contained in the workspace
-			fileEvents: workspace.createFileSystemWatcher('**/.clientrc')
-		}
-	};
+    const serverEnabled = vscode.workspace.getConfiguration("soar").get("languageServer.enabled");
 
-	// Create the language client and start the client.
-	client = new LanguageClient(
-		'soarVSCodeClient',
-		'Soar VS Code Client',
-		serverOptions,
-		clientOptions
-	);
-
-	// Start the client. This will also launch the server
-	client.start();
+    if (serverEnabled) {
+        activateLanguageServer(context);
+    } else {
+        console.info("Skipping language server activation since 'soar.languageServer.enabled' is false");
+    }
 }
 
-export function deactivate(): Thenable<void> | undefined {
-	if (!client) {
-		return undefined;
+export function deactivate(): void {}
+
+function configureLanguage(): void {
+    vscode.languages.setLanguageConfiguration("soar", {
+        // indentationRules: {
+        //     // ^(.*\*/)?\s*\}.*$
+        //     decreaseIndentPattern: /^(.*\*\/)?\s*\}.*$/,
+        //     // ^.*\{[^}"']*$
+        //     increaseIndentPattern: /^.*\{[^}"']*$/
+        // },
+        // wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
+        // onEnterRules: [
+        //     {
+        //         // e.g. /** | */
+        //         beforeText: /^\s*\/\*\*(?!\/)([^\*]|\*(?!\/))*$/,
+        //         afterText: /^\s*\*\/$/,
+        //         action: { indentAction: vscode.IndentAction.IndentOutdent, appendText: ' * ' }
+        //     },
+        //     {
+        //         // e.g. /** ...|
+        //         beforeText: /^\s*\/\*\*(?!\/)([^\*]|\*(?!\/))*$/,
+        //         action: { indentAction: vscode.IndentAction.None, appendText: ' * ' }
+        //     },
+        //     {
+        //         // e.g.  * ...|
+        //         beforeText: /^(\t|(\ \ ))*\ \*(\ ([^\*]|\*(?!\/))*)?$/,
+        //         action: { indentAction: vscode.IndentAction.None, appendText: '* ' }
+        //     },
+        //     {
+        //         // e.g.  */|
+        //         beforeText: /^(\t|(\ \ ))*\ \*\/\s*$/,
+        //         action: { indentAction: vscode.IndentAction.None, removeText: 1 }
+        //     },
+        //     {
+        //         // e.g.  *-----*/|
+        //         beforeText: /^(\t|(\ \ ))*\ \*[^/]*\*\/\s*$/,
+        //         action: { indentAction: vscode.IndentAction.None, removeText: 1 }
+        //     }
+        // ]
+    });
+}
+
+async function activateLanguageServer(context: vscode.ExtensionContext) {
+    // LOG.info('Activating Soar language server...');
+    let barItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left);
+    context.subscriptions.push(barItem);
+    barItem.text = '$(sync) Activating Soar language server...';
+    barItem.show();
+
+    let javaExecutablePath = findJavaExecutable('java');
+
+    if (javaExecutablePath == null) {
+        vscode.window.showErrorMessage("Couldn't locate java in $JAVA_HOME or $PATH");
+        barItem.dispose();
+        return;
+    }
+
+    // Options to control the language client
+    let clientOptions: LanguageClientOptions = {
+        // Register the server for java documents
+        documentSelector: ['soar'],
+        synchronize: {
+            // Synchronize the setting section 'kotlin' to the server
+            // NOTE: this currently doesn't do anything
+            configurationSection: 'soar',
+            // Notify the server about file changes to 'javaconfig.json' files contain in the workspace
+            // TODO this should be registered from the language server side
+            fileEvents: [
+                vscode.workspace.createFileSystemWatcher('**/*.soar'),
+            ]
+        },
+        outputChannelName: 'Soar',
+        revealOutputChannelOn: RevealOutputChannelOn.Never
+    }
+    // let startScriptPath = path.resolve(context.extensionPath, "server", "build", "install", "server", "bin", correctScriptName("server"))
+    let startScriptPath = "C:\\Users\\robert.picking\\Documents\\Projects\\soar-language-server\\build\\install\\soar-language-server\\bin\\soar-language-server.bat";
+    let args: string[];
+    args = [];
+
+    // TODO: Implement
+    // Ensure that start script can be executed
+    // if (isOSUnixoid()) {
+    //     child_process.exec("chmod +x " + startScriptPath);
+    // }
+
+    let serverOptions: ServerOptions = {
+        command: startScriptPath,
+        args: args,
+        options: { cwd: vscode.workspace.rootPath }
+    }
+
+    // LOG.info("Launching {} with args {}", startScriptPath, args.join(' '));
+
+    // Create the language client and start the client.
+    client = new LanguageClient('soar', 'Soar Language Server', serverOptions, clientOptions);
+    let languageClientDisposable = client.start();
+
+    outputChannel.appendLine("Starting Soar language server...");
+
+    // Push the disposable to the context's subscriptions so that the
+    // client can be deactivated on extension deactivation
+    context.subscriptions.push(languageClientDisposable);
+    await client.onReady();
+    
+    barItem.dispose();
+}
+
+function findJavaExecutable(rawBinname: string): string {
+	let binname = correctBinname(rawBinname);
+
+	// First search java.home setting
+    let userJavaHome = vscode.workspace.getConfiguration('java').get('home') as string;
+
+	if (userJavaHome != null) {
+        // LOG.debug("Looking for Java in java.home (settings): {}", userJavaHome);
+
+        let candidate = findJavaExecutableInJavaHome(userJavaHome, binname);
+
+        if (candidate != null)
+            return candidate;
 	}
-	return client.stop();
+
+	// Then search each JAVA_HOME
+    let envJavaHome = process.env['JAVA_HOME'];
+
+	if (envJavaHome) {
+        // LOG.debug("Looking for Java in JAVA_HOME (environment variable): {}", envJavaHome);
+
+        let candidate = findJavaExecutableInJavaHome(envJavaHome, binname);
+
+        if (candidate != null)
+            return candidate;
+	}
+
+	// Then search PATH parts
+	if (process.env['PATH'] && process.env['PATH'] !== undefined) {
+        let env_path = process.env['PATH'];
+        // LOG.debug("Looking for Java in PATH");
+        if (env_path !== undefined) {
+            let pathparts = env_path.split(path.delimiter);
+            for (let i = 0; i < pathparts.length; i++) {
+                let binpath = path.join(pathparts[i], binname);
+                if (fs.existsSync(binpath)) {
+                    return binpath;
+                }
+            }
+        }
+        
+	}
+
+    // Else return the binary name directly (this will likely always fail downstream)
+    // LOG.debug("Could not find Java, will try using binary name directly");
+	return binname;
+}
+
+function correctBinname(binname: string): string {
+    return binname + ((process.platform === 'win32') ? '.exe' : '');
+}
+
+function correctScriptName(binname: string): string {
+    return binname + ((process.platform === 'win32') ? '.bat' : '');
+}
+
+function findJavaExecutableInJavaHome(javaHome: string, binname: string): string | null {
+    let workspaces = javaHome.split(path.delimiter);
+
+    for (let i = 0; i < workspaces.length; i++) {
+        let binpath = path.join(workspaces[i], 'bin', binname);
+
+        if (fs.existsSync(binpath))
+            return binpath;
+    }
+
+    return null;
 }

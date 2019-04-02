@@ -11,7 +11,7 @@ out/
 
 # Ignore VSCode IDE files
 .project
-.vscode
+/.vscode
 
 # Ignore Maven build directory
 target/

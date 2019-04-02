@@ -7,8 +7,11 @@
 		"vscode": "^1.32.0"
 	},
 	"categories": [
-		"Other"
-	],
+		"Programming Languages"
+    ],
+    "keywords": [
+        "soar"
+    ],
 	"activationEvents": [
 		"onLanguage:soar"
 	],
@@ -16,23 +19,25 @@
 	"contributes": {
 		"languages": [
 			{
-				"id": "soar",
+                "id": "soar",
+                "aliases": [
+                    "Soar"
+                ],
 				"extensions": [
 					".soar"
 				]
 			}
 		],
 		"configuration": {
-			"type": "object",
-			"title": "Example configuration",
+			"title": "Soar",
 			"properties": {
-				"soarVSCodeClient.maxNumberOfProblems": {
+				"soar.maxNumberOfProblems": {
 					"scope": "resource",
 					"type": "number",
 					"default": 100,
 					"description": "Controls the maximum number of problems produced by the server."
 				},
-				"soarVSCodeClient.trace.server": {
+				"soar.trace.server": {
 					"scope": "window",
 					"type": "string",
 					"enum": [
@@ -42,7 +47,12 @@
 					],
 					"default": "verbose",
 					"description": "Traces the communication between VS Code and the language server."
-				}
+                },
+                "soar.languageServer.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Specifies whether the language server should be used. When enabled the extension will provide code completions and linting, otherwise just syntax highlighting. Might require a reload to apply."
+                }
 			}
 		}
 	},
@@ -52,7 +62,7 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
+		"compile": "tsc -watch -p ./",
 		"watch": "tsc -watch -p ./",
 		"postinstall": "node ./node_modules/vscode/bin/install",
 		"test": "npm run compile && node ./node_modules/vscode/bin/test"
