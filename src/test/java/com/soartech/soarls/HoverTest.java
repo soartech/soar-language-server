@@ -4,6 +4,7 @@ import java.util.List;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.junit.Test;
@@ -59,9 +60,9 @@ public class HoverTest extends SingleFileTestFixture {
     /** Test that the range matches the given parameters. */
     void assertRange(Hover hover, int startLine, int startCharacter, int endLine, int endCharacter) {
         Range range = hover.getRange();
-        assertEquals(range.getStart().getLine(), startLine);
-        assertEquals(range.getStart().getCharacter(), startCharacter);
-        assertEquals(range.getEnd().getLine(), endLine);
-        assertEquals(range.getEnd().getCharacter(), endCharacter);
+        Range expected = new Range(
+            new Position(startLine, startCharacter),
+            new Position(endLine, endCharacter));
+        assertEquals(range, expected);
     }
 }
