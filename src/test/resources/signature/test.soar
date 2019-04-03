@@ -1,0 +1,20 @@
+# Tests for Tcl proc signature help.
+
+# This has its own DSL, so its arguments aren't very descriptive.
+proc ngs-bind { id args } {}
+
+# This has fairly obvious arguments
+proc ngs-stable-gte-lt { id attr low_val high_val } {}
+
+# Similar production, but with an optional argument
+proc ngs-gte-lt { id attr low_val high_val { val_id "" } } {}
+
+sp "test-production
+    [ngs-match-top-state <s>]
+    [ngs-bind <s> path.to-value]
+    [ngs-stable-gte-lt <s> value 1 100]
+    [ngs-gte-lt <s> value 1 100]
+    [ngs-gte-lt <s> value 1 100 <value>]
+-->
+    [proc-not-defined <s> arg1 arg2]
+"
