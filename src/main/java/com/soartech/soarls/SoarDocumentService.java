@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -135,11 +136,16 @@ class SoarDocumentService implements TextDocumentService {
     }
 
     @Override
-    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams position) {
-        SoarFile file = documents.get(position.getTextDocument().getUri());
-        TclAstNode node = file.tclNode(position.getPosition());
+    public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams params) {
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        TclAstNode node = Lists.reverse(file.tclNodePath(params.getPosition()))
+            .stream()
+            .filter(n -> n.getType() == TclAstNode.QUOTED_WORD)
+            .findFirst()
+            .orElse(null);
+        System.err.println("expanding node: " + node.getInternalText(file.contents.toCharArray()));
 
-        if (node.getType() == TclAstNode.COMMENT) return null;
+        if (node == null) return null;
 
         String expanded_soar;
         try {
@@ -153,7 +159,7 @@ class SoarDocumentService implements TextDocumentService {
         // when appending to the top of the file
         expanded_soar += "\n\n";
 
-        String old_uri = position.getTextDocument().getUri();
+        String old_uri = params.getTextDocument().getUri();
         int index = old_uri.lastIndexOf("/") + 1;
         String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
 

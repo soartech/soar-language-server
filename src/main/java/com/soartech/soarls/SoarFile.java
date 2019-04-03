@@ -156,6 +156,32 @@ class SoarFile {
         }
     }
 
+    List<TclAstNode> tclNodePath(Position position) {
+        return tclNodePath(offset(position));
+    }
+
+    /** Get the chain of AST nodes that contain this offset, where the
+     * first one is the root node and the last is the leaf. This will
+     * always return at least one node, because all offsets are
+     * contained by the root. */
+    List<TclAstNode> tclNodePath(int offset) {
+        List<TclAstNode> chain = new ArrayList<>();
+        TclAstNode node = this.ast;
+        while (true) {
+            chain.add(node);
+            node = node
+                .getChildren()
+                .stream()
+                .filter(c -> c.getStart() <= offset)
+                .filter(c -> offset < c.getEnd())
+                .findFirst()
+                .orElse(null);
+            if (node == null) {
+                return chain;
+            }
+        }
+    }
+
     /** Get a single line as a string. */
     String line(int lineNumber) {
         int start = offset(new Position(lineNumber, 0));
