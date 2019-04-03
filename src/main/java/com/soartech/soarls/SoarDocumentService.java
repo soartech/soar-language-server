@@ -131,9 +131,8 @@ class SoarDocumentService implements TextDocumentService {
         SoarFile file = documents.get(position.getTextDocument().getUri());
         TclAstNode node = file.tclNode(position.getPosition());
 
+        if (node.getType() == TclAstNode.COMMENT) return null;
 
-        // find unparsed command from structure
-//        ParsedCommand command = file.getCommandAtPosition(position.getPosition());
         String expanded_soar;
         try {
             expanded_soar = file.getExpandedCommand(agent, node);
@@ -141,25 +140,31 @@ class SoarDocumentService implements TextDocumentService {
             e.printStackTrace();
             return null;
         }
+        if (expanded_soar == null || expanded_soar.isEmpty()) return null;
+        // add new line for separation from any existing code
+        // when appending to the top of the file
+        expanded_soar += "\n\n";
 
         String old_uri = position.getTextDocument().getUri();
         int index = old_uri.lastIndexOf("/") + 1;
         String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
 
         // create new "buffer" file to show expanded soar code
-        CreateFile createFile = new CreateFile(new_uri, new CreateFileOptions(true, false));
+        CreateFile createFile = new CreateFile(new_uri, new CreateFileOptions(false, false));
         WorkspaceEdit workspaceEdit = new WorkspaceEdit();
         workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
         ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
+
         client.applyEdit(workspaceEditParams);
 
         // set new content of file to expanded_soar
         Map<String, List<TextEdit>> edit_map = new HashMap<>();
-        Position start = new Position(0, 0);
         List<TextEdit> edits = new ArrayList<>();
+        Position start = new Position(0, 0);
         edits.add(new TextEdit(new Range(start, start), expanded_soar));
         edit_map.put(new_uri, edits);
         workspaceEdit = new WorkspaceEdit(edit_map);
+
         client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
 
         List<Location> goToLocation = new ArrayList<>();
