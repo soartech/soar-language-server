@@ -14,11 +14,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 /**
- * The current behaviour is to highlight an entire production/command
- * when the cursor is anywhere inside of it. This is mainly just a
- * placeholder to test two things:
- * - We've correctly parsed the locations of commands.
- * - The test fixture works.
+ * Tcl expansions are implementad by creating and modifying the
+ * contents of a special file. We (ab)use the go to definition feature
+ * as a mechanism to get the client to navigate to this file. This is
+ * because such behaviour should always be initiated by a user action.
+ *
+ * It is possible that in the future the LSP will add a mechanism by
+ * which the server can request that the client navigate to a location
+ * in a document. See this issue for details:
+ *
+ * https://github.com/Microsoft/language-server-protocol/issues/612
  */
 public class TclExpansionTest extends LanguageServerTestFixture {
     public TclExpansionTest() throws Exception {

@@ -46,6 +46,8 @@ class LanguageServerTestFixture implements LanguageClient {
      * each file.
      */
     Map<String, PublishDiagnosticsParams> diagnostics = new HashMap<>();
+
+    /** A record of all edits that have been applied to each file. */
     Map<String, List<TextEdit>> edits = new HashMap<>();
 
     LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
