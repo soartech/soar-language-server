@@ -134,9 +134,12 @@ class SoarFile {
 
     /** Get the Tcl AST node at the given offset. */
     TclAstNode tclNode(int offset) {
+        // Start at the root, which contains the entire file.
         TclAstNode node = this.ast;
 
-        // Find a child that contains this position.
+        // If there is a child that contains this position, then
+        // recurse downwards; otherwise, return the currently focused
+        // node.
         while (true) {
             TclAstNode child = node
                 .getChildren()

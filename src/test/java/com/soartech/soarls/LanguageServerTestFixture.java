@@ -1,6 +1,5 @@
 package com.soartech.soarls;
 
-import com.soartech.soarls.SoarFile;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;

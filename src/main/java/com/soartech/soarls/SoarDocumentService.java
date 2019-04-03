@@ -463,9 +463,7 @@ class SoarDocumentService implements TextDocumentService {
             return;
         }
 
-        List<String> sourcedFiles = new ArrayList<>();
-        List<Production> productions = new ArrayList<>();
-        List<ProcedureDefinition> procs = new ArrayList<>();
+        FileAnalysis analysis = new FileAnalysis(uri);
 
         /** Any information that needs to be accessable to the interpreter callbacks. */
         class Context {
@@ -494,7 +492,7 @@ class SoarDocumentService implements TextDocumentService {
                             Path currentPath = Paths.get(new URI(uri));
                             Path pathToSource = currentPath.resolveSibling(args[1]);
                             String path = pathToSource.toUri().toString();
-                            sourcedFiles.add(path);
+                            analysis.filesSourced.add(path);
 
                             analyseFile(projectAnalysis, agent, path);
                         } catch (Exception e) {
@@ -508,14 +506,14 @@ class SoarDocumentService implements TextDocumentService {
                         System.err.println("Executing " + Arrays.toString(args));
 
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        productions.add(new Production(args[1], location));
+                        analysis.productions.add(new Production(args[1], location));
                         return "";
                     }));
 
             agent.getInterpreter().addCommand("proc", soarCommand(args -> {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
-                        procs.add(proc);
+                        analysis.procedureDefinitions.add(proc);
 
                         // The args arrays has stripped away the
                         // braces, so we need to add them back in
@@ -530,11 +528,6 @@ class SoarDocumentService implements TextDocumentService {
                 String commandText = commandNode.getInternalText(file.contents.toCharArray());
                 agent.getInterpreter().eval(commandText);
             }
-
-            FileAnalysis analysis = new FileAnalysis(uri);
-            analysis.filesSourced = sourcedFiles;
-            analysis.productions = productions;
-            analysis.procedureDefinitions = procs;
 
             projectAnalysis.files.put(uri, analysis);
         } finally {
