@@ -83,6 +83,14 @@ class SoarDocumentService implements TextDocumentService {
      */
     private Map<String, ProjectAnalysis> analyses = new HashMap<>();
 
+    /** The URI of the currently active entry point. The results of
+     * analysing a codebase can be different depending on where we
+     * start evaluating from. In some cases, such as reporting
+     * diagnostics, we can send results for all possible entry
+     * points. In other cases, such as go-to-definition, we need to
+     * compute results with respect to a single entry point. */
+    private String activeEntryPoint = null;
+
     private LanguageClient client;
 
     private Agent agent = new Agent();
@@ -284,6 +292,17 @@ class SoarDocumentService implements TextDocumentService {
 
         Hover hover = null;
 
+        TclAstNode hoveredNode = file.tclNode(params.getPosition());
+        FileAnalysis analysis = getAnalysis(activeEntryPoint).files.get(file.uri);
+
+        ProcedureCall call = analysis.procedureCalls.get(hoveredNode);
+        if (call != null) {
+            String value = hoveredNode.getInternalText(file.contents.toCharArray());
+            Range range = file.rangeForNode(hoveredNode);
+            hover = new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+            return CompletableFuture.completedFuture(hover);
+        }
+
         // Find the token that the cursor is currently hovering
         // over. It would be better to do this using the Tcl AST,
         // because then we could figure out thing like when the cursor
@@ -389,6 +408,11 @@ class SoarDocumentService implements TextDocumentService {
             try {
                 ProjectAnalysis analysis = analyse(uri);
                 this.analyses.put(analysis.entryPointUri, analysis);
+
+                // TEMPORARY: We aren't currently maintaining the
+                // entry point, but this will work well enough for
+                // single-file projects at the moment.
+                activeEntryPoint = uri;
             } catch (SoarException e) {
                 System.err.println("analyse error: " + e);
             }

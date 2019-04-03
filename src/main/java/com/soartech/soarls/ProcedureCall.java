@@ -9,8 +9,8 @@ class ProcedureCall {
     /** Where and how the procedure was defined. */
     ProcedureDefinition definition;
 
-    /** The arguments that were passed to the procedure. */
-    List<TclAstNode> arguments;
+    /** The AST node containing the call and its arguments. */
+    TclAstNode callSite;
 
     /** The result that was returned by this call. */
     String result;
