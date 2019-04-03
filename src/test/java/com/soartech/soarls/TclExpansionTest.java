@@ -73,6 +73,6 @@ public class TclExpansionTest extends LanguageServerTestFixture {
                 "    \n" +
                 "-->\n" +
                 "    (<s> ^object-exists *YES*)\n" +
-                "\"", edit.getNewText());
+                "\"", edit.getNewText().trim());
     }
 }
