@@ -9,6 +9,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+
+import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
+import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.InitializeParams;
@@ -20,6 +23,7 @@ import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -42,6 +46,7 @@ class LanguageServerTestFixture implements LanguageClient {
      * each file.
      */
     Map<String, PublishDiagnosticsParams> diagnostics = new HashMap<>();
+    Map<String, List<TextEdit>> edits = new HashMap<>();
 
     LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
         URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
@@ -90,6 +95,14 @@ class LanguageServerTestFixture implements LanguageClient {
     public void publishDiagnostics(PublishDiagnosticsParams params) {
         System.out.println(params.toString());
         this.diagnostics.put(params.getUri(), params);
+    }
+
+    @Override
+    public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {
+        System.out.println(params.toString());
+        this.edits = params.getEdit().getChanges();
+
+        return CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true));
     }
 
     @Override
