@@ -25,6 +25,9 @@ class FileAnalysis {
      */
     Map<TclAstNode, ProcedureCall> procedureCalls;
 
+    /** Tcl procedures that were defined while sourcing this file. */
+    List<ProcedureDefinition> procedureDefinitions;
+
     /** The URIs of the files that were sourced by this one, in the
      * order that they were sourced.
      *

@@ -445,6 +445,7 @@ class SoarDocumentService implements TextDocumentService {
 
         Agent agent = new Agent();
 
+        agent.getInterpreter().eval("rename proc proc_internal");
         analyseFile(analysis, agent, uri);
 
         return analysis;
@@ -453,9 +454,13 @@ class SoarDocumentService implements TextDocumentService {
     private void analyseFile(ProjectAnalysis projectAnalysis, Agent agent, String uri) throws SoarException {
         SoarFile file = getFile(uri);
         System.err.println("Retrieved file for " + uri + " :: " + file);
+        if (file == null) {
+            return;
+        }
 
         List<String> sourcedFiles = new ArrayList<>();
         List<Production> productions = new ArrayList<>();
+        List<ProcedureDefinition> procs = new ArrayList<>();
 
         /** Any information that needs to be accessable to the interpreter callbacks. */
         class Context {
@@ -465,10 +470,15 @@ class SoarDocumentService implements TextDocumentService {
         final Context ctx = new Context();
 
         // We need to save the commands we override so that we can
-        // restore them later.
+        // restore them later. It's okay if we try to get a command
+        // that does not yet exist; for example, on the first pass,
+        // the proc command will not have been added.
         Map<String, SoarCommand> originalCommands = new HashMap<>();
-        for (String cmd: Arrays.asList("source", "sp")) {
-            originalCommands.put(cmd, agent.getInterpreter().getCommand(cmd, null));
+        for (String cmd: Arrays.asList("source", "sp", "proc")) {
+            try {
+                originalCommands.put(cmd, agent.getInterpreter().getCommand(cmd, null));
+            } catch (SoarException e) {
+            }
         }
 
         try {
@@ -486,7 +496,7 @@ class SoarDocumentService implements TextDocumentService {
                             analyseFile(projectAnalysis, agent, path);
                         } catch (Exception e) {
                             System.err.println("exception while tracing source: ");
-                            e.printStackTrace(System.out);
+                            e.printStackTrace(System.err);
                         }
                         return "";
                     }
@@ -509,21 +519,39 @@ class SoarDocumentService implements TextDocumentService {
                     public Object getCommand() { return this; }
                 });
 
-            for (TclAstNode command: file.ast.getChildren()) {
-                ctx.currentNode = command;
-                String commandText = command.getInternalText(file.contents.toCharArray());
+            agent.getInterpreter().addCommand("proc", new SoarCommand() {
+                    @Override
+                    public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                        Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                        ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
+                        procs.add(proc);
+
+                        // The args arrays has stripped away the
+                        // braces, so we need to add them back in
+                        // before we evaluate the command, but using
+                        // the real proc command instead.
+                        args[0] = "proc_internal";
+                        return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                    }
+
+                    @Override
+                    public Object getCommand() { return this; }
+                });
+
+            for (TclAstNode commandNode: file.ast.getChildren()) {
+                ctx.currentNode = commandNode;
+                String commandText = commandNode.getInternalText(file.contents.toCharArray());
                 agent.getInterpreter().eval(commandText);
             }
 
             FileAnalysis analysis = new FileAnalysis(uri);
             analysis.filesSourced = sourcedFiles;
             analysis.productions = productions;
+            analysis.procedureDefinitions = procs;
 
             projectAnalysis.files.put(uri, analysis);
         } finally {
             // Restore original commands
-            // agent.getInterpreter().addCommand("source", sourceCommand);
-            // agent.getInterpreter().addCommand("sp", spCommand);
             for (Map.Entry<String, SoarCommand> cmd: originalCommands.entrySet()) {
                 agent.getInterpreter().addCommand(cmd.getKey(), cmd.getValue());
             }

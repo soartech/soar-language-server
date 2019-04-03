@@ -82,6 +82,16 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertProduction(analysis, "proc-not-defined", range(7, 0, 12, 1));
     }
 
+    @Test
+    public void detectsProcedures() {
+        FileAnalysis analysis = analysis("micro-ngs.tcl");
+
+        assertNotNull(analysis.procedureDefinitions);
+        assertProcedure(analysis, "ngs-match-top-state", range(5, 0, 7, 1));
+        assertProcedure(analysis, "ngs-create-attribute", range(9, 0, 11, 1));
+        assertProcedure(analysis, "ngs-bind", range(13, 0, 15, 1));
+    }
+
     /** Assert that a file contains the given production. */
     void assertProduction(FileAnalysis file, String name, Range range) {
         Production production = file.productions
@@ -94,6 +104,20 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertEquals(production.name, name);
         assertEquals(production.location.getUri(), file.uri);
         assertEquals(production.location.getRange(), range);
+    }
+
+    /** Assert that a file contains the given procedure definition. */
+    void assertProcedure(FileAnalysis file, String name, Range range) {
+        ProcedureDefinition proc = file.procedureDefinitions
+            .stream()
+            .filter(p -> p.name.equals(name))
+            .findAny()
+            .orElse(null);
+
+        assertNotNull(proc);
+        assertEquals(proc.name, name);
+        assertEquals(proc.location.getUri(), file.uri);
+        assertEquals(proc.location.getRange(), range);
     }
 
     Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
