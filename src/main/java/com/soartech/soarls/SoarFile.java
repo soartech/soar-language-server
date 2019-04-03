@@ -85,6 +85,7 @@ class SoarFile {
      * - A Tcl AST, for which we use the Tcl parser borrowed from the SoarIDE.
      */
     void parseFile() {
+        diagnostics.clear();
         try {
             List<ParsedCommand> commands = new ArrayList<>();
             final DefaultInterpreterParser parser = new DefaultInterpreterParser();
