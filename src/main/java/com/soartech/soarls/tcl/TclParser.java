@@ -178,7 +178,7 @@ public class TclParser
         List<TclAstNode> kids = commandNode.getChildren();
         while(!consumeTerminator() && commandNode.getError() == null)
         {
-            TclAstNode node = consumeWord();
+            TclAstNode node = consumeWord(EOF);
             if(node.getError() != null)
             {
                 commandNode.setError(node.getError());
@@ -246,7 +246,7 @@ public class TclParser
         }
         return true;
     }
-    private TclAstNode consumeWord()
+    private TclAstNode consumeWord(char terminator)
     {
         char c = lookAhead(0);
         if(c == '"')
@@ -263,23 +263,18 @@ public class TclParser
         }
         else
         {
-            return consumeNormalWord();
+            return consumeNormalWord(terminator);
         }
     }
     
-    private TclAstNode consumeNormalWord()
+    private TclAstNode consumeNormalWord(char terminator)
     {
         TclAstNode node = new TclAstNode(TclAstNode.NORMAL_WORD, getOffset());
         char c = lookAhead(0);
         while(c != EOF)
         {
             // Stop at first whitespace or semi-colon
-            if(Character.isWhitespace(c))
-            {
-                node.setEnd(getOffset());
-                return node;
-            }
-            else if(c == ';')
+            if(Character.isWhitespace(c) || c == ';' || c == terminator)
             {
                 node.setEnd(getOffset());
                 return node;
@@ -323,9 +318,17 @@ public class TclParser
             {
                 node.addChild(consumeCommandWord());
             }
-            else
+            else if(Character.isWhitespace(c))
             {
                 consume();
+            }
+            else if(c == '#')
+            {
+                node.addChild(consumeComment());
+            }
+            else
+            {
+                node.addChild(consumeWord('"'));
             }
             c = lookAhead(0);
         }
@@ -419,9 +422,14 @@ public class TclParser
                 child = consumeBracedWord();
                 node.addChild(child);
             }
-            else
+            else if(Character.isWhitespace(c))
             {
                 consume();
+            }
+            else
+            {
+                child = consumeWord(']');
+                node.addChild(child);
             }
             if(child != null && child.getError() != null)
             {

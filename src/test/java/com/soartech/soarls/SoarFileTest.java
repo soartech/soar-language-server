@@ -154,23 +154,37 @@ public class SoarFileTest extends LanguageServerTestFixture {
     }
 
     @Test
-    public void tclNodeNormalWord() {
-        // This is on the ngs-match macro.
-        TclAstNode node = file.tclNode(new Position(10, 8));
+    public void tclNodeCommandWord() {
+        // This is on the opening bracket of ngs-match-top-state.
+        TclAstNode node = file.tclNode(new Position(10, 4));
         assertEquals(node.getType(), TclAstNode.COMMAND_WORD);
     }
 
     @Test
+    public void tclNodeNormalWord() {
+        // This is on the ngs-match-top-state macro.
+        TclAstNode node = file.tclNode(new Position(10, 8));
+        assertEquals(node.getType(), TclAstNode.NORMAL_WORD);
+    }
+
+    @Test
     public void tclNodeNestedCommand() {
-        // This is on the nested ngs-eq macro.
-        TclAstNode node = file.tclNode(new Position(11, 16));
+        // This is on the opening bracket of the nested ngs-eq macro.
+        TclAstNode node = file.tclNode(new Position(11, 13));
         assertEquals(node.getType(), TclAstNode.COMMAND_WORD);
+    }
+
+    @Test
+    public void tclNodeNestedCommandName() {
+        // This is on the command part of the nested ngs-eq macro.
+        TclAstNode node = file.tclNode(new Position(11, 16));
+        assertEquals(node.getType(), TclAstNode.NORMAL_WORD);
     }
 
     @Test
     public void tclNodeArrow() {
         // This is on the arrow between the LHS and RHS.
         TclAstNode node = file.tclNode(new Position(12, 2));
-        assertEquals(node.getType(), TclAstNode.QUOTED_WORD);
+        assertEquals(node.getType(), TclAstNode.NORMAL_WORD);
     }
 }
