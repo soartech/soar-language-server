@@ -49,6 +49,8 @@ public class HoverTest extends SingleFileTestFixture {
         fail("unimplemented");
     }
 
+    /** The hover range covers the entire invocation of the procedure,
+     * including its arguments. */
     @org.junit.Ignore
     @Test
     public void hoverProcRange() throws Exception {

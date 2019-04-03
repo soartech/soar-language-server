@@ -1,6 +1,8 @@
 package com.soartech.soarls;
 
 import com.soartech.soarls.FileAnalysis;
+import com.soartech.soarls.SoarFile;
+import com.soartech.soarls.tcl.TclAstNode;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.junit.Test;
@@ -30,6 +32,11 @@ public class AnalysisTest extends LanguageServerTestFixture {
     FileAnalysis analysis(String relativePath) {
         SoarDocumentService docs = (SoarDocumentService) languageServer.getTextDocumentService();
         return docs.getAnalysis(resolve("load.soar")).files.get(resolve(relativePath));
+    }
+
+    SoarFile file(String uri) {
+        SoarDocumentService docs = (SoarDocumentService) languageServer.getTextDocumentService();
+        return docs.getFile(uri);
     }
 
     @Test
@@ -92,6 +99,16 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertProcedure(analysis, "ngs-bind", range(13, 0, 15, 1));
     }
 
+    @org.junit.Ignore
+    @Test
+    public void detectsProcedureCalls() {
+        FileAnalysis analysis = analysis("productions.soar");
+
+        assertNotNull(analysis.procedureCalls);
+        assertCall(analysis, 1, 5, "ngs-match-top-state");
+        assertCall(analysis, 3, 5, "ngs-create-attribute");
+    }
+
     /** Assert that a file contains the given production. */
     void assertProduction(FileAnalysis file, String name, Range range) {
         Production production = file.productions
@@ -118,6 +135,15 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertEquals(proc.name, name);
         assertEquals(proc.location.getUri(), file.uri);
         assertEquals(proc.location.getRange(), range);
+    }
+
+    /** Assert that a Tcl procedure is called at the given position. */
+    void assertCall(FileAnalysis analysis, int line, int character, String procedureName) {
+        SoarFile file = file(analysis.uri);
+        TclAstNode node = file.tclNode(new Position(line, character));
+        ProcedureCall call = analysis.procedureCalls.get(node);
+        assertNotNull(call);
+        assertEquals(call.definition.name, procedureName);
     }
 
     Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
