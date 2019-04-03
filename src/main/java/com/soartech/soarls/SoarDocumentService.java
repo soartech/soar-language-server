@@ -482,9 +482,7 @@ class SoarDocumentService implements TextDocumentService {
         }
 
         try {
-            agent.getInterpreter().addCommand("source", new SoarCommand() {
-                    @Override
-                    public String execute(SoarCommandContext context, String[] args) throws SoarException {
+            agent.getInterpreter().addCommand("source", soarCommand(args -> {
                         System.err.println("Executing " + Arrays.toString(args) + " from " + uri);
 
                         try {
@@ -499,29 +497,17 @@ class SoarDocumentService implements TextDocumentService {
                             e.printStackTrace(System.err);
                         }
                         return "";
-                    }
+                    }));
 
-                    @Override
-                    public Object getCommand() { return this; }
-                });
-
-            agent.getInterpreter().addCommand("sp", new SoarCommand() {
-                    @Override
-                    public String execute(SoarCommandContext context, String[] args) throws SoarException {
+            agent.getInterpreter().addCommand("sp", soarCommand(args -> {
                         System.err.println("Executing " + Arrays.toString(args));
 
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         productions.add(new Production(args[1], location));
                         return "";
-                    }
+                    }));
 
-                    @Override
-                    public Object getCommand() { return this; }
-                });
-
-            agent.getInterpreter().addCommand("proc", new SoarCommand() {
-                    @Override
-                    public String execute(SoarCommandContext context, String[] args) throws SoarException {
+            agent.getInterpreter().addCommand("proc", soarCommand(args -> {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
                         procs.add(proc);
@@ -532,11 +518,7 @@ class SoarDocumentService implements TextDocumentService {
                         // the real proc command instead.
                         args[0] = "proc_internal";
                         return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
-                    }
-
-                    @Override
-                    public Object getCommand() { return this; }
-                });
+                    }));
 
             for (TclAstNode commandNode: file.ast.getChildren()) {
                 ctx.currentNode = commandNode;
@@ -556,5 +538,23 @@ class SoarDocumentService implements TextDocumentService {
                 agent.getInterpreter().addCommand(cmd.getKey(), cmd.getValue());
             }
         }
+    }
+
+    interface SoarCommandExecute {
+        String execute(String[] args) throws SoarException;
+    }
+
+    /** A convenience function for implementing the SoarCommand
+     * interface by passing a lambda instead. */
+    static SoarCommand soarCommand(SoarCommandExecute implementation) {
+        return new SoarCommand() {
+            @Override
+            public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                return implementation.execute(args);
+            }
+
+            @Override
+            public Object getCommand() { return this; }
+        };
     }
 }
