@@ -6,8 +6,13 @@ As the extension is currently not uploaded to the VSCode Marketplace, manual ins
 1. Open the extensions menu from the sidebar or `Ctrl+Shift+X`
 2. Open the dropdown `...` in the top-right
 3. Click `Install from VSIX...`
-4. Locate `integrations/vscode/soar-ide-0.0.1.vsix`
-5. Open settings and fill in `soar.languageServer.executablePath`
+4. Locate and select `integrations/vscode/soar-ide-0.0.1.vsix`
+5. Install Extension
+6. Open Settings <br/>
+`File` -> `Preferences` -> `Settings` or `Ctrl+,`
+7. Search for `Soar`
+8. Fill in `Soar > Language Server: Executable Path` with the absolute path to the 
+Soar Language Server executable.
 
 > This assumes that you have built the language server and that it can
 > be invoked as an executable. By default, `gradle install` will
