@@ -25,8 +25,4 @@ class ProcedureDefinition {
         this.name = name;
         this.location = location;
     }
-
-    public void setAst(TclAstNode ast) {
-        this.ast = ast;
-    }
 }

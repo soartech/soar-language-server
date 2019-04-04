@@ -543,7 +543,7 @@ class SoarDocumentService implements TextDocumentService {
             agent.getInterpreter().addCommand("proc", soarCommand(args -> {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
-                        proc.setAst(ctx.currentNode);
+                        proc.ast = ctx.currentNode;
                         analysis.procedureDefinitions.add(proc);
                         projectAnalysis.procedureDefinitions.put(proc.name, proc);
 
@@ -572,7 +572,7 @@ class SoarDocumentService implements TextDocumentService {
                         if (firstChild != null) {
                             String name = file.getNodeInternalText(firstChild);
                             ProcedureCall procedureCall = new ProcedureCall(firstChild);
-                            procedureCall.definition = projectAnalysis.getDefinition(name);
+                            procedureCall.definition = projectAnalysis.procedureDefinitions.get(name);
 
                             analysis.procedureCalls.put(firstChild, procedureCall);
                         }
