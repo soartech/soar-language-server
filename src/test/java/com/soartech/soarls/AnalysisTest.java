@@ -24,38 +24,49 @@ public class AnalysisTest extends LanguageServerTestFixture {
         return workspaceRoot.resolve(relativePath).toUri().toString();
     }
 
-    /** Retrieve the analysis for the file with the given relative
-     * path. We implement this here instead of inside the language
-     * server test fixture because we generally don't want to expose
-     * these implementation details in other tests.
+    /** Retrieve document service as its concrete type. We do this
+     * here instead of inside the language server test fixture because
+     * other tests generally shouldn't be testing internal state.
      */
-    FileAnalysis analysis(String relativePath) {
-        SoarDocumentService docs = (SoarDocumentService) languageServer.getTextDocumentService();
-        return docs.getAnalysis(resolve("load.soar")).files.get(resolve(relativePath));
+    SoarDocumentService documentService() {
+        return (SoarDocumentService) languageServer.getTextDocumentService();
+    }
+
+    /** Retrieve the analysis for the entire project, assuming
+     * load.soar as the entry point.
+     */
+    ProjectAnalysis projectAnalysis() {
+        return documentService().getAnalysis(resolve("load.soar"));
+    }
+
+    /** Retrieve the analysis for the file with the given relative
+     * path.
+     */
+    FileAnalysis fileAnalysis(String relativePath) {
+        return projectAnalysis().files.get(resolve(relativePath));
     }
 
     SoarFile file(String uri) {
-        SoarDocumentService docs = (SoarDocumentService) languageServer.getTextDocumentService();
-        return docs.getFile(uri);
+        return documentService().getFile(uri);
     }
 
     @Test
     public void performsAnalysis() {
-        FileAnalysis analysis = analysis("load.soar");
+        FileAnalysis analysis = fileAnalysis("load.soar");
         assertNotNull(analysis);
     }
 
     @Test
     public void analysesSourcedFiles() {
-        assertNotNull(analysis("micro-ngs.tcl"));
-        assertNotNull(analysis("productions.soar"));
+        assertNotNull(fileAnalysis("micro-ngs.tcl"));
+        assertNotNull(fileAnalysis("productions.soar"));
         // I'm not sure whether we should create analysis objects for files that don't exist.
-        // assertNotNull(analysis("missing-file.soar"));
+        // assertNotNull(fileAnalysis("missing-file.soar"));
     }
 
     @Test
     public void detectSourcedFiles() {
-        FileAnalysis analysis = analysis("load.soar");
+        FileAnalysis analysis = fileAnalysis("load.soar");
 
         assertEquals(analysis.filesSourced.get(0), resolve("micro-ngs.tcl"));
         assertEquals(analysis.filesSourced.get(1), resolve("productions.soar"));
@@ -64,7 +75,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
     @Test
     public void leafFileSourcesNothing() {
-        FileAnalysis analysis = analysis("micro-ngs.tcl");
+        FileAnalysis analysis = fileAnalysis("micro-ngs.tcl");
 
         assertNotNull(analysis);
         assert(analysis.filesSourced.isEmpty());
@@ -72,7 +83,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
     @Test
     public void loadFileHasNoProductions() {
-        FileAnalysis analysis = analysis("load.soar");
+        FileAnalysis analysis = fileAnalysis("load.soar");
 
         assertNotNull(analysis.productions);
         assert(analysis.productions.isEmpty());
@@ -80,7 +91,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
     @Test
     public void detectsProductions() {
-        FileAnalysis analysis = analysis("productions.soar");
+        FileAnalysis analysis = fileAnalysis("productions.soar");
 
         System.out.println(analysis.productions);
 
@@ -89,9 +100,11 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertProduction(analysis, "proc-not-defined", range(7, 0, 12, 1));
     }
 
+    /** This is testing the procedures that are defined in a single
+     * file. It is not looking at procedures for the whole project. */
     @Test
     public void detectsProcedures() {
-        FileAnalysis analysis = analysis("micro-ngs.tcl");
+        FileAnalysis analysis = fileAnalysis("micro-ngs.tcl");
 
         assertNotNull(analysis.procedureDefinitions);
         assertProcedure(analysis, "ngs-match-top-state", range(5, 0, 7, 1));
@@ -99,10 +112,28 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertProcedure(analysis, "ngs-bind", range(13, 0, 15, 1));
     }
 
+    /** This is similar to the detectsProcedures test, but it is
+     * starting at the project analysis. */
+    @Test
+    public void procedureDefinitionAstNodes() {
+        ProjectAnalysis analysis = projectAnalysis();
+        ProcedureDefinition def = analysis.procedureDefinitions.get("ngs-match-top-state");
+        assertEquals(def.location.getUri(), resolve("micro-ngs.tcl"));
+        assertEquals(def.location.getRange(), range(5, 0, 7, 1));
+    }
+
+    @Test
+    public void collectProjectWideProcedureDefinitions() {
+        ProjectAnalysis analysis = projectAnalysis();
+        assertNotNull(analysis.procedureDefinitions.get("ngs-match-top-state"));
+        assertNotNull(analysis.procedureDefinitions.get("ngs-bind"));
+        assertNotNull(analysis.procedureDefinitions.get("ngs-create-attribute"));
+    }
+
     @org.junit.Ignore
     @Test
     public void detectsProcedureCalls() {
-        FileAnalysis analysis = analysis("productions.soar");
+        FileAnalysis analysis = fileAnalysis("productions.soar");
 
         assertNotNull(analysis.procedureCalls);
         assertCall(analysis, 1, 5, "ngs-match-top-state");
