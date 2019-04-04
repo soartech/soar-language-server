@@ -9,6 +9,8 @@ class Production {
 
     final Location location;
 
+    final String body;
+
     Production(String name, Location location) {
         // This is a hacky way to extract the name of a production,
         // because what should be the name argument is actually the
@@ -17,7 +19,10 @@ class Production {
         // We'll come back to this later.
         String productionName = name.split("\\s+")[0];
 
+        String body = name.substring(name.indexOf(productionName) + productionName.length());
+
         this.name = productionName;
         this.location = location;
+        this.body = body.trim();
     }
 }

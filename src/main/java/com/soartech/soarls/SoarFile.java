@@ -232,8 +232,6 @@ class SoarFile {
     }
 
     public String getExpandedCommand(Agent agent, TclAstNode node) throws SoarException {
-
-
         // compare children of node to ast root
         // if they are the same then assume that done on production "name" so expand the whole thing
         // otherwise return the unexpanded text
@@ -242,13 +240,7 @@ class SoarFile {
         if (node.getType() != TclAstNode.QUOTED_WORD) return null;
 
         // find production node
-        TclAstNode parent = null;
-        for (TclAstNode child : this.ast.getChildren()) {
-            if (branchContainsNode(child, node)) {
-                parent = child;
-                break;
-            }
-        }
+        TclAstNode parent = findRootBranchNode(node);
 
         if (parent == null) return node.getInternalText(contents.toCharArray());
 
@@ -259,11 +251,20 @@ class SoarFile {
         parent_command = parent_command.substring(first_quote_index);
 
         try {
-            String test = "return " + parent_command;
-            return beginning + agent.getInterpreter().eval(test) + '"';
+            return beginning + agent.getInterpreter().eval("return " + parent_command) + '"';
         } catch (SoarException e) {
             return parent_command;
         }
+    }
+
+    TclAstNode findRootBranchNode(TclAstNode node) {
+        TclAstNode root = null;
+        for (TclAstNode child : this.ast.getChildren()) {
+            if (branchContainsNode(child, node)) {
+                return child;
+            }
+        }
+        return null;
     }
 
     private boolean branchContainsNode(TclAstNode treeNode, TclAstNode searchNode) {
