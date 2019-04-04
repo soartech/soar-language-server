@@ -544,6 +544,7 @@ class SoarDocumentService implements TextDocumentService {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
                         analysis.procedureDefinitions.add(proc);
+                        projectAnalysis.procedureDefinitions.put(proc.name, proc);
 
                         // The args arrays has stripped away the
                         // braces, so we need to add them back in

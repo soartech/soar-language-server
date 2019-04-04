@@ -18,6 +18,11 @@ class ProjectAnalysis {
 
     final Map<String, FileAnalysis> files = new HashMap<>();
 
+    /** A mapping from procedure names to where they were defined. If
+     * a procedure gets defined multiple times, then this shall store
+     * the most recent definition of that procedure. */
+    final Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
+
     ProjectAnalysis(String entryPointUri) {
         this.entryPointUri = entryPointUri;
     }
