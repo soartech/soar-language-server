@@ -68,7 +68,7 @@ class LanguageServerTestFixture implements LanguageClient {
 
     TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {
         TextDocumentIdentifier fileId = fileId(relativePath);
-        Position position = new Position(line - 1, column - 1);
+        Position position = new Position(line, column);
         return new TextDocumentPositionParams(fileId, position);
     }
 

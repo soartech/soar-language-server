@@ -34,7 +34,7 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
     @Test
     public void tclExpansion() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 12, 14);
+        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 11, 13);
         List<? extends Location> contents = languageServer.getTextDocumentService().definition(params).get().getLeft();
 
         Location location = contents.get(0);
@@ -73,7 +73,7 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
     @Test
     public void sameFileDefinition() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 20, 14);
+        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 19, 13);
         List<? extends Location> contents = languageServer.getTextDocumentService().definition(params).get().getLeft();
 
         Location location = contents.get(0);
@@ -94,7 +94,7 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
     @Test
     public void otherFileDefinition() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 13, 14);
+        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 12, 13);
         List<? extends Location> contents = languageServer.getTextDocumentService().definition(params).get().getLeft();
 
         Location location = contents.get(0);

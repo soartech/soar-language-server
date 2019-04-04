@@ -14,7 +14,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
     @Test
     public void procArguments() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 14, 8);
+        TextDocumentPositionParams params = textDocumentPosition(file, 13, 7);
         SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
         SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -25,7 +25,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
     @Test
     public void procMoreArguments() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 15, 8);
+        TextDocumentPositionParams params = textDocumentPosition(file, 14, 7);
         SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
         SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -38,7 +38,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
     @Test
     public void procOptionalArguments() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 16, 8);
+        TextDocumentPositionParams params = textDocumentPosition(file, 15, 7);
         SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
         SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -52,7 +52,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
     @Test
     public void procNotDefined() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 19, 8);
+        TextDocumentPositionParams params = textDocumentPosition(file, 18, 7);
         SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
         assert(help.getSignatures().isEmpty());

@@ -23,7 +23,7 @@ public class HoverTest extends SingleFileTestFixture {
 
     @Test
     public void hoverVariableValue() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 17, 45);
+        TextDocumentPositionParams params = textDocumentPosition(file, 16, 44);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
         MarkupContent contents = hover.getContents().getRight();
         assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
@@ -32,7 +32,7 @@ public class HoverTest extends SingleFileTestFixture {
 
     @Test
     public void hoverVariableRange() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 17, 45);
+        TextDocumentPositionParams params = textDocumentPosition(file, 16, 44);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
         assertRange(hover, 16, 43, 16, 50);
     }
@@ -40,7 +40,7 @@ public class HoverTest extends SingleFileTestFixture {
     @org.junit.Ignore
     @Test
     public void hoverProcDocs() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 15, 10);
+        TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
         MarkupContent contents = hover.getContents().getRight();
         assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
@@ -54,7 +54,7 @@ public class HoverTest extends SingleFileTestFixture {
     @org.junit.Ignore
     @Test
     public void hoverProcRange() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition(file, 15, 10);
+        TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
         assertRange(hover, 14, 4, 14, 32);
     }
