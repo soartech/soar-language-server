@@ -139,22 +139,22 @@ class SoarDocumentService implements TextDocumentService {
         SoarFile file = documents.get(params.getTextDocument().getUri());
         TclAstNode node = file.tclNode(params.getPosition());
 
-        if (node.getType() != TclAstNode.NORMAL_WORD) return null;
-
-        TclAstNode parent = node.parent;
         Location location = null;
-        // if parent is QUOTED_WORD then currently on an SP command -> expand the code in buffer
-        // if parent is COMMAND_WORD then go to definition if found
-        if (parent.getType() == TclAstNode.QUOTED_WORD)
-            location = goToDefinitionExpansion(file, parent);
-        else if (parent.getType() == TclAstNode.COMMAND_WORD) {
-            location = goToDefinition(file, node);
+        if (node.getType() == TclAstNode.NORMAL_WORD) {
+            TclAstNode parent = node.parent;
+
+            // if parent is QUOTED_WORD then currently on an SP command -> expand the code in buffer
+            // if parent is COMMAND_WORD then go to definition if found
+            if (parent.getType() == TclAstNode.QUOTED_WORD)
+                location = goToDefinitionExpansion(file, parent);
+            else if (parent.getType() == TclAstNode.COMMAND_WORD) {
+                location = goToDefinition(file, node);
+            }
         }
 
-        if (location == null) return null;
-
         List<Location> goToLocation = new ArrayList<>();
-        goToLocation.add(location);
+        if (location != null)
+            goToLocation.add(location);
 
         return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
 
@@ -500,7 +500,7 @@ class SoarDocumentService implements TextDocumentService {
      * Returns the location of the procedure definition or null if it doesn't exist
      */
     private Location goToDefinition(SoarFile file, TclAstNode node) {
-        ProjectAnalysis projectAnalysis = analyses.get(file.uri);
+        ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
 
         String name = file.getNodeInternalText(node);
         ProcedureDefinition definition = projectAnalysis.procedureDefinitions.get(name);
