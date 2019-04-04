@@ -1,5 +1,7 @@
 package com.soartech.soarls;
 
+import java.util.Optional;
+
 import com.soartech.soarls.FileAnalysis;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
@@ -123,6 +125,14 @@ public class AnalysisTest extends LanguageServerTestFixture {
     }
 
     @Test
+    public void procedureDefinitionComments() {
+        ProjectAnalysis analysis = projectAnalysis();
+        assertProcComment(analysis, "ngs-match-top-state", Optional.of("# This is the actual implementation"));
+        assertProcComment(analysis, "ngs-create-attribute", Optional.empty());
+        assertProcComment(analysis, "ngs-bind", Optional.of("# The actual implementation of ngs-bind"));
+    }
+
+    @Test
     public void collectProjectWideProcedureDefinitions() {
         ProjectAnalysis analysis = projectAnalysis();
         assertNotNull(analysis.procedureDefinitions.get("ngs-match-top-state"));
@@ -175,6 +185,21 @@ public class AnalysisTest extends LanguageServerTestFixture {
         ProcedureCall call = analysis.procedureCalls.get(node);
         assertNotNull(call);
         assertEquals(call.definition.name, procedureName);
+    }
+
+    /** Assert that a procedure definition either does not have a
+     * comment, or if it does, that the prefix matches. */
+    void assertProcComment(ProjectAnalysis analysis, String procedureName, Optional<String> commentPrefix) {
+        ProcedureDefinition procedure = analysis.procedureDefinitions.get(procedureName);
+        assertNotNull(procedure);
+
+        if (commentPrefix.isPresent()) {
+            assertNotNull(procedure.commentAstNode);
+        } else {
+            assertNull(procedure.commentAstNode);
+        }
+
+        commentPrefix.ifPresent(prefix -> assertTrue(procedure.commentText.startsWith(prefix)));
     }
 
     Range range(int startLine, int startCharacter, int endLine, int endCharacter) {

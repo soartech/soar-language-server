@@ -21,6 +21,14 @@ class ProcedureDefinition {
     /** The syntax tree of the proc command. */
     public TclAstNode ast;
 
+    /** The AST node of an associated comment, or null if it doesn't
+     * have one. */
+    public TclAstNode commentAstNode;
+
+    /** The contents of the comment text. At least for now, this shall
+     * include the leading '#' comment character. */
+    public String commentText = "";
+
     ProcedureDefinition(String name, Location location) {
         this.name = name;
         this.location = location;

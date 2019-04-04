@@ -499,6 +499,9 @@ class SoarDocumentService implements TextDocumentService {
         class Context {
             /** The node we are currently iterating over. */
             TclAstNode currentNode = null;
+
+            /** Tho most recent comment that was iterated over. */
+            TclAstNode mostRecentComment = null;
         }
         final Context ctx = new Context();
 
@@ -544,6 +547,18 @@ class SoarDocumentService implements TextDocumentService {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
                         proc.ast = ctx.currentNode;
+                        if (ctx.mostRecentComment != null) {
+                            // Note that because of the newline,
+                            // comments end at the beginning of the
+                            // following line.
+                            int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
+                            int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
+                            System.err.println("comment ends at " + commentEndLine + "; proc starts at " + procStartLine);
+                            if (commentEndLine == procStartLine) {
+                                proc.commentAstNode = ctx.mostRecentComment;
+                                proc.commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                            }
+                        }
                         analysis.procedureDefinitions.add(proc);
                         projectAnalysis.procedureDefinitions.put(proc.name, proc);
 
@@ -555,10 +570,14 @@ class SoarDocumentService implements TextDocumentService {
                         return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
                     }));
 
-            for (TclAstNode commandNode: file.ast.getChildren()) {
-                ctx.currentNode = commandNode;
-                String commandText = commandNode.getInternalText(file.contents.toCharArray());
-                agent.getInterpreter().eval(commandText);
+            for (TclAstNode node: file.ast.getChildren()) {
+                ctx.currentNode = node;
+                if (node.getType() == TclAstNode.COMMENT) {
+                    ctx.mostRecentComment = node;
+                } else {
+                    String commandText = node.getInternalText(file.contents.toCharArray());
+                    agent.getInterpreter().eval(commandText);
+                }
             }
 
             // Traverse file ast tree
