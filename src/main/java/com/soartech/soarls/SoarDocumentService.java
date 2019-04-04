@@ -110,7 +110,12 @@ class SoarDocumentService implements TextDocumentService {
     public void didOpen(DidOpenTextDocumentParams params) {
         TextDocumentItem doc = params.getTextDocument();
         SoarFile soarFile = new SoarFile(doc.getUri(), doc.getText());
-        documents.put(doc.getUri(), soarFile);
+        documents.put(soarFile.uri, soarFile);
+
+        if (activeEntryPoint == null) {
+            this.setEntryPoint(soarFile.uri);
+        }
+
         reportDiagnostics();
     }
 
@@ -349,6 +354,18 @@ class SoarDocumentService implements TextDocumentService {
         this.client = client;
     }
 
+    /** Set the entry point of the Soar agent - the first file that
+     * should be sourced. */
+    public void setEntryPoint(String uri) {
+        this.activeEntryPoint = uri;
+        try {
+            ProjectAnalysis analysis = analyse(this.activeEntryPoint);
+            this.analyses.put(analysis.entryPointUri, analysis);
+        } catch (SoarException e) {
+            System.err.println("analyse error: " + e);
+        }
+    }
+
     /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
     SoarFile getFile(String uri) {
         SoarFile file = documents.get(uri);
@@ -370,6 +387,15 @@ class SoarDocumentService implements TextDocumentService {
 
     private void reportDiagnostics() {
         reportDiagnosticsForOpenFiles();
+
+        if (activeEntryPoint != null) {
+            try {
+                ProjectAnalysis analysis = analyse(activeEntryPoint);
+                this.analyses.put(analysis.entryPointUri, analysis);
+            } catch (SoarException e) {
+                System.err.println("analyse error: " + e);
+            }
+        }
     }
 
     /** This implementation tries to load each open file and computes
@@ -383,18 +409,6 @@ class SoarDocumentService implements TextDocumentService {
         System.err.println("Reporting diagnostics for " + documents.keySet());
 
         for (String uri: documents.keySet()) {
-            try {
-                ProjectAnalysis analysis = analyse(uri);
-                this.analyses.put(analysis.entryPointUri, analysis);
-
-                // TEMPORARY: We aren't currently maintaining the
-                // entry point, but this will work well enough for
-                // single-file projects at the moment.
-                activeEntryPoint = uri;
-            } catch (SoarException e) {
-                System.err.println("analyse error: " + e);
-            }
-
             List<Diagnostic> diagnosticList = new ArrayList<>();
 
             try {
