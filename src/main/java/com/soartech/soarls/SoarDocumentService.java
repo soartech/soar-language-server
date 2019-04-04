@@ -543,6 +543,7 @@ class SoarDocumentService implements TextDocumentService {
             agent.getInterpreter().addCommand("proc", soarCommand(args -> {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
+                        proc.setAst(ctx.currentNode);
                         analysis.procedureDefinitions.add(proc);
                         projectAnalysis.procedureDefinitions.put(proc.name, proc);
 
@@ -560,6 +561,26 @@ class SoarDocumentService implements TextDocumentService {
                 agent.getInterpreter().eval(commandText);
             }
 
+            // Traverse file ast tree
+            // for each COMMAND node found, if the node contains a NORMAL_WORD child
+            // then add the procedure call to the file analysis
+            file.traverseAstTree(node -> {
+                switch (node.getType()) {
+                    case TclAstNode.COMMAND:
+                    case TclAstNode.COMMAND_WORD: {
+                        TclAstNode firstChild = node.getChild(TclAstNode.NORMAL_WORD);
+                        if (firstChild != null) {
+                            String name = file.getNodeInternalText(firstChild);
+                            ProcedureCall procedureCall = new ProcedureCall(firstChild);
+                            procedureCall.definition = projectAnalysis.getDefinition(name);
+
+                            analysis.procedureCalls.put(firstChild, procedureCall);
+                        }
+                        break;
+                    }
+                }
+            });
+            
             projectAnalysis.files.put(uri, analysis);
         } finally {
             // Restore original commands

@@ -127,6 +127,25 @@ class SoarFile {
         this.ast = parser.parse();
     }
 
+    void traverseAstTree(TreeTraverseExecute implementation) {
+        traverseAstTreeHelper(implementation, this.ast);
+    }
+
+    private void traverseAstTreeHelper(TreeTraverseExecute implementation, TclAstNode currentNode) {
+        implementation.execute(currentNode);
+        for (TclAstNode child : currentNode.getChildren()) {
+            traverseAstTreeHelper(implementation, child);
+        }
+    }
+
+    interface TreeTraverseExecute {
+        void execute(TclAstNode currentNode);
+    }
+
+    String getNodeInternalText(TclAstNode node) {
+        return node.getInternalText(this.contents.toCharArray());
+    }
+
     /** Get the Tcl AST node at the given position. */
     TclAstNode tclNode(Position position) {
         return tclNode(offset(position));
@@ -318,7 +337,7 @@ class SoarFile {
         return diagnostics;
     }
 
-    List<Diagnostic> getDiagnosticsFromExceptionsManager(SoarTclExceptionsManager exceptionsManager) {
+    private List<Diagnostic> getDiagnosticsFromExceptionsManager(SoarTclExceptionsManager exceptionsManager) {
         List<Diagnostic> managerDiagnostics = new ArrayList<>();
 
         for (SoftTclInterpreterException e : exceptionsManager.getExceptions()) {

@@ -26,4 +26,8 @@ class ProjectAnalysis {
     ProjectAnalysis(String entryPointUri) {
         this.entryPointUri = entryPointUri;
     }
+
+    public ProcedureDefinition getDefinition(String name) {
+        return procedureDefinitions.getOrDefault(name, null);
+    }
 }
