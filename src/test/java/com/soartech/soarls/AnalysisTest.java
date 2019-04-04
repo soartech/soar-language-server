@@ -107,9 +107,9 @@ public class AnalysisTest extends LanguageServerTestFixture {
         FileAnalysis analysis = fileAnalysis("micro-ngs.tcl");
 
         assertNotNull(analysis.procedureDefinitions);
-        assertProcedure(analysis, "ngs-match-top-state", range(5, 0, 7, 1));
-        assertProcedure(analysis, "ngs-create-attribute", range(9, 0, 11, 1));
-        assertProcedure(analysis, "ngs-bind", range(13, 0, 15, 1));
+        assertProcedure(analysis, "ngs-match-top-state", range(6, 0, 8, 1));
+        assertProcedure(analysis, "ngs-create-attribute", range(12, 0, 14, 1));
+        assertProcedure(analysis, "ngs-bind", range(18, 0, 20, 1));
     }
 
     /** This is similar to the detectsProcedures test, but it is
@@ -119,7 +119,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
         ProjectAnalysis analysis = projectAnalysis();
         ProcedureDefinition def = analysis.procedureDefinitions.get("ngs-match-top-state");
         assertEquals(def.location.getUri(), resolve("micro-ngs.tcl"));
-        assertEquals(def.location.getRange(), range(5, 0, 7, 1));
+        assertEquals(def.location.getRange(), range(6, 0, 8, 1));
     }
 
     @Test
