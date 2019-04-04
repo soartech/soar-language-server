@@ -140,7 +140,6 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertNotNull(analysis.procedureDefinitions.get("ngs-create-attribute"));
     }
 
-    @org.junit.Ignore
     @Test
     public void detectsProcedureCalls() {
         FileAnalysis analysis = fileAnalysis("productions.soar");
