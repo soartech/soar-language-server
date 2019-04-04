@@ -37,6 +37,16 @@ public class HoverTest extends SingleFileTestFixture {
         assertRange(hover, 16, 43, 16, 50);
     }
 
+    @Test
+    public void hoverProcWithArguments() throws Exception {
+        TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
+        Hover hover = languageServer.getTextDocumentService().hover(params).get();
+
+        MarkupContent contents = hover.getContents().getRight();
+        assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+        assertEquals(contents.getValue(), "ngs-bind id args");
+    }
+
     @org.junit.Ignore
     @Test
     public void hoverProcDocs() throws Exception {

@@ -296,6 +296,9 @@ class SoarDocumentService implements TextDocumentService {
         ProcedureCall call = analysis.procedureCalls.get(hoveredNode);
         if (call != null) {
             String value = hoveredNode.getInternalText(file.contents.toCharArray());
+            if (call.definition != null) {
+                value = call.definition.name + " " + Joiner.on(" ").join(call.definition.arguments);
+            }
             Range range = file.rangeForNode(hoveredNode);
             hover = new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
             return CompletableFuture.completedFuture(hover);
@@ -610,6 +613,7 @@ class SoarDocumentService implements TextDocumentService {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
                         proc.ast = ctx.currentNode;
+                        proc.arguments = Arrays.asList(args[2].trim().split("\\s+"));
                         if (ctx.mostRecentComment != null) {
                             // Note that because of the newline,
                             // comments end at the beginning of the
