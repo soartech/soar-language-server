@@ -19,7 +19,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -138,53 +137,77 @@ class SoarDocumentService implements TextDocumentService {
     @Override
     public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>> definition(TextDocumentPositionParams params) {
         SoarFile file = documents.get(params.getTextDocument().getUri());
-        TclAstNode node = Lists.reverse(file.tclNodePath(params.getPosition()))
-            .stream()
-            .filter(n -> n.getType() == TclAstNode.QUOTED_WORD)
-            .findFirst()
-            .orElse(null);
-        System.err.println("expanding node: " + node.getInternalText(file.contents.toCharArray()));
+        TclAstNode node = file.tclNode(params.getPosition());
 
-        if (node == null) return null;
+        if (node.getType() != TclAstNode.NORMAL_WORD) return null;
 
-        String expanded_soar;
-        try {
-            expanded_soar = file.getExpandedCommand(agent, node);
-        } catch (SoarException e) {
-            e.printStackTrace();
-            return null;
+        TclAstNode parent = node.parent;
+        Location location = null;
+        // if parent is QUOTED_WORD then currently on an SP command -> expand the code in buffer
+        // if parent is COMMAND_WORD then go to definition if found
+        if (parent.getType() == TclAstNode.QUOTED_WORD)
+            location = goToDefinitionExpansion(file, parent);
+        else if (parent.getType() == TclAstNode.COMMAND_WORD) {
+            location = goToDefinition(file, node);
         }
-        if (expanded_soar == null || expanded_soar.isEmpty()) return null;
-        // add new line for separation from any existing code
-        // when appending to the top of the file
-        expanded_soar += "\n\n";
 
-        String old_uri = params.getTextDocument().getUri();
-        int index = old_uri.lastIndexOf("/") + 1;
-        String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
-
-        // create new "buffer" file to show expanded soar code
-        CreateFile createFile = new CreateFile(new_uri, new CreateFileOptions(false, false));
-        WorkspaceEdit workspaceEdit = new WorkspaceEdit();
-        workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
-        ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
-
-        client.applyEdit(workspaceEditParams);
-
-        // set new content of file to expanded_soar
-        Map<String, List<TextEdit>> edit_map = new HashMap<>();
-        List<TextEdit> edits = new ArrayList<>();
-        Position start = new Position(0, 0);
-        edits.add(new TextEdit(new Range(start, start), expanded_soar));
-        edit_map.put(new_uri, edits);
-        workspaceEdit = new WorkspaceEdit(edit_map);
-
-        client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
+        if (location == null) return null;
 
         List<Location> goToLocation = new ArrayList<>();
-        goToLocation.add(new Location(new_uri, new Range(start, start)));
+        goToLocation.add(location);
 
         return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
+
+
+
+
+//        TclAstNode node = Lists.reverse(file.tclNodePath(params.getPosition()))
+//            .stream()
+//            .filter(n -> n.getType() == TclAstNode.QUOTED_WORD)
+//            .findFirst()
+//            .orElse(null);
+//
+//        if (node == null) return null;
+//        System.err.println("expanding node: " + node.getInternalText(file.contents.toCharArray()));
+//
+//        String expanded_soar;
+//        try {
+//            expanded_soar = file.getExpandedCommand(agent, node);
+//        } catch (SoarException e) {
+//            e.printStackTrace();
+//            return null;
+//        }
+//        if (expanded_soar == null || expanded_soar.isEmpty()) return null;
+//        // add new line for separation from any existing code
+//        // when appending to the top of the file
+//        expanded_soar += "\n\n";
+//
+//        String old_uri = params.getTextDocument().getUri();
+//        int index = old_uri.lastIndexOf("/") + 1;
+//        String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
+//
+//        // create new "buffer" file to show expanded soar code
+//        CreateFile createFile = new CreateFile(new_uri, new CreateFileOptions(false, false));
+//        WorkspaceEdit workspaceEdit = new WorkspaceEdit();
+//        workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
+//        ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
+//
+//        client.applyEdit(workspaceEditParams);
+//
+//        // set new content of file to expanded_soar
+//        Map<String, List<TextEdit>> edit_map = new HashMap<>();
+//        List<TextEdit> edits = new ArrayList<>();
+//        Position start = new Position(0, 0);
+//        edits.add(new TextEdit(new Range(start, start), expanded_soar));
+//        edit_map.put(new_uri, edits);
+//        workspaceEdit = new WorkspaceEdit(edit_map);
+//
+//        client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
+//
+//        List<Location> goToLocation = new ArrayList<>();
+//        goToLocation.add(new Location(new_uri, new Range(start, start)));
+//
+//        return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
     }
 
     @Override
@@ -470,6 +493,72 @@ class SoarDocumentService implements TextDocumentService {
             this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info procs").split(" ")));
         } catch (SoarException e) {
         }
+    }
+
+    /**
+     * Finds the procedure definition of the given node
+     * Returns the location of the procedure definition or null if it doesn't exist
+     */
+    private Location goToDefinition(SoarFile file, TclAstNode node) {
+        ProjectAnalysis projectAnalysis = analyses.get(file.uri);
+
+        String name = file.getNodeInternalText(node);
+        ProcedureDefinition definition = projectAnalysis.procedureDefinitions.get(name);
+        if (definition == null) return null;
+
+        return definition.location;
+    }
+
+    /** Method will get expanded code, write to temp buffer file,
+     * then return location of expanded code
+     * Assumes that the node to be expanded is of type QUOTED_WORD */
+    private Location goToDefinitionExpansion(SoarFile file, TclAstNode node) {
+        if (node == null) return null;
+        System.err.println("expanding node: " + node.getInternalText(file.contents.toCharArray()));
+
+        String expanded_soar;
+        try {
+            expanded_soar = file.getExpandedCommand(agent, node);
+        } catch (SoarException e) {
+            e.printStackTrace();
+            return null;
+        }
+        if (expanded_soar == null || expanded_soar.isEmpty()) return null;
+        // add new line for separation from any existing code
+        // when appending to the top of the file
+        expanded_soar += "\n\n";
+
+        String old_uri = file.uri;
+        int index = old_uri.lastIndexOf("/") + 1;
+        String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
+
+        Position create_position = createFileWithContent(new_uri, expanded_soar);
+
+        return new Location(new_uri, new Range(create_position, create_position));
+    }
+
+    /** Create file with given contents
+     * If file already exists prepend contents to beginning of file*/
+    private Position createFileWithContent(String file_uri, String content) {
+        // create new "buffer" file to show expanded soar code
+        CreateFile createFile = new CreateFile(file_uri, new CreateFileOptions(false, false));
+        WorkspaceEdit workspaceEdit = new WorkspaceEdit();
+        workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
+        ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
+
+        client.applyEdit(workspaceEditParams);
+
+        // set new content of file to expanded_soar
+        Map<String, List<TextEdit>> edit_map = new HashMap<>();
+        List<TextEdit> edits = new ArrayList<>();
+        Position start = new Position(0, 0);
+        edits.add(new TextEdit(new Range(start, start), content));
+        edit_map.put(file_uri, edits);
+        workspaceEdit = new WorkspaceEdit(edit_map);
+
+        client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
+
+        return start;
     }
 
     /** Perform a full analysis of a project starting from the given

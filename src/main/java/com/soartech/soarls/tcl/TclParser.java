@@ -184,7 +184,7 @@ public class TclParser
                 commandNode.setError(node.getError());
                 commandNode.setEnd(node.getStart() + node.getLength());
             }
-            kids.add(node);
+            commandNode.addChild(node);
         }
         if(commandNode.getError() == null)
         {

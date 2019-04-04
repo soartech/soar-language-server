@@ -33,6 +33,8 @@ public class TclAstNode
     private TclAstNode previousChild = null;
     private TclParserError error;
 
+    public TclAstNode parent = null;
+
     public TclAstNode(int type, int start)
     {
         this.type = type;
@@ -59,6 +61,8 @@ public class TclAstNode
         {
             node.previousChild = null;
         }
+
+        node.parent = this;
         kids.add(node);
     }
 
