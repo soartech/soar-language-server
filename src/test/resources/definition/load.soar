@@ -1,0 +1,7 @@
+# This is the root load.soar of a multi-file project.
+
+source micro-ngs.tcl
+source productions.soar
+
+# Attempting to load this file should cause an error.
+source missing-file.soar

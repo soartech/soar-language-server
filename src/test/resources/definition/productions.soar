@@ -1,0 +1,23 @@
+proc ngs-same-file { id } {
+    return "(state $id ^superstate nil)"
+}
+
+sp "elaborate*top-state
+    [ngs-match-top-state <s>]
+-->
+    [ngs-create-attribute <s> top-state $NGS_YES]
+"
+
+# This uses the ngs-bind macro, which was not defined in this project.
+sp "proc-not-defined
+    [ngs-match-top-state <s>]
+    [ngs-bind <s> path.to.object]
+-->
+    [ngs-create-attribute <s> object-exists $NGS_YES]
+"
+
+sp "proc*lhs*same*file
+    [ngs-same-file <s>]
+-->
+    [ngs-create-attribute <s> top-state $NGS_YES]
+"
