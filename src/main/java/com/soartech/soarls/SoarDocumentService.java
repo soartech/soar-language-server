@@ -586,8 +586,6 @@ class SoarDocumentService implements TextDocumentService {
 
         try {
             agent.getInterpreter().addCommand("source", soarCommand(args -> {
-                        System.err.println("Executing " + Arrays.toString(args) + " from " + uri);
-
                         try {
                             Path currentPath = Paths.get(new URI(uri));
                             Path pathToSource = currentPath.resolveSibling(args[1]);
@@ -603,8 +601,6 @@ class SoarDocumentService implements TextDocumentService {
                     }));
 
             agent.getInterpreter().addCommand("sp", soarCommand(args -> {
-                        System.err.println("Executing " + Arrays.toString(args));
-
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                         analysis.productions.add(new Production(args[1], location));
                         return "";
@@ -686,6 +682,7 @@ class SoarDocumentService implements TextDocumentService {
         return new SoarCommand() {
             @Override
             public String execute(SoarCommandContext context, String[] args) throws SoarException {
+                System.err.println("Executing " + Arrays.toString(args));
                 return implementation.execute(args);
             }
 
