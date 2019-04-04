@@ -3,6 +3,7 @@ package com.soartech.soarls;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.CompletionOptions;
+import org.eclipse.lsp4j.ExecuteCommandOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
 import org.eclipse.lsp4j.ServerCapabilities;
@@ -16,7 +17,7 @@ import org.eclipse.lsp4j.services.WorkspaceService;
 
 public class Server implements LanguageServer, LanguageClientAware {
     private final SoarDocumentService documentService = new SoarDocumentService();
-    private final WorkspaceService workspaceService = new SoarWorkspaceService();
+    private final SoarWorkspaceService workspaceService = new SoarWorkspaceService(documentService);
 
     Server() {
         // NOTE: I'm not sure where the proper place to set this is.
@@ -51,8 +52,9 @@ public class Server implements LanguageServer, LanguageClientAware {
         capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
         capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
         capabilities.setHoverProvider(true);
-
         capabilities.setDefinitionProvider(true);
+        capabilities.setCodeActionProvider(true);
+        capabilities.setExecuteCommandProvider(new ExecuteCommandOptions());
 
         return CompletableFuture.completedFuture(new InitializeResult(capabilities));
     }

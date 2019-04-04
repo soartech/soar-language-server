@@ -19,7 +19,11 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
+import org.eclipse.lsp4j.CodeAction;
+import org.eclipse.lsp4j.CodeActionParams;
+import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
@@ -137,6 +141,17 @@ class SoarDocumentService implements TextDocumentService {
             SoarFile soarFile = documents.get(uri);
             soarFile.applyChange(change);
         }
+    }
+
+    @Override
+    public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
+        String uri = params.getTextDocument().getUri();
+
+        List<Either<Command, CodeAction>> actions = new ArrayList<>();
+        if (!params.getTextDocument().getUri().equals(activeEntryPoint)) {
+            actions.add(Either.forLeft(new Command("set project entry point", "set-entry-point", Lists.newArrayList(uri))));
+        }
+        return CompletableFuture.completedFuture(actions);
     }
 
     @Override
