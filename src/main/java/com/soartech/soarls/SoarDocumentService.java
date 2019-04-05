@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
+import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CodeActionParams;
 import org.eclipse.lsp4j.Command;
@@ -567,18 +568,20 @@ class SoarDocumentService implements TextDocumentService {
         WorkspaceEdit workspaceEdit = new WorkspaceEdit();
         workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
         ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
-
-        client.applyEdit(workspaceEditParams);
-
-        // set new content of file to expanded_soar
-        Map<String, List<TextEdit>> edit_map = new HashMap<>();
-        List<TextEdit> edits = new ArrayList<>();
         Position start = new Position(0, 0);
-        edits.add(new TextEdit(new Range(start, start), content));
-        edit_map.put(file_uri, edits);
-        workspaceEdit = new WorkspaceEdit(edit_map);
 
-        client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
+        CompletableFuture<ApplyWorkspaceEditResponse> future = client.applyEdit(workspaceEditParams);
+        future.thenRun(() -> {
+            // set new content of file to expanded_soar
+            Map<String, List<TextEdit>> edit_map = new HashMap<>();
+            List<TextEdit> edits = new ArrayList<>();
+
+            edits.add(new TextEdit(new Range(start, start), content));
+            edit_map.put(file_uri, edits);
+            WorkspaceEdit edit = new WorkspaceEdit(edit_map);
+
+            client.applyEdit(new ApplyWorkspaceEditParams(edit));
+        });
 
         return start;
     }
@@ -805,7 +808,7 @@ class SoarDocumentService implements TextDocumentService {
 
     private String getExpandedCode(String code) {
         try {
-            return agent.getInterpreter().eval("return \"" + code + '"');
+            return agent.getInterpreter().eval("return " + '"' + code + '"');
         } catch (SoarException e) {
             return code;
         }
