@@ -250,7 +250,7 @@ class SoarFile {
         return contents;
     }
 
-    public String getExpandedCommand(Agent agent, TclAstNode node) throws SoarException {
+    public String getExpandedCommand(Agent agent, TclAstNode node) {
         // compare children of node to ast root
         // if they are the same then assume that done on production "name" so expand the whole thing
         // otherwise return the unexpanded text
