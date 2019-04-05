@@ -4,6 +4,7 @@ import java.util.List;
 import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -23,6 +24,11 @@ public class FoldingRangeTest extends SingleFileTestFixture {
 
         FoldingRangeRequestParams params = new FoldingRangeRequestParams(fileId(file));
         this.ranges = languageServer.getTextDocumentService().foldingRange(params).get();
+    }
+
+    @Test
+    public void checkCapabilities() {
+        assertEquals(capabilities.getFoldingRangeProvider(), Either.forLeft(true));
     }
 
     @Test

@@ -18,6 +18,7 @@ import org.eclipse.lsp4j.MessageActionItem;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
@@ -41,6 +42,10 @@ class LanguageServerTestFixture implements LanguageClient {
 
     final LanguageServer languageServer;
 
+    /** The capabilities that were returned from the server on
+     * initialization. */
+    final ServerCapabilities capabilities;
+
     /** The most recent diagnostics that were sent from the server for
      * each file.
      */
@@ -56,7 +61,7 @@ class LanguageServerTestFixture implements LanguageClient {
         Server languageServer = new Server();
         InitializeParams init = new InitializeParams();
         init.setRootUri(workspaceRoot.toUri().toString());
-        languageServer.initialize(init);
+        capabilities = languageServer.initialize(init).get().getCapabilities();
         languageServer.connect(this);
         this.languageServer = languageServer;
     }

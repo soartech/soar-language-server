@@ -22,6 +22,11 @@ public class HoverTest extends SingleFileTestFixture {
     }
 
     @Test
+    public void checkCapabilities() {
+        assertEquals(capabilities.getHoverProvider(), true);
+    }
+
+    @Test
     public void hoverVariableValue() throws Exception {
         TextDocumentPositionParams params = textDocumentPosition(file, 16, 44);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
