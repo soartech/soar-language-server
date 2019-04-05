@@ -10,6 +10,13 @@ Protocol](https://langserver.org/).
 
 # Building
 
+First, clone this repository:
+
+```bash
+$ git clone https://github.com/soartech/soar-language-server
+$ cd soar-language-server
+```
+
 We currently rely on a fork of JSoar which we include as a git
 submodule, which must be initialized like so:
 
