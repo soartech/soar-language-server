@@ -115,6 +115,11 @@ class SoarDocumentService implements TextDocumentService {
     @Override
     public void didOpen(DidOpenTextDocumentParams params) {
         TextDocumentItem doc = params.getTextDocument();
+
+        // if filename starts with ~ assumes its a buffer file and ignore it
+        String[] tokens = doc.getUri().split("/");
+        if (tokens[tokens.length - 1].startsWith("~")) return;
+
         SoarFile soarFile = new SoarFile(doc.getUri(), doc.getText());
         documents.put(soarFile.uri, soarFile);
 
@@ -534,10 +539,7 @@ class SoarDocumentService implements TextDocumentService {
         // when appending to the top of the file
         expanded_soar += "\n\n";
 
-        String old_uri = file.uri;
-        int index = old_uri.lastIndexOf("/") + 1;
-        String new_uri = old_uri.substring(0, index) + "~" + old_uri.substring(index);
-
+        String new_uri = getBufferedUri(file.uri);
         Position create_position = createFileWithContent(new_uri, expanded_soar);
 
         return new Location(new_uri, new Range(create_position, create_position));
@@ -547,7 +549,7 @@ class SoarDocumentService implements TextDocumentService {
      * If file already exists prepend contents to beginning of file*/
     private Position createFileWithContent(String file_uri, String content) {
         // create new "buffer" file to show expanded soar code
-        CreateFile createFile = new CreateFile(file_uri, new CreateFileOptions(false, false));
+        CreateFile createFile = new CreateFile(file_uri, new CreateFileOptions(true, false));
         WorkspaceEdit workspaceEdit = new WorkspaceEdit();
         workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
         ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
@@ -565,6 +567,14 @@ class SoarDocumentService implements TextDocumentService {
         client.applyEdit(new ApplyWorkspaceEditParams(workspaceEdit));
 
         return start;
+    }
+
+    /** Given a file uri, returns buffer file uri
+     * Where filename is modified with a prepended ~
+     * file:///C:/test/origin_file.soar -> file:///C:/test/~origin_file.soar */
+    private String getBufferedUri(String uri) {
+        int index = uri.lastIndexOf("/") + 1;
+        return uri.substring(0, index) + "~" + uri.substring(index);
     }
 
     /** Perform a full analysis of a project starting from the given
@@ -696,6 +706,10 @@ class SoarDocumentService implements TextDocumentService {
                     }
                 }
             });
+
+            // create expanded code for each node
+            String expanded = buildExpandedAstTree(file);
+            createFileWithContent(getBufferedUri(uri), expanded);
             
             projectAnalysis.files.put(uri, analysis);
         } finally {
@@ -704,6 +718,87 @@ class SoarDocumentService implements TextDocumentService {
                 agent.getInterpreter().addCommand(cmd.getKey(), cmd.getValue());
             }
         }
+    }
+
+    String buildExpandedAstTree(SoarFile file) {
+        return buildExpandedAstTreeHelper(file, file.ast);
+    }
+
+    private String buildExpandedAstTreeHelper(SoarFile file, TclAstNode currentNode) {
+        if (currentNode.expanded != null) return currentNode.expanded;
+
+        switch (currentNode.getType()) {
+            case TclAstNode.ROOT: {
+                // build from children separated by \n for COMMENT or \n\n for others
+                StringBuilder stringBuilder = new StringBuilder();
+                for (TclAstNode child : currentNode.getChildren()) {
+                    stringBuilder.append(buildExpandedAstTreeHelper(file, child));
+                    if (child.getType() == TclAstNode.COMMENT)
+                        stringBuilder.append("\n");
+                    else
+                        stringBuilder.append("\n\n");
+                }
+                currentNode.expanded = stringBuilder.toString();
+                break;
+            }
+            case TclAstNode.COMMAND: {
+                // if a child contains a quoted word, then the command is assumed to be a production
+                TclAstNode quoted_word = currentNode.getChild(TclAstNode.QUOTED_WORD);
+                if (quoted_word != null) {
+                    StringBuilder stringBuilder = new StringBuilder();
+                    TclAstNode command = currentNode.getChild(TclAstNode.NORMAL_WORD);
+                    stringBuilder.append(file.getNodeInternalText(command));
+                    stringBuilder.append('"');
+                    for (TclAstNode child : quoted_word.getChildren()) {
+                        if (child.getType() == TclAstNode.COMMAND_WORD)
+                            stringBuilder.append("    ");
+                        stringBuilder.append(buildExpandedAstTreeHelper(file, child));
+                        stringBuilder.append("\n");
+                    }
+                    stringBuilder.append('"');
+
+                    String expanded = quoted_word.getChildren().stream()
+                            .map(child -> buildExpandedAstTreeHelper(file, child))
+                            .collect(Collectors.joining("\n    "));
+                    expanded = file.getNodeInternalText(currentNode.getChild(TclAstNode.NORMAL_WORD))
+                            + '"'
+                            + expanded
+                            + '"';
+                    currentNode.expanded = expanded;
+                } else { // do nothing with it besides getting text
+                    currentNode.expanded = file.getNodeInternalText(currentNode);
+                }
+                break;
+            }
+            case TclAstNode.COMMAND_WORD: {
+                // evaluate the contents
+                try {
+                    String expanded = getExpandedCode(file, currentNode);
+                    currentNode.expanded = expanded;
+                } catch (SoarException e) {
+                    currentNode.expanded = file.getNodeInternalText(currentNode);
+                }
+                break;
+            }
+            case TclAstNode.NORMAL_WORD:
+            case TclAstNode.COMMENT:
+            default: {
+                String expanded = file.getNodeInternalText(currentNode);
+                currentNode.expanded = expanded;
+                break;
+            }
+        }
+
+        return currentNode.expanded;
+    }
+
+    private String getExpandedCode(SoarFile file, TclAstNode node) throws SoarException {
+        return getExpandedCode(file.getNodeInternalText(node));
+    }
+
+    private String getExpandedCode(String code) throws SoarException {
+        code = '"' + code + '"';
+        return agent.getInterpreter().eval("return " + code);
     }
 
     interface SoarCommandExecute {

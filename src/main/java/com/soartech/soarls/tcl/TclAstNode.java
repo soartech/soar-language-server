@@ -37,6 +37,8 @@ public class TclAstNode
 
     public TclAstNode parent = null;
 
+    public String expanded = null;
+
     public TclAstNode(int type, int start)
     {
         this.type = type;
