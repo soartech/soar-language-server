@@ -158,10 +158,6 @@ public class TclAstNode
 
     public TclAstNode getChild(int type)
     {
-        if(children == null)
-        {
-            return null;
-        }
         for(TclAstNode child : getChildren())
         {
             if(child.getType() == type)
