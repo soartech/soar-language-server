@@ -628,6 +628,7 @@ class SoarDocumentService implements TextDocumentService {
                         }
                         analysis.procedureDefinitions.add(proc);
                         projectAnalysis.procedureDefinitions.put(proc.name, proc);
+                        projectAnalysis.procedureCalls.put(proc, new ArrayList<>());
 
                         // The args arrays has stripped away the
                         // braces, so we need to add them back in
@@ -657,10 +658,14 @@ class SoarDocumentService implements TextDocumentService {
                         TclAstNode firstChild = node.getChild(TclAstNode.NORMAL_WORD);
                         if (firstChild != null) {
                             String name = file.getNodeInternalText(firstChild);
-                            ProcedureCall procedureCall = new ProcedureCall(firstChild);
+                            Location location = new Location(uri, file.rangeForNode(node));
+                            ProcedureCall procedureCall = new ProcedureCall(location, firstChild);
                             procedureCall.definition = projectAnalysis.procedureDefinitions.get(name);
 
                             analysis.procedureCalls.put(firstChild, procedureCall);
+                            if (procedureCall.definition != null) {
+                                projectAnalysis.procedureCalls.get(procedureCall.definition).add(procedureCall);
+                            }
                         }
                         break;
                     }

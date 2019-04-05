@@ -1,7 +1,10 @@
 package com.soartech.soarls;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import org.eclipse.lsp4j.Location;
 
 /** The results of analysing a Soar project starting from a particular
  * entry point.
@@ -22,6 +25,10 @@ class ProjectAnalysis {
      * a procedure gets defined multiple times, then this shall store
      * the most recent definition of that procedure. */
     final Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
+
+    /** A mapping from procedure definitions to all their call
+     * sites. */
+    final Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
 
     ProjectAnalysis(String entryPointUri) {
         this.entryPointUri = entryPointUri;
