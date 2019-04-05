@@ -283,6 +283,10 @@ public class TclParser
             {
                 consumeEscapedCharacter();
             }
+            else if(c == '$')
+            {
+                consumeVariable();
+            }
             else
             {
                 consume();
@@ -317,6 +321,10 @@ public class TclParser
             else if(c == '[')
             {
                 node.addChild(consumeCommandWord());
+            }
+            else if(c == '$')
+            {
+                node.addChild(consumeVariable());
             }
             else if(Character.isWhitespace(c))
             {
@@ -422,6 +430,11 @@ public class TclParser
                 child = consumeBracedWord();
                 node.addChild(child);
             }
+            else if(c == '$')
+            {
+                child = consumeVariable();
+                node.addChild(child);
+            }
             else if(Character.isWhitespace(c))
             {
                 consume();
@@ -464,6 +477,37 @@ public class TclParser
         else
         {
             consume();
+        }
+    }
+
+    private TclAstNode consumeVariable()
+    {
+        assert lookAhead(0) == '$';
+        TclAstNode node = new TclAstNode(TclAstNode.VARIABLE, getOffset());
+        consume();
+
+        char c = lookAhead(0);
+        if (c == '{')
+        {
+            TclAstNode nameNode = new TclAstNode(TclAstNode.VARIABLE_NAME, getOffset() + 1);
+            consumeBracedWord();
+            nameNode.setEnd(getOffset() - 1);
+            node.addChild(nameNode);
+            node.setEnd(getOffset());
+            return node;
+        }
+        else
+        {
+            TclAstNode nameNode = new TclAstNode(TclAstNode.VARIABLE_NAME, getOffset());
+            while (Character.isLetterOrDigit(c) || c == '_')
+            {
+                consume();
+                c = lookAhead(0);
+            }
+            nameNode.setEnd(getOffset());
+            node.addChild(nameNode);
+            node.setEnd(getOffset());
+            return node;
         }
     }
         

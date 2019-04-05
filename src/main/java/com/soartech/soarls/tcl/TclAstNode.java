@@ -20,10 +20,12 @@ public class TclAstNode
     public static final int QUOTED_WORD = 4;
     public static final int BRACED_WORD = 5;
     public static final int COMMAND_WORD = 6;
+    public static final int VARIABLE = 7;
+    public static final int VARIABLE_NAME = 8;
 
     private static final String TYPES[] = new String[] {
         "ROOT", "COMMENT", "COMMAND", "NORMAL_WORD", "QUOTED_WORD",
-        "BRACED_WORD", "COMMAND_WORD"
+        "BRACED_WORD", "COMMAND_WORD", "VARIABLE", "VARIABLE_NAME"
     };
 
     private int type;

@@ -187,4 +187,18 @@ public class SoarFileTest extends LanguageServerTestFixture {
         TclAstNode node = file.tclNode(new Position(12, 2));
         assertEquals(node.getType(), TclAstNode.NORMAL_WORD);
     }
+
+    @Test
+    public void tclNodeVariable() {
+        // The '$' character of $NGS_YES
+        TclAstNode node = file.tclNode(new Position(13, 58));
+        assertEquals(node.getType(), TclAstNode.VARIABLE);
+    }
+
+    @Test
+    public void tclNodeVariableName() {
+        // The 'G' character in $NGS_YES
+        TclAstNode node = file.tclNode(new Position(13, 60));
+        assertEquals(node.getType(), TclAstNode.VARIABLE_NAME);
+    }
 }
