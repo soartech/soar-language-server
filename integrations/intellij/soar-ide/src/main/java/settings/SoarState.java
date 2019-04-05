@@ -63,11 +63,11 @@ public class SoarState implements PersistentStateComponent<SoarState> {
 
     public void setLanguageServerExecutablePath(String languageServerExecutablePath) {
         this.languageServerExecutablePath = languageServerExecutablePath;
-        registerServer(true);
+//        registerServer(true);
     }
 
     public void registerServer() {
-        registerServer(false);
+//        registerServer(false);
     }
 
     public void registerServer(boolean askToRestart) {
