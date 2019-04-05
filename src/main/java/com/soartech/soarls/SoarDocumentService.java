@@ -586,6 +586,7 @@ class SoarDocumentService implements TextDocumentService {
         Agent agent = new Agent();
 
         agent.getInterpreter().eval("rename proc proc_internal");
+        agent.getInterpreter().eval("rename set set_internal");
         analyseFile(analysis, agent, uri);
 
         return analysis;
@@ -615,7 +616,7 @@ class SoarDocumentService implements TextDocumentService {
         // that does not yet exist; for example, on the first pass,
         // the proc command will not have been added.
         Map<String, SoarCommand> originalCommands = new HashMap<>();
-        for (String cmd: Arrays.asList("source", "sp", "proc")) {
+        for (String cmd: Arrays.asList("source", "sp", "proc", "set")) {
             try {
                 originalCommands.put(cmd, agent.getInterpreter().getCommand(cmd, null));
             } catch (SoarException e) {
@@ -670,6 +671,26 @@ class SoarDocumentService implements TextDocumentService {
                         // before we evaluate the command, but using
                         // the real proc command instead.
                         args[0] = "proc_internal";
+                        return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                    }));
+
+            agent.getInterpreter().addCommand("set", soarCommand(args -> {
+                        String name = args[1];
+                        Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                        VariableDefinition var = new VariableDefinition(name, location);
+                        var.ast = ctx.currentNode;
+                        if (ctx.mostRecentComment != null) {
+                            int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
+                            int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
+                            if (commentEndLine == varStartLine) {
+                                var.commentAstNode = ctx.mostRecentComment;
+                                var.commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                            }
+                        }
+                        analysis.variableDefinitions.add(var);
+                        projectAnalysis.variableDefinitions.put(var.name, var);
+
+                        args[0] = "set_internal";
                         return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
                     }));
 

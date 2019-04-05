@@ -30,6 +30,9 @@ class ProjectAnalysis {
      * sites. */
     final Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
 
+    /** A mapping from variable names to where they were defined. */
+    final Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
+
     ProjectAnalysis(String entryPointUri) {
         this.entryPointUri = entryPointUri;
     }

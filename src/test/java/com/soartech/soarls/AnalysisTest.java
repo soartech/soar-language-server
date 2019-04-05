@@ -149,6 +149,13 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertCall(analysis, 3, 5, "ngs-create-attribute");
     }
 
+    @Test
+    public void variableDefinitions() {
+        ProjectAnalysis analysis = projectAnalysis();
+        assertVariable(analysis, "NGS_YES", "*YES*", "micro-ngs.tcl");
+        assertVariable(analysis, "NGS_NO", "*NO*", "micro-ngs.tcl");
+    }
+
     /** Assert that a file contains the given production. */
     void assertProduction(FileAnalysis file, String name, Range range) {
         Production production = file.productions
@@ -199,6 +206,15 @@ public class AnalysisTest extends LanguageServerTestFixture {
         }
 
         commentPrefix.ifPresent(prefix -> assertTrue(procedure.commentText.startsWith(prefix)));
+    }
+
+    /** Assert that a variable was defined with the given name, value,
+     * and source file. */
+    void assertVariable(ProjectAnalysis analysis, String name, String value, String relativePath) {
+        VariableDefinition def = analysis.variableDefinitions.get(name);
+        assertNotNull(def);
+        assertEquals(def.name, name);
+        assertEquals(def.location.getUri(), resolve(relativePath));
     }
 
     Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
