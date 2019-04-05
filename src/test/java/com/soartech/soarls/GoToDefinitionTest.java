@@ -116,6 +116,15 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
         assertEquals(1, end.getCharacter());
     }
 
+    @Test
+    public void variableDefinition() throws Exception {
+        List<Location> locations = definitionsForPosition("productions.soar", 7, 40);
+
+        Location location = locations.get(0);
+        assertEquals(location.getUri(), resolve("micro-ngs.tcl"));
+        assertEquals(location.getRange(), range(2, 0, 2, 17));
+    }
+
     Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
         return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
     }

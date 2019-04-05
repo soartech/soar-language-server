@@ -31,11 +31,10 @@ public class TclAstNode
     private int type;
     private int start;
     private int length;
+    private TclAstNode parent = null;
     private List<TclAstNode> children;
     private TclAstNode previousChild = null;
     private TclParserError error;
-
-    public TclAstNode parent = null;
 
     public String expanded = null;
 
@@ -52,6 +51,11 @@ public class TclAstNode
             children = new ArrayList<TclAstNode>();
         }
         return children;
+    }
+
+    public TclAstNode getParent()
+    {
+        return parent;
     }
 
     public void addChild(TclAstNode node)

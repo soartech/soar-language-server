@@ -168,20 +168,23 @@ class SoarDocumentService implements TextDocumentService {
 
         Location location = null;
         if (node.getType() == TclAstNode.NORMAL_WORD) {
-            TclAstNode parent = node.parent;
+            TclAstNode parent = node.getParent();
 
             // if parent is QUOTED_WORD then currently on an SP command -> expand the code in buffer
-            // if parent is COMMAND_WORD then go to definition if found
-            if (parent.getType() == TclAstNode.QUOTED_WORD)
+            // if parent is COMMAND_WORD then go to procedure definition if found.
+            if (parent.getType() == TclAstNode.QUOTED_WORD) {
                 location = goToDefinitionExpansion(file, parent);
-            else if (parent.getType() == TclAstNode.COMMAND_WORD) {
-                location = goToDefinition(file, node);
+            } else if (parent.getType() == TclAstNode.COMMAND_WORD) {
+                location = goToDefinitionProcedure(file, node);
             }
+        } else if (node.getType() == TclAstNode.VARIABLE || node.getType() == TclAstNode.VARIABLE_NAME) {
+            location = goToDefinitionVariable(file, node);
         }
 
         List<Location> goToLocation = new ArrayList<>();
-        if (location != null)
+        if (location != null) {
             goToLocation.add(location);
+        }
 
         return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
     }
@@ -510,7 +513,7 @@ class SoarDocumentService implements TextDocumentService {
      * Finds the procedure definition of the given node
      * Returns the location of the procedure definition or null if it doesn't exist
      */
-    private Location goToDefinition(SoarFile file, TclAstNode node) {
+    private Location goToDefinitionProcedure(SoarFile file, TclAstNode node) {
         ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
 
         String name = file.getNodeInternalText(node);
@@ -518,6 +521,17 @@ class SoarDocumentService implements TextDocumentService {
         if (definition == null) return null;
 
         return definition.location;
+    }
+
+    private Location goToDefinitionVariable(SoarFile file, TclAstNode node) {
+        ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
+        FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
+
+        TclAstNode variableNode = node.getType() == TclAstNode.VARIABLE ? node : node.getParent();
+        System.err.println("Looking of definition of variable at node " + variableNode);
+        VariableRetrieval retrieval = fileAnalysis.variableRetrievals.get(variableNode);
+        if (retrieval == null) return null;
+        return retrieval.definition.location;
     }
 
     /** Method will get expanded code, write to temp buffer file,
@@ -689,6 +703,7 @@ class SoarDocumentService implements TextDocumentService {
                         }
                         analysis.variableDefinitions.add(var);
                         projectAnalysis.variableDefinitions.put(var.name, var);
+                        projectAnalysis.variableRetrievals.put(var, new ArrayList<>());
 
                         args[0] = "set_internal";
                         return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
@@ -723,8 +738,22 @@ class SoarDocumentService implements TextDocumentService {
                                 projectAnalysis.procedureCalls.get(procedureCall.definition).add(procedureCall);
                             }
                         }
-                        break;
-                    }
+                    } break;
+                    case TclAstNode.VARIABLE: {
+                        TclAstNode nameNode = node.getChild(TclAstNode.VARIABLE_NAME);
+                        if (nameNode != null) {
+                            String name = file.getNodeInternalText(nameNode);
+                            Location location = new Location(uri, file.rangeForNode(node));
+                            VariableRetrieval retrieval = new VariableRetrieval(location, node);
+                            retrieval.definition = projectAnalysis.variableDefinitions.get(name);
+
+                            System.err.println("Recording retrieval of " + name + " at node " + node + ": " + retrieval);
+                            analysis.variableRetrievals.put(node, retrieval);
+                            if (retrieval.definition != null) {
+                                projectAnalysis.variableRetrievals.get(retrieval.definition).add(retrieval);
+                            }
+                        }
+                    } break;
                 }
             });
 

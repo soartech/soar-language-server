@@ -28,6 +28,10 @@ class FileAnalysis {
      */
     Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
 
+    /** All the Tcl variable reads that were made in this file. The
+     * keys to this map are the AST VARIABLE nodes. */
+    Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
+
     /** Tcl procedures that were defined while sourcing this file. */
     List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
 

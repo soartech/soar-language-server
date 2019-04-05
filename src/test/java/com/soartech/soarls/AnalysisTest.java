@@ -1,5 +1,6 @@
 package com.soartech.soarls;
 
+import java.util.List;
 import java.util.Optional;
 
 import com.soartech.soarls.FileAnalysis;
@@ -154,6 +155,22 @@ public class AnalysisTest extends LanguageServerTestFixture {
         ProjectAnalysis analysis = projectAnalysis();
         assertVariable(analysis, "NGS_YES", "*YES*", "micro-ngs.tcl");
         assertVariable(analysis, "NGS_NO", "*NO*", "micro-ngs.tcl");
+    }
+
+    @Test
+    public void variableRetrievalsInFileAnalysis() {
+        FileAnalysis analysis = fileAnalysis("productions.soar");
+        assertFalse(analysis.variableRetrievals.isEmpty());
+    }
+
+    @Test
+    public void variableUsages() {
+        ProjectAnalysis analysis = projectAnalysis();
+        VariableDefinition def = analysis.variableDefinitions.get("NGS_YES");
+        assertNotNull(def);
+        List<VariableRetrieval> usages = analysis.variableRetrievals.get(def);
+        assertNotNull(usages);
+        assertEquals(usages.size(), 2);
     }
 
     /** Assert that a file contains the given production. */

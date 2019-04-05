@@ -27,11 +27,15 @@ class ProjectAnalysis {
     final Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
 
     /** A mapping from procedure definitions to all their call
-     * sites. */
+     * sites. This is used to find all references. */
     final Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
 
     /** A mapping from variable names to where they were defined. */
     final Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
+
+    /** A mapping from variable definitions to all their retrieval
+     * sites. This is used to find all refereces. */
+    final Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals = new HashMap<>();
 
     ProjectAnalysis(String entryPointUri) {
         this.entryPointUri = entryPointUri;
