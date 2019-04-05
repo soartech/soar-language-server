@@ -219,6 +219,17 @@ public class TclAstNode
         return b.toString();
     }
 
+    /** Check whether the node contains the given child node. */
+    public boolean containsChild(TclAstNode child) {
+        return this == child ||
+            this
+            .getChildren()
+            .stream()
+            .filter(n -> n.getStart() <= child.getStart())
+            .filter(n -> n.getEnd() >= child.getEnd())
+            .anyMatch(n -> n.containsChild(child));
+    }
+
     /**
      * Check whether this node contains the given word type.
      * @param type <pre>

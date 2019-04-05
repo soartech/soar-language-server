@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.regex.Matcher;
@@ -49,6 +50,7 @@ import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
@@ -328,6 +330,29 @@ class SoarDocumentService implements TextDocumentService {
         }
 
         return CompletableFuture.completedFuture(hover);
+    }
+
+    @Override
+    public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
+        SoarFile file = documents.get(params.getTextDocument().getUri());
+        TclAstNode astNode = file.tclNode(params.getPosition());
+        ProjectAnalysis analysis = getAnalysis(activeEntryPoint);
+        FileAnalysis fileAnalysis = analysis.files.get(file.uri);
+
+        List<Location> references = new ArrayList<>();
+
+        Optional<ProcedureDefinition> procDef = fileAnalysis
+            .procedureDefinitions
+            .stream()
+            .filter(def -> def.ast.containsChild(astNode))
+            .findFirst();
+        procDef.ifPresent(def -> {
+                for (ProcedureCall call: analysis.procedureCalls.get(def)) {
+                    references.add(call.callSiteLocation);
+                }
+            });
+
+        return CompletableFuture.completedFuture(references);
     }
 
     @Override
