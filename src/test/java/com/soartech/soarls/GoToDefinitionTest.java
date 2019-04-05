@@ -2,14 +2,15 @@ package com.soartech.soarls;
 
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
 import org.junit.Test;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static java.util.stream.Collectors.toList;
+import static org.junit.Assert.*;
 
 /**
  * Tcl expansions are implementad by creating and modifying the
@@ -32,15 +33,19 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
         open("load.soar");
     }
 
+    List<Location> definitionsForPosition(String relativePath, int line, int character) throws Exception {
+        TextDocumentPositionParams params = textDocumentPosition(relativePath, line, character);
+        return languageServer.getTextDocumentService().definition(params).get().getLeft().stream().collect(toList());
+    }
+
     @Test
     public void tclExpansion() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 11, 13);
-        List<? extends Location> contents = languageServer.getTextDocumentService().definition(params).get().getLeft();
+        List<Location> contents = definitionsForPosition("productions.soar", 11, 13);
 
         Location location = contents.get(0);
         assertNotNull(location);
 
-        assertEquals(workspaceRoot.resolve("~productions.soar").toUri().toString(), location.getUri());
+        assertEquals(resolve("~productions.soar"), location.getUri());
 
         Position start = location.getRange().getStart();
         assertEquals(0, start.getLine());
@@ -73,13 +78,12 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
     @Test
     public void sameFileDefinition() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 19, 13);
-        List<? extends Location> contents = languageServer.getTextDocumentService().definition(params).get().getLeft();
+        List<Location> contents = definitionsForPosition("productions.soar", 19, 13);
 
         Location location = contents.get(0);
         assertNotNull(location);
 
-        assertEquals(workspaceRoot.resolve("productions.soar").toUri().toString(), location.getUri());
+        assertEquals(resolve("productions.soar"), location.getUri());
 
         Position start = location.getRange().getStart();
         assertNotNull(start);
@@ -94,13 +98,12 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
     @Test
     public void otherFileDefinition() throws Exception {
-        TextDocumentPositionParams params = textDocumentPosition("productions.soar", 12, 13);
-        List<? extends Location> contents = languageServer.getTextDocumentService().definition(params).get().getLeft();
+        List<Location> contents = definitionsForPosition("productions.soar", 12, 13);
 
         Location location = contents.get(0);
         assertNotNull(location);
 
-        assertEquals(workspaceRoot.resolve("micro-ngs.tcl").toUri().toString(), location.getUri());
+        assertEquals(resolve("micro-ngs.tcl"), location.getUri());
 
         Position start = location.getRange().getStart();
         assertNotNull(start);
@@ -111,5 +114,13 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
         assertNotNull(end);
         assertEquals(8, end.getLine());
         assertEquals(1, end.getCharacter());
+    }
+
+    Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
+        return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
+    }
+
+    String resolve(String relativePath) {
+        return workspaceRoot.resolve(relativePath).toUri().toString();
     }
 }
