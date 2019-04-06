@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -301,49 +303,41 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
-        SoarFile file = documents.get(params.getTextDocument().getUri());
-        String line = file.line(params.getPosition().getLine());
-
-        Hover hover = null;
-
+        FileAnalysis analysis = getAnalysis(activeEntryPoint).files.get(params.getTextDocument().getUri());
+        SoarFile file = documents.get(analysis.uri);
         TclAstNode hoveredNode = file.tclNode(params.getPosition());
-        FileAnalysis analysis = getAnalysis(activeEntryPoint).files.get(file.uri);
 
-        ProcedureCall call = analysis.procedureCalls.get(hoveredNode);
-        if (call != null) {
-            String value = hoveredNode.getInternalText(file.contents.toCharArray());
+        Function<TclAstNode, Hover> hoverVariable = node -> {
+            VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
+            if (retrieval == null) return null;
+            String value = retrieval.definition.value;
+            Range range = file.rangeForNode(node);
+            return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+        };
+
+        Function<TclAstNode, Hover> hoverProcedureCall = node -> {
+            ProcedureCall call = analysis.procedureCalls.get(node);
+            if (call == null) return null;
+            String value = file.getNodeInternalText(node);
             if (call.definition != null) {
                 value = call.definition.name + " " + Joiner.on(" ").join(call.definition.arguments);
             }
-            Range range = file.rangeForNode(hoveredNode);
-            hover = new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-            return CompletableFuture.completedFuture(hover);
-        }
+            Range range = file.rangeForNode(node);
+            return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+        };
 
-        // Find the token that the cursor is currently hovering
-        // over. It would be better to do this using the Tcl AST,
-        // because then we could figure out thing like when the cursor
-        // is on an argument.
-        Matcher matcher = Pattern.compile("[a-zA-Z-_]+").matcher(line);
-        while (matcher.find()) {
-            if (matcher.start() <= params.getPosition().getCharacter() && params.getPosition().getCharacter() < matcher.end()) {
-                String token = line.substring(matcher.start(), matcher.end());
-                if (variables.contains(token)) {
-                    String value = "";
-                    try {
-                        value = agent.getInterpreter().eval("return $" + token);
-                    } catch (SoarException e) {
-                    }
-                    Range range = new Range(
-                        new Position(params.getPosition().getLine(), matcher.start() - 1), // Include the leading '$'
-                        new Position(params.getPosition().getLine(), matcher.end() - 1)); // Range endings are inclusive
-                    hover = new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-                    break;
-                }
+        Supplier<Hover> getHover = () -> {
+            switch (hoveredNode.getType()) {
+            case TclAstNode.VARIABLE:
+                return hoverVariable.apply(hoveredNode);
+            case TclAstNode.VARIABLE_NAME:
+                return hoverVariable.apply(hoveredNode.getParent());
+            default:
+                return hoverProcedureCall.apply(hoveredNode);
             }
-        }
+        };
 
-        return CompletableFuture.completedFuture(hover);
+        return CompletableFuture.completedFuture(getHover.get());
     }
 
     @Override
@@ -709,18 +703,9 @@ class SoarDocumentService implements TextDocumentService {
                         projectAnalysis.variableRetrievals.put(var, new ArrayList<>());
 
                         args[0] = "set_internal";
-                        return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                        var.value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                        return var.value;
                     }));
-
-            for (TclAstNode node: file.ast.getChildren()) {
-                ctx.currentNode = node;
-                if (node.getType() == TclAstNode.COMMENT) {
-                    ctx.mostRecentComment = node;
-                } else {
-                    String commandText = node.getInternalText(file.contents.toCharArray());
-                    agent.getInterpreter().eval(commandText);
-                }
-            }
 
             // Traverse file ast tree
             // for each COMMAND node found, if the node contains a NORMAL_WORD child
@@ -728,6 +713,21 @@ class SoarDocumentService implements TextDocumentService {
             file.traverseAstTree(node -> {
                 if (node.expanded == null)
                     node.expanded = file.getNodeInternalText(node);
+
+                if (node.getType() == TclAstNode.COMMENT) {
+                    ctx.mostRecentComment = node;
+                } else if (node.getType() == TclAstNode.COMMAND) {
+                    ctx.currentNode = node;
+                    try {
+                        agent.getInterpreter().eval(node.expanded);
+                    } catch (SoarException e) {
+                        // If anything goes wrong, we just bail out
+                        // early. The tree traversal will continue, so
+                        // we might still collect useful information.
+                        System.err.println("Error while evaluating Soar command: " + e);
+                        return;
+                    }
+                }
 
                 switch (node.getType()) {
                     case TclAstNode.COMMAND: {

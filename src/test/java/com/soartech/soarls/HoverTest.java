@@ -39,7 +39,7 @@ public class HoverTest extends SingleFileTestFixture {
     public void hoverVariableRange() throws Exception {
         TextDocumentPositionParams params = textDocumentPosition(file, 16, 44);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
-        assertRange(hover, 16, 43, 16, 50);
+        assertRange(hover, 16, 43, 16, 51);
     }
 
     @Test

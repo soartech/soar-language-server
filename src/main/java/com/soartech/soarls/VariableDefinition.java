@@ -9,14 +9,17 @@ import org.eclipse.lsp4j.Location;
  * metadata.
  */
 class VariableDefinition {
-    /** The name of the procedure. */
+    /** The name of the variable. */
     public final String name;
 
-    /** The location where this production was defined. */
+    /** The location where this variable was set. */
     public final Location location;
 
-    /** The syntax tree of the proc command. */
+    /** The syntax tree of the set command. */
     public TclAstNode ast;
+
+    /** The value of this variable. */
+    String value;
 
     /** The AST node of an associated comment, or null if it doesn't
      * have one. */

@@ -16,9 +16,6 @@ class VariableRetrieval {
     /** Where and how the procedure was defined. */
     VariableDefinition definition;
 
-    /** The result that was returned by this call. */
-    String result;
-
     VariableRetrieval(Location location, TclAstNode ast) {
         this.readSiteLocation = location;
         this.readSiteAst = ast;

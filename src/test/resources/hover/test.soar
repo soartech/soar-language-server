@@ -16,3 +16,7 @@ sp "test
 -->
     [ngs-create-attribute <object> matched $NGS_YES]
 "
+
+# We need to ensure that we show the value at the time it was read,
+# not from the tcl interpreter after it's done running.
+set NGS_YES "this was redefined"

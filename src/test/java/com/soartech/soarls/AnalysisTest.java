@@ -231,6 +231,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
         VariableDefinition def = analysis.variableDefinitions.get(name);
         assertNotNull(def);
         assertEquals(def.name, name);
+        assertEquals(def.value, value);
         assertEquals(def.location.getUri(), resolve(relativePath));
     }
 
