@@ -14,7 +14,7 @@ import static org.junit.Assert.*;
  * Tests for textDocument/hover request.
  *
  * Hovering over Tcl variables should show their value, while hovering
- * over a proc should show its doc comment.
+ * over a proc should show its signature.
  */
 public class HoverTest extends SingleFileTestFixture {
     public HoverTest() throws Exception {
@@ -52,16 +52,14 @@ public class HoverTest extends SingleFileTestFixture {
         assertEquals(contents.getValue(), "ngs-bind id args");
     }
 
-    @org.junit.Ignore
+    /** For procedure calls, the hover text shows the signature. */
     @Test
     public void hoverProcDocs() throws Exception {
         TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
         MarkupContent contents = hover.getContents().getRight();
         assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
-        assertEquals(contents.getValue(), "*YES*");
-
-        fail("unimplemented");
+        assertEquals(contents.getValue(), "ngs-bind id args");
     }
 
     /** The hover range covers the entire invocation of the procedure,
