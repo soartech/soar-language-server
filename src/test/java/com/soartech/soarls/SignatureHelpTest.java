@@ -36,6 +36,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
         assertParameter(info, 3, "high_val");
     }
 
+    @org.junit.Ignore
     @Test
     public void procOptionalArguments() throws Exception {
         TextDocumentPositionParams params = textDocumentPosition(file, 15, 7);

@@ -22,7 +22,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
@@ -366,37 +365,21 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
-        SoarFile file = documents.get(params.getTextDocument().getUri());
-        String line = file.line(params.getPosition().getLine());
+        FileAnalysis analysis = getAnalysis(activeEntryPoint).files.get(params.getTextDocument().getUri());
+        SoarFile file = documents.get(analysis.uri);
+        TclAstNode astNode = file.tclNode(params.getPosition());
 
         List<SignatureInformation> signatures = new ArrayList<>();
 
-        // Find the token that the cursor is currently hovering
-        // over. It would be better to do this using the Tcl AST,
-        // because then we could figure out thing like when the cursor
-        // is on an argument.
-        Matcher matcher = Pattern.compile("[a-zA-Z-_]+").matcher(line);
-        while (matcher.find()) {
-            if (matcher.start() <= params.getPosition().getCharacter() && params.getPosition().getCharacter() < matcher.end()) {
-                String token = line.substring(matcher.start(), matcher.end());
-                if (!procedures.contains(token)) {
-                    break;
-                }
-
-                String args = "";
-                try {
-                    args = agent.getInterpreter().eval("info args " + token);
-                } catch (SoarException e) {
-                }
-                List<ParameterInformation> arguments = Arrays.stream(args.split(" "))
-                    .map(arg -> new ParameterInformation(arg))
-                    .collect(Collectors.toList());
-                String label = token + " " + args;
-                SignatureInformation info = new SignatureInformation(label, "", arguments);
-                signatures.add(info);
-                break;
-            }
+        ProcedureCall call = analysis.procedureCalls.get(astNode);
+        if (call != null && call.definition != null) {
+            ProcedureDefinition def = call.definition;
+            String label = def.name + " " + Joiner.on(" ").join(def.arguments);
+            List<ParameterInformation> arguments = def.arguments.stream().map(arg -> new ParameterInformation(arg)).collect(toList());
+            SignatureInformation info = new SignatureInformation(label, "", arguments);
+            signatures.add(info);
         }
+
         SignatureHelp help = new SignatureHelp(signatures, 0, 0);
         return CompletableFuture.completedFuture(help);
     }
