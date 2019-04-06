@@ -316,7 +316,11 @@ class SoarDocumentService implements TextDocumentService {
             if (call.definition != null) {
                 value = call.definition.name + " " + Joiner.on(" ").join(call.definition.arguments);
             }
-            Range range = file.rangeForNode(node);
+            // We are clearly not storing the right information
+            // here. Computing the range should be much simpler.
+            List<TclAstNode> callChildren = call.callSiteAst.getParent().getChildren();
+            Range range = new Range(file.position(callChildren.get(0).getStart()),
+                                    file.position(callChildren.get(callChildren.size() - 1).getEnd()));
             return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
         };
 

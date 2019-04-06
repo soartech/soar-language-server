@@ -66,12 +66,11 @@ public class HoverTest extends SingleFileTestFixture {
 
     /** The hover range covers the entire invocation of the procedure,
      * including its arguments. */
-    @org.junit.Ignore
     @Test
     public void hoverProcRange() throws Exception {
         TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
         Hover hover = languageServer.getTextDocumentService().hover(params).get();
-        assertRange(hover, 14, 4, 14, 32);
+        assertRange(hover, 14, 5, 14, 32);
     }
 
     /** Test that the range matches the given parameters. */
