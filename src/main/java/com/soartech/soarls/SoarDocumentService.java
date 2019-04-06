@@ -199,6 +199,7 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(CompletionParams params) {
+        ProjectAnalysis analysis = getAnalysis(activeEntryPoint);
         SoarFile file = documents.get(params.getTextDocument().getUri());
         String line = file.line(params.getPosition().getLine());
 
@@ -217,12 +218,12 @@ class SoarDocumentService implements TextDocumentService {
         for (int i = cursor; i >= 0; --i) {
             switch (line.charAt(i)) {
             case '$':
-                source = variables;
+                source = analysis.variableDefinitions.keySet();
                 kind = CompletionItemKind.Constant;
                 break;
             case ' ':
             case '[':
-                source = procedures;
+                source = analysis.procedureDefinitions.keySet();
                 kind = CompletionItemKind.Function;
                 break;
             }
@@ -232,7 +233,7 @@ class SoarDocumentService implements TextDocumentService {
             }
         }
         if (source == null) {
-            source = procedures;
+            source = analysis.procedureDefinitions.keySet();
             kind = CompletionItemKind.Function;
             start = 0;
         }
@@ -251,7 +252,7 @@ class SoarDocumentService implements TextDocumentService {
             .filter(s -> s.startsWith(prefix))
             .map(CompletionItem::new)
             .map(item -> { item.setKind(itemKind); return item; })
-            .collect(Collectors.toList());
+            .collect(toList());
 
         return CompletableFuture.completedFuture(Either.forLeft(completions));
     }
