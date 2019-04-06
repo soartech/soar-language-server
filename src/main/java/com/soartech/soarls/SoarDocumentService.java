@@ -108,12 +108,6 @@ class SoarDocumentService implements TextDocumentService {
 
     private Agent agent = new Agent();
 
-    /** The names of all the Tcl variables that are defined by the agent. */
-    private Set<String> variables = new HashSet<>();
-
-    /** The names of all the Tcl procedures that are defined by the agent. */
-    private Set<String> procedures = new HashSet<>();
-
     /** Retrieve the analysis for the given entry point. */
     public ProjectAnalysis getAnalysis(String uri) {
         return analyses.get(uri);
@@ -478,18 +472,6 @@ class SoarDocumentService implements TextDocumentService {
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
             client.publishDiagnostics(diagnostics);
-        }
-
-        // Collect variables.
-        try {
-            this.variables = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info vars").split(" ")));
-        } catch (SoarException e) {
-        }
-
-        // Collect procedures.
-        try {
-            this.procedures = new HashSet<>(Arrays.asList(agent.getInterpreter().eval("info procs").split(" ")));
-        } catch (SoarException e) {
         }
     }
 
