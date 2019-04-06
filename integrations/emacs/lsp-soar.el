@@ -1,6 +1,6 @@
 ;;; lsp-soar.el --- Language server support for Soar
 
-;; Version 0.1
+;; Version: 0.1
 ;; Author: Anthony Deschamps <anthony.j.deschamps@gmail.com>
 ;; Package-Requires: ((lsp-mode "6.0"))
 ;; Keywords: lsp, soar
