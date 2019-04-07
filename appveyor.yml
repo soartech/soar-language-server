@@ -1,7 +1,8 @@
 version: "{branch} {build}"
 
 install:
-  - cmd: git submodule -q update --init
+  - git submodule -q update --init
+  - gradlew.bat compileJSoar
 
 build_script:
   - gradlew.bat assemble

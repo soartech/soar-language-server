@@ -33,7 +33,7 @@ Gradle. The Gradle wrapper script is included:
 
 ```bash
 $ ./gradlew test
-$ ./gradlew install
+$ ./gradlew installDist
 ```
 
 This will create an executable at

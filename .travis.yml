@@ -9,3 +9,22 @@ cache:
   directories:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
+
+install:
+  # JSoar needs to be on the classpath in order for the shadow tasks
+  # to successfully be configured - it's not enough to simply declare
+  # it as a task dependency.
+  - ./gradlew compileJSoar
+  - ./gradlew assemble
+
+before_deploy:
+  - ./gradlew shadowDistTar shadowDistZip
+deploy:
+  provider: releases
+  api_key:
+    secure: cO2gM42kllxCrIvuSpf5pGSAg1kzUUAQ5hm/0pXXTLj384vRnLnVysXXJdM1G2DYwQifcIZDFTjyBozeaIUt5AT5JJreSJJX7o+FtlEPh/OWYjqyNAFm6gbF0ANM2XNQQwaDe0rP5vB9uUsVgGUAuxmJ6ntc3TU+HnX6wA8Hc0CEH5ft+ncym5LuXaiUVm0tW5wGoEIhxsuc96xcWdyRk7r6G6BwZiYcvKhnC2BbK7EzUAm931IkWqK739awrnfDlTjqVK4f01K5bvZhfZK4vQjjkKd1BIQztBnQ+ejCn9/FIFk980RC7JIRRjy4Xbg06vi+q5cOZuxrmOWSupHqBfYs14V8M7tUfdIRBYDIn9dRnTGPHXDkqzAR1uXVVl8nrXIyZznlj5iHZh1UoDAHpFS8lSdKnvtbhwh0Sx8pxu5lhIuGUzoQj9goqYku8oHoKUFv+aiFOFrUvEIHoWqnGvxcQoovdH1btV3qXRoMZSyksz3sDQwWyBYuTJpTlu3NAQf4OqeUoRTKRLQd5FTbaaW694z9Xi2kiAURzpJfIGZZaxfJEM8PA8pIoA5K7ZOZm6127gWVWolhHlWLmwAaOVn4MU9QDqknLav7EYx3VCWO65DUW3Jym/BFlj7BVgW4VfKAlLc5NtIf3ND6oIxCaV6qKSUrSwC2DgP5MiIDwEM=
+  file_glob: true
+  file: build/distributions/*
+  skip_cleanup: true
+  on:
+    repo: soartech/soar-language-server
