@@ -50,9 +50,17 @@ public class ReferencesTest extends LanguageServerTestFixture {
     }
 
     @Test
-    public void referencesFromVariableUsage() throws Exception {
-        // read NGS_YES
+    public void referencesFromVariableUsageAtStart() throws Exception {
+        // On the '$' in $NGS_YES
         List<Location> references = referencesForPoint("productions.soar", 3, 40);
+        assertReference(references, "productions.soar", range(3, 40, 3, 48));
+        assertReference(references, "productions.soar", range(11, 44, 11, 52));
+    }
+
+    @Test
+    public void referencesFromVariableUsageInMiddle() throws Exception {
+        // On the 'G' in $NGS_YES
+        List<Location> references = referencesForPoint("productions.soar", 3, 42);
         assertReference(references, "productions.soar", range(3, 40, 3, 48));
         assertReference(references, "productions.soar", range(11, 44, 11, 52));
     }

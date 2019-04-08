@@ -347,8 +347,8 @@ class SoarDocumentService implements TextDocumentService {
 
         List<Location> references = new ArrayList<>();
 
-        Optional<ProcedureDefinition> procDef =
-            Optional.ofNullable(fileAnalysis.procedureCalls.get(astNode))
+        Optional<ProcedureDefinition> procDef = fileAnalysis
+            .procedureCall(astNode)
             .flatMap(call -> Optional.ofNullable(call.definition));
         if (!procDef.isPresent()) {
             procDef = fileAnalysis
@@ -363,8 +363,8 @@ class SoarDocumentService implements TextDocumentService {
                 }
             });
 
-        Optional<VariableDefinition> varDef =
-            Optional.ofNullable(fileAnalysis.variableRetrievals.get(astNode))
+        Optional<VariableDefinition> varDef = fileAnalysis
+            .variableRetrieval(astNode)
             .flatMap(ret -> Optional.ofNullable(ret.definition));
         if (!varDef.isPresent()) {
             varDef = fileAnalysis

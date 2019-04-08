@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.soartech.soarls.ProcedureCall;
 import com.soartech.soarls.SoarFile;
@@ -47,4 +48,22 @@ class FileAnalysis {
 
     /** Productions that were defined while sourcing this file. */
     List<Production> productions = new ArrayList<>();
+
+    // Helpers
+
+    /** Get the procedure call at the given node. */
+    Optional<ProcedureCall> procedureCall(TclAstNode node) {
+        return Optional.ofNullable(procedureCalls.get(node));
+    }
+
+    /** Get the variable retrieval at the given node. */
+    Optional<VariableRetrieval> variableRetrieval(TclAstNode node) {
+        // Retrievals are indexed by their VARIABLE node, but most of
+        // the spans of those nodes are covered by their VARIABLE_NAME
+        // child.
+        if (node.getType() == TclAstNode.VARIABLE_NAME) {
+            node = node.getParent();
+        }
+        return Optional.ofNullable(variableRetrievals.get(node));
+    }
 }
