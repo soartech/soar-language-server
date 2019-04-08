@@ -27,5 +27,5 @@ deploy:
   file: build/distributions/*
   skip_cleanup: true
   on:
-    tag: true
+    tags: true
     repo: soartech/soar-language-server
