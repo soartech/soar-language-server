@@ -2,9 +2,7 @@ package com.soartech.soarls;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
-import java.io.PushbackReader;
-import java.io.Reader;
-import java.io.StringReader;
+import com.soartech.soarls.tcl.TclParserError;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,13 +13,11 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
-import org.jsoar.kernel.exceptions.SoarInterpreterException;
-import org.jsoar.kernel.exceptions.SoarParserException;
 import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
 import org.jsoar.util.commands.DefaultInterpreterParser;
-import org.jsoar.util.commands.ParsedCommand;
-import org.jsoar.util.commands.ParserBuffer;
 import org.jsoar.util.commands.SoarTclExceptionsManager;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * This class keeps track of the contents of a Soar source file along
@@ -44,8 +40,6 @@ class SoarFile {
     final public String uri;
 
     public String contents;
-
-    public List<ParsedCommand> commands = new ArrayList<>();
 
     public List<Diagnostic> diagnostics = new ArrayList<>();
 
@@ -86,45 +80,21 @@ class SoarFile {
      */
     void parseFile() {
         diagnostics.clear();
-        try {
-            List<ParsedCommand> commands = new ArrayList<>();
-            final DefaultInterpreterParser parser = new DefaultInterpreterParser();
-            Reader reader = new StringReader(this.contents);
-            final ParserBuffer pbReader = new ParserBuffer(new PushbackReader(reader));
-
-            while (true) {
-                try {
-                    ParsedCommand parsedCommand = parser.parseCommand(pbReader);
-
-                    if (parsedCommand.isEof()) {
-                        break;
-                    }
-                    commands.add(parsedCommand);
-                }catch (SoarParserException e) {
-                    int start = position(e.getOffset()).getLine();
-                    diagnostics.add(new Diagnostic(
-                            new Range(new Position(start, 0), getEndofLinePosition(start)),
-                            e.getMessage(),
-                            DiagnosticSeverity.Error,
-                            "soar"
-                    ));
-                } catch (SoarInterpreterException e) {
-                    int start = e.getSourceLocation().getLine();
-                    diagnostics.add(new Diagnostic(
-                            new Range(new Position(start, 0), getEndofLinePosition(start)),
-                            e.getMessage(),
-                            DiagnosticSeverity.Error,
-                            "soar"
-                    ));
-                }
-            }
-            this.commands = commands;
-        } catch (Exception e) {
-        }
 
         TclParser parser = new TclParser();
         parser.setInput(this.contents.toCharArray(), 0, this.contents.length());
         this.ast = parser.parse();
+
+        this.diagnostics = parser.getErrors().stream()
+            .map(e -> {
+                    int start = position(e.getStart()).getLine();
+                    return new Diagnostic(
+                        new Range(new Position(start, 0), getEndOfLinePosition(start)),
+                        e.getMessage(),
+                        DiagnosticSeverity.Error,
+                        "soar");
+                })
+            .collect(toList());
     }
 
     void traverseAstTree(TreeTraverseExecute implementation) {
@@ -315,7 +285,7 @@ class SoarFile {
     }
 
     // returns a Position of the last character on a given line
-    private Position getEndofLinePosition(int line) {
+    private Position getEndOfLinePosition(int line) {
         String[] lines = contents.split("\n");
 
         return new Position(line, lines[line].length());
@@ -323,7 +293,7 @@ class SoarFile {
 
     // Returns a range for a diagnostic, highlighting all the text on given line number
     private Range getLineRange(int line) {
-        return new Range(new Position(line, 0), getEndofLinePosition(line));
+        return new Range(new Position(line, 0), getEndOfLinePosition(line));
     }
 
     List<Diagnostic> getAllDiagnostics(SoarTclExceptionsManager exceptionsManager) {

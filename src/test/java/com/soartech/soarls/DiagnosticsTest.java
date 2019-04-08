@@ -103,34 +103,20 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     @Test
     public void missingProductionQuote() {
         // check for diagnostic created by parser at last quote due to mismatched quotes
-        boolean parserDiagnosticFound = false;
-        for (Diagnostic diagnostic : getFileDiagnostics()) {
-            if (diagnostic.getMessage().equals("Unexpected end of input. Unmatched quote.")) {
-                Position start = diagnostic.getRange().getStart();
-                Position end = diagnostic.getRange().getEnd();
-                assertEquals(31, start.getLine());
-                assertEquals(0, start.getCharacter());
-                assertEquals(31, end.getLine());
-                assertEquals(1, end.getCharacter());
-                parserDiagnosticFound = true;
-                break;
-            }
-        }
-        assertTrue(parserDiagnosticFound);
+        Diagnostic parserDiagnostic = getFileDiagnostics()
+            .stream()
+            .filter(d -> d.getRange().equals(range(31, 0, 31, 1)))
+            .findAny()
+            .get();
+        assertEquals(parserDiagnostic.getMessage(), "Missing closing quote");
 
-        boolean sourcedDiagnosticFound = false;
-        for (Diagnostic diagnostic : getFileDiagnostics()) {
-            if (diagnostic.getMessage().contains("In production 'missing-quote', expected ( to begin condition element")) {
-                Position start = diagnostic.getRange().getStart();
-                Position end = diagnostic.getRange().getEnd();
-                assertEquals(27, start.getLine());
-                assertEquals(3, start.getCharacter());
-                assertEquals(27, end.getLine());
-                assertEquals(16, end.getCharacter());
-                sourcedDiagnosticFound = true;
-                break;
-            }
-        }
-        assertTrue(sourcedDiagnosticFound);
+        Diagnostic sourcedDiagnostic = getFileDiagnostics()
+            .stream()
+            .filter(d -> d.getRange().equals(range(27, 3, 27, 16)))
+            .findAny()
+            .get();
+        assertEquals(
+            sourcedDiagnostic.getMessage(),
+            "In production 'missing-quote', expected ( to begin condition element\n\n(Ignoring production missing-quote)");
     }
 }
