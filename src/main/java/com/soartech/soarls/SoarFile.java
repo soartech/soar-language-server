@@ -144,32 +144,6 @@ class SoarFile {
         }
     }
 
-    List<TclAstNode> tclNodePath(Position position) {
-        return tclNodePath(offset(position));
-    }
-
-    /** Get the chain of AST nodes that contain this offset, where the
-     * first one is the root node and the last is the leaf. This will
-     * always return at least one node, because all offsets are
-     * contained by the root. */
-    List<TclAstNode> tclNodePath(int offset) {
-        List<TclAstNode> chain = new ArrayList<>();
-        TclAstNode node = this.ast;
-        while (true) {
-            chain.add(node);
-            node = node
-                .getChildren()
-                .stream()
-                .filter(c -> c.getStart() <= offset)
-                .filter(c -> offset < c.getEnd())
-                .findFirst()
-                .orElse(null);
-            if (node == null) {
-                return chain;
-            }
-        }
-    }
-
     /** Get a single line as a string. */
     String line(int lineNumber) {
         int start = offset(new Position(lineNumber, 0));
@@ -246,7 +220,6 @@ class SoarFile {
     }
 
     TclAstNode findRootBranchNode(TclAstNode node) {
-        TclAstNode root = null;
         for (TclAstNode child : this.ast.getChildren()) {
             if (branchContainsNode(child, node)) {
                 return child;
@@ -266,33 +239,11 @@ class SoarFile {
         return false;
     }
 
-    private String getSubstringOfContents(int start, int length) {
-        return contents.substring(start, start + length);
-    }
-
-    // returns offset location of specific char before the startOffset
-    // if no previous occurrence is found then return 0
-    // currently unused
-    private int getPreviousChar(char ch, int startOffset) {
-        for (int i = startOffset - 1; i > -1; --i) {
-            char other = contents.charAt(i);
-            if (other == ch) {
-                return i;
-            }
-        }
-        return 0;
-    }
-
     // returns a Position of the last character on a given line
     private Position getEndOfLinePosition(int line) {
         String[] lines = contents.split("\n");
 
         return new Position(line, lines[line].length());
-    }
-
-    // Returns a range for a diagnostic, highlighting all the text on given line number
-    private Range getLineRange(int line) {
-        return new Range(new Position(line, 0), getEndOfLinePosition(line));
     }
 
     List<Diagnostic> getDiagnostics() {
