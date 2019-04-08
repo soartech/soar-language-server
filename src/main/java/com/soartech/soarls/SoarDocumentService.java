@@ -247,22 +247,18 @@ class SoarDocumentService implements TextDocumentService {
 
     @Override
     public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(TextDocumentPositionParams params) {
-        List<DocumentHighlight> highlights = new ArrayList<>();
+        final SoarFile file = documents.get(params.getTextDocument().getUri());
+        final int offset = file.offset(params.getPosition());
 
-        SoarFile file = documents.get(params.getTextDocument().getUri());
-        if (file != null) {
-            // Position position = params.getPosition();
-            int offset = file.offset(params.getPosition());
-            for (ParsedCommand command: file.commands) {
-                int start = command.getLocation().getOffset() - 1;
-                int end = start + command.getLocation().getLength();
-                if (start <= offset && offset <= end) {
-                    Range range = new Range(file.position(start), file.position(end + 1));
-                    highlights.add(new DocumentHighlight(range));
-                    break;
-                }
-            }
-        }
+        final List<DocumentHighlight> highlights = file
+            .ast
+            .getChildren()
+            .stream()
+            .filter(node -> node.getType() != TclAstNode.COMMENT)
+            .filter(node -> node.getStart() <= offset && offset <= node.getEnd())
+            .map(node -> new Range(file.position(node.getStart()), file.position(node.getEnd() + 1)))
+            .map(DocumentHighlight::new)
+            .collect(toList());
 
         return CompletableFuture.completedFuture(highlights);
     }

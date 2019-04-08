@@ -23,9 +23,6 @@ public class DocumentHighlightTest extends SingleFileTestFixture {
     public void highlightProduction() throws Exception {
         TextDocumentPositionParams params = textDocumentPosition(file, 3, 6);
         List<? extends DocumentHighlight> contents = languageServer.getTextDocumentService().documentHighlight(params).get();
-        assertEquals(contents.get(0).getRange().getStart().getLine(), 2);
-        assertEquals(contents.get(0).getRange().getStart().getCharacter(), 0);
-        assertEquals(contents.get(0).getRange().getEnd().getLine(), 7);
-        assertEquals(contents.get(0).getRange().getEnd().getCharacter(), 1);
+        assertEquals(contents.get(0).getRange(), range(2, 0, 8, 0));
     }
 }
