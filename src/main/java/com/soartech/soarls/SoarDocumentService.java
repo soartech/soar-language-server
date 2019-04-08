@@ -304,10 +304,10 @@ class SoarDocumentService implements TextDocumentService {
         Function<TclAstNode, Hover> hoverProcedureCall = node -> {
             ProcedureCall call = analysis.procedureCalls.get(node);
             if (call == null) return null;
-            String value = file.getNodeInternalText(node);
-            if (call.definition != null) {
-                value = call.definition.name + " " + Joiner.on(" ").join(call.definition.arguments);
-            }
+            String value = call
+                .definition
+                .map(def -> def.name + " " + Joiner.on(" ").join(def.arguments))
+                .orElse(file.getNodeInternalText(node));
             // We are clearly not storing the right information
             // here. Computing the range should be much simpler.
             List<TclAstNode> callChildren = call.callSiteAst.getParent().getChildren();
@@ -341,7 +341,7 @@ class SoarDocumentService implements TextDocumentService {
 
         Optional<ProcedureDefinition> procDef = fileAnalysis
             .procedureCall(astNode)
-            .flatMap(call -> Optional.ofNullable(call.definition));
+            .flatMap(call -> call.definition);
         if (!procDef.isPresent()) {
             procDef = fileAnalysis
                 .procedureDefinitions
@@ -383,12 +383,13 @@ class SoarDocumentService implements TextDocumentService {
         List<SignatureInformation> signatures = new ArrayList<>();
 
         ProcedureCall call = analysis.procedureCalls.get(astNode);
-        if (call != null && call.definition != null) {
-            ProcedureDefinition def = call.definition;
-            String label = def.name + " " + Joiner.on(" ").join(def.arguments);
-            List<ParameterInformation> arguments = def.arguments.stream().map(arg -> new ParameterInformation(arg)).collect(toList());
-            SignatureInformation info = new SignatureInformation(label, "", arguments);
-            signatures.add(info);
+        if (call != null) {
+            call.definition.ifPresent(def -> {
+                    String label = def.name + " " + Joiner.on(" ").join(def.arguments);
+                    List<ParameterInformation> arguments = def.arguments.stream().map(arg -> new ParameterInformation(arg)).collect(toList());
+                    SignatureInformation info = new SignatureInformation(label, "", arguments);
+                    signatures.add(info);
+                });
         }
 
         SignatureHelp help = new SignatureHelp(signatures, 0, 0);
@@ -741,13 +742,15 @@ class SoarDocumentService implements TextDocumentService {
                         if (firstChild != null) {
                             String name = file.getNodeInternalText(firstChild);
                             Location location = new Location(uri, file.rangeForNode(node));
-                            ProcedureCall procedureCall = new ProcedureCall(location, firstChild);
-                            procedureCall.definition = projectAnalysis.procedureDefinitions.get(name);
+                            ProcedureCall procedureCall = new ProcedureCall(
+                                location,
+                                firstChild,
+                                projectAnalysis.procedureDefinitions.get(name));
 
                             analysis.procedureCalls.put(firstChild, procedureCall);
-                            if (procedureCall.definition != null) {
-                                projectAnalysis.procedureCalls.get(procedureCall.definition).add(procedureCall);
-                            }
+                            procedureCall.definition.ifPresent(def -> {
+                                    projectAnalysis.procedureCalls.get(def).add(procedureCall);
+                                });
                         }
                     } break;
                     case TclAstNode.VARIABLE: {

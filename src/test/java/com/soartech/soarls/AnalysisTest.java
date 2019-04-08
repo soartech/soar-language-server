@@ -207,7 +207,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
         TclAstNode node = file.tclNode(new Position(line, character));
         ProcedureCall call = analysis.procedureCalls.get(node);
         assertNotNull(call);
-        assertEquals(call.definition.name, procedureName);
+        assertEquals(call.definition.get().name, procedureName);
     }
 
     /** Assert that a procedure definition either does not have a
