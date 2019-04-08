@@ -44,6 +44,7 @@ task compileJSoar(type: MavenExec) {
             'maven.test.skip': 'true',
             'maven.javadoc.skip': 'true'
         ]
+        batchMode true
     }
 }
 classes.dependsOn compileJSoar
