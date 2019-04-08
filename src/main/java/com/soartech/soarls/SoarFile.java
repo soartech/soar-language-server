@@ -13,7 +13,6 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
-import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
 import org.jsoar.util.commands.DefaultInterpreterParser;
 import org.jsoar.util.commands.SoarTclExceptionsManager;
 
@@ -296,41 +295,12 @@ class SoarFile {
         return new Range(new Position(line, 0), getEndOfLinePosition(line));
     }
 
-    List<Diagnostic> getAllDiagnostics(SoarTclExceptionsManager exceptionsManager) {
-        List<Diagnostic> allDiagnostics = new ArrayList<>();
-        allDiagnostics.addAll(diagnostics);
-        allDiagnostics.addAll(getDiagnosticsFromExceptionsManager(exceptionsManager));
-        return allDiagnostics;
-    }
-
     List<Diagnostic> getDiagnostics() {
         return diagnostics;
-    }
-
-    private List<Diagnostic> getDiagnosticsFromExceptionsManager(SoarTclExceptionsManager exceptionsManager) {
-        List<Diagnostic> managerDiagnostics = new ArrayList<>();
-
-        for (SoftTclInterpreterException e : exceptionsManager.getExceptions()) {
-            managerDiagnostics.add(new Diagnostic(
-                    getCommandRange(e.getCommand()),
-                    e.getMessage().trim(),
-                    DiagnosticSeverity.Error,
-                    "soar"
-            ));
-        }
-
-        return managerDiagnostics;
     }
 
     /** Get the range that encompasses the given Tcl AST node. */
     Range rangeForNode(TclAstNode node) {
         return new Range(position(node.getStart()), position(node.getEnd()));
-    }
-
-    private Range getCommandRange(String command) {
-        int offset = contents.indexOf(command);
-        if (offset < 0) offset = 0;
-
-        return new Range(position(offset), position(offset + command.length()));
     }
 }

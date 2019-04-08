@@ -69,6 +69,7 @@ import org.eclipse.lsp4j.services.TextDocumentService;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
+import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
 import org.jsoar.kernel.exceptions.TclInterpreterException;
 import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.ParsedCommand;
@@ -454,12 +455,12 @@ class SoarDocumentService implements TextDocumentService {
         System.err.println("Reporting diagnostics for " + documents.keySet());
 
         for (String uri: documents.keySet()) {
-            List<Diagnostic> diagnosticList = new ArrayList<>();
+            final SoarFile file = documents.get(uri);
+            final List<Diagnostic> diagnosticList = new ArrayList<>();
 
             try {
                 SoarCommands.source(agent.getInterpreter(), uri);
             } catch (SoarInterpreterException ex) {
-                SoarFile file = documents.get(uri);
                 SourceLocation location = ex.getSourceLocation();
                 Position start = file.position(location.getOffset() - 1);   // -1 to include starting character in diagnostic
                 Position end = file.position(location.getOffset() + location.getLength());
@@ -481,10 +482,23 @@ class SoarDocumentService implements TextDocumentService {
                 diagnosticList.add(diagnostic);
             }
 
-            SoarFile file = documents.get(uri);
             // add any diagnostics found while initially parsing file
+            diagnosticList.addAll(file.getDiagnostics());
+
             // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
-            diagnosticList.addAll(file.getAllDiagnostics(agent.getInterpreter().getExceptionsManager()));
+            for (SoftTclInterpreterException e: agent.getInterpreter().getExceptionsManager().getExceptions()) {
+                int offset = file.contents.indexOf(e.getCommand());
+                if (offset < 0) offset = 0;
+                Range range = new Range(
+                    file.position(offset),
+                    file.position(offset + e.getCommand().length()));
+                diagnosticList.add(new Diagnostic(
+                                       range,
+                                       e.getMessage().trim(),
+                                       DiagnosticSeverity.Error,
+                                       "soar"
+                                       ));
+            }
 
             PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
             client.publishDiagnostics(diagnostics);
