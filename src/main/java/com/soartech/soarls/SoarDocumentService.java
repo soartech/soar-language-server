@@ -117,10 +117,6 @@ class SoarDocumentService implements TextDocumentService {
     public void didOpen(DidOpenTextDocumentParams params) {
         TextDocumentItem doc = params.getTextDocument();
 
-        // if filename starts with ~ assumes its a buffer file and ignore it
-//        String[] tokens = doc.getUri().split("/");
-//        if (tokens[tokens.length - 1].startsWith("~")) return;
-
         SoarFile soarFile = new SoarFile(doc.getUri(), doc.getText());
         documents.put(soarFile.uri, soarFile);
 
@@ -146,8 +142,7 @@ class SoarDocumentService implements TextDocumentService {
         String uri = params.getTextDocument().getUri();
 
         for (TextDocumentContentChangeEvent change: params.getContentChanges()) {
-            SoarFile soarFile = documents.get(uri);
-            soarFile.applyChange(change);
+            documents.get(uri).applyChange(change);
         }
     }
 

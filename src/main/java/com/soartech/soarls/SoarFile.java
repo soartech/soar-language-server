@@ -41,7 +41,7 @@ import org.jsoar.util.commands.SoarTclExceptionsManager;
  * into a new buffer no matter what.
  */
 class SoarFile {
-    public String uri;
+    final public String uri;
 
     public String contents;
 
