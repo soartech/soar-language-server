@@ -234,9 +234,4 @@ public class AnalysisTest extends LanguageServerTestFixture {
         assertEquals(def.value, value);
         assertEquals(def.location.getUri(), resolve(relativePath));
     }
-
-    Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
-        return new Range(new Position(startLine, startCharacter),
-                         new Position(endLine, endCharacter));
-    }
 }

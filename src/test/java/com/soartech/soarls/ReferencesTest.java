@@ -81,10 +81,6 @@ public class ReferencesTest extends LanguageServerTestFixture {
         assertReference(references, "productions.soar", range(8, 4, 8, 29));
     }
 
-    Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
-        return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
-    }
-
     /** Assert that the list of locations includes the given URI and range. */
     void assertReference(List<Location> locations, String relativePath, Range range) {
         String uri = resolve(relativePath);

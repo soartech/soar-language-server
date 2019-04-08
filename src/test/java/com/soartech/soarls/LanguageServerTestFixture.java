@@ -18,6 +18,7 @@ import org.eclipse.lsp4j.MessageActionItem;
 import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
@@ -125,5 +126,11 @@ class LanguageServerTestFixture implements LanguageClient {
     @Override
     public void telemetryEvent(Object object) {
         System.out.println(object.toString());
+    }
+
+    // Helpers
+
+    static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
+        return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
     }
 }

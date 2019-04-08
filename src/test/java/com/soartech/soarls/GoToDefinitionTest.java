@@ -2,7 +2,6 @@ package com.soartech.soarls;
 
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
 import org.junit.Test;
@@ -123,10 +122,6 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
         Location location = locations.get(0);
         assertEquals(location.getUri(), resolve("micro-ngs.tcl"));
         assertEquals(location.getRange(), range(2, 0, 2, 17));
-    }
-
-    Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
-        return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
     }
 
     String resolve(String relativePath) {
