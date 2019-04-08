@@ -42,18 +42,33 @@ public class ReferencesTest extends LanguageServerTestFixture {
     }
 
     @Test
-    @org.junit.Ignore
     public void referencesToVariable() throws Exception {
         // set NGS_YES
         List<Location> references = referencesForPoint("micro-ngs.tcl", 2, 4);
-        assertReference(references, "productions.soar", range(3, 40, 3, 47));
-        assertReference(references, "productions.soar", range(11, 44, 11, 51));
+        assertReference(references, "productions.soar", range(3, 40, 3, 48));
+        assertReference(references, "productions.soar", range(11, 44, 11, 52));
+    }
+
+    @Test
+    public void referencesFromVariableUsage() throws Exception {
+        // read NGS_YES
+        List<Location> references = referencesForPoint("productions.soar", 3, 40);
+        assertReference(references, "productions.soar", range(3, 40, 3, 48));
+        assertReference(references, "productions.soar", range(11, 44, 11, 52));
     }
 
     @Test
     public void referencesToProcedure() throws Exception {
         // proc ngs-match-top-state
         List<Location> references = referencesForPoint("micro-ngs.tcl", 6, 5);
+        assertReference(references, "productions.soar", range(1, 4, 1, 29));
+        assertReference(references, "productions.soar", range(8, 4, 8, 29));
+    }
+
+    @Test
+    public void referencesFromProcedureUsage() throws Exception {
+        // call ngs-match-top-state
+        List<Location> references = referencesForPoint("productions.soar", 8, 5);
         assertReference(references, "productions.soar", range(1, 4, 1, 29));
         assertReference(references, "productions.soar", range(8, 4, 8, 29));
     }
@@ -65,12 +80,11 @@ public class ReferencesTest extends LanguageServerTestFixture {
     /** Assert that the list of locations includes the given URI and range. */
     void assertReference(List<Location> locations, String relativePath, Range range) {
         String uri = resolve(relativePath);
-        boolean found = locations
+        locations
             .stream()
             .filter(l -> l.getUri().equals(uri))
             .filter(l -> l.getRange().equals(range))
             .findAny()
-            .isPresent();
-        assertTrue(found);
+            .get();
     }
 }

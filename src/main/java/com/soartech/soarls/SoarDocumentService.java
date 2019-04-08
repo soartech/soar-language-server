@@ -347,14 +347,35 @@ class SoarDocumentService implements TextDocumentService {
 
         List<Location> references = new ArrayList<>();
 
-        Optional<ProcedureDefinition> procDef = fileAnalysis
-            .procedureDefinitions
-            .stream()
-            .filter(def -> def.ast.containsChild(astNode))
-            .findFirst();
+        Optional<ProcedureDefinition> procDef =
+            Optional.ofNullable(fileAnalysis.procedureCalls.get(astNode))
+            .flatMap(call -> Optional.ofNullable(call.definition));
+        if (!procDef.isPresent()) {
+            procDef = fileAnalysis
+                .procedureDefinitions
+                .stream()
+                .filter(def -> def.ast.containsChild(astNode))
+                .findFirst();
+        }
         procDef.ifPresent(def -> {
                 for (ProcedureCall call: analysis.procedureCalls.get(def)) {
                     references.add(call.callSiteLocation);
+                }
+            });
+
+        Optional<VariableDefinition> varDef =
+            Optional.ofNullable(fileAnalysis.variableRetrievals.get(astNode))
+            .flatMap(ret -> Optional.ofNullable(ret.definition));
+        if (!varDef.isPresent()) {
+            varDef = fileAnalysis
+                .variableDefinitions
+                .stream()
+                .filter(def -> def.ast.containsChild(astNode))
+                .findFirst();
+        }
+        varDef.ifPresent(def -> {
+                for (VariableRetrieval ret: analysis.variableRetrievals.get(def)) {
+                    references.add(ret.readSiteLocation);
                 }
             });
 
