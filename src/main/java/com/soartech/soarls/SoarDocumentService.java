@@ -175,7 +175,7 @@ class SoarDocumentService implements TextDocumentService {
                 location = goToDefinitionProcedure(file, node);
             }
         } else if (node.getType() == TclAstNode.VARIABLE || node.getType() == TclAstNode.VARIABLE_NAME) {
-            location = goToDefinitionVariable(file, node);
+            location = goToDefinitionVariable(file, node).orElse(null);
         }
 
         List<Location> goToLocation = new ArrayList<>();
@@ -296,7 +296,7 @@ class SoarDocumentService implements TextDocumentService {
         Function<TclAstNode, Hover> hoverVariable = node -> {
             VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
             if (retrieval == null) return null;
-            String value = retrieval.definition.value;
+            String value = retrieval.definition.map(def -> def.value).orElse("");
             Range range = file.rangeForNode(node);
             return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
         };
@@ -357,7 +357,7 @@ class SoarDocumentService implements TextDocumentService {
 
         Optional<VariableDefinition> varDef = fileAnalysis
             .variableRetrieval(astNode)
-            .flatMap(ret -> Optional.ofNullable(ret.definition));
+            .flatMap(ret -> ret.definition);
         if (!varDef.isPresent()) {
             varDef = fileAnalysis
                 .variableDefinitions
@@ -520,7 +520,7 @@ class SoarDocumentService implements TextDocumentService {
         return definition.location;
     }
 
-    private Location goToDefinitionVariable(SoarFile file, TclAstNode node) {
+    private Optional<Location> goToDefinitionVariable(SoarFile file, TclAstNode node) {
         ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
         FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
 
@@ -528,7 +528,7 @@ class SoarDocumentService implements TextDocumentService {
         System.err.println("Looking of definition of variable at node " + variableNode);
         VariableRetrieval retrieval = fileAnalysis.variableRetrievals.get(variableNode);
         if (retrieval == null) return null;
-        return retrieval.definition.location;
+        return retrieval.definition.map(def -> def.location);
     }
 
     /** Method will get expanded code, write to temp buffer file,
@@ -762,14 +762,13 @@ class SoarDocumentService implements TextDocumentService {
                         if (nameNode != null) {
                             String name = file.getNodeInternalText(nameNode);
                             Location location = new Location(uri, file.rangeForNode(node));
-                            VariableRetrieval retrieval = new VariableRetrieval(location, node);
-                            retrieval.definition = projectAnalysis.variableDefinitions.get(name);
+                            VariableDefinition definition = projectAnalysis.variableDefinitions.get(name);
+                            VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
 
-                            System.err.println("Recording retrieval of " + name + " at node " + node + ": " + retrieval);
                             analysis.variableRetrievals.put(node, retrieval);
-                            if (retrieval.definition != null) {
-                                projectAnalysis.variableRetrievals.get(retrieval.definition).add(retrieval);
-                            }
+                            retrieval.definition.ifPresent(def -> {
+                                    projectAnalysis.variableRetrievals.get(def).add(retrieval);
+                                });
                         }
                     } break;
                 }
