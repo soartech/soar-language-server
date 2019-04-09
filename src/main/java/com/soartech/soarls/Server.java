@@ -66,5 +66,6 @@ public class Server implements LanguageServer, LanguageClientAware {
     @Override
     public void connect(LanguageClient client) {
         documentService.connect(client);
+        workspaceService.processEntryPoints();
     }
 }
