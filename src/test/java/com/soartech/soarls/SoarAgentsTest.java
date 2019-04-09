@@ -3,8 +3,8 @@ package com.soartech.soarls;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
+import java.nio.file.Files;
 
-import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 
 import com.google.gson.Gson;
@@ -18,8 +18,7 @@ public class SoarAgentsTest extends LanguageServerTestFixture {
 	@Test
 	public void readJson() throws IOException {
 		
-		String soarAgentsJson = IOUtils.toString(this.getClass().getResource("/soarAgents.json"), "UTF-8");
-		
+		String soarAgentsJson = new String(Files.readAllBytes(workspaceRoot.resolve("soarAgents.json")));
 		EntryPoints soarAgents = new Gson().fromJson(soarAgentsJson, EntryPoints.class);
 		
 		// just spot checking parts of the structure
