@@ -686,22 +686,25 @@ class SoarDocumentService implements TextDocumentService {
             agent.getInterpreter().addCommand("set", soarCommand(args -> {
                         String name = args[1];
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        VariableDefinition var = new VariableDefinition(name, location);
-                        var.ast = ctx.currentNode;
+                        TclAstNode commentAstNode = null;
+                        String commentText = null;
                         if (ctx.mostRecentComment != null) {
                             int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
                             int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
                             if (commentEndLine == varStartLine) {
-                                var.commentAstNode = ctx.mostRecentComment;
-                                var.commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                                commentAstNode = ctx.mostRecentComment;
+                                commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
                             }
                         }
+                        // We need to call the true set command, not
+                        // the one that we've registered here.
+                        args[0] = "set_internal";
+                        String value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                        VariableDefinition var = new VariableDefinition(name, location, ctx.currentNode, value, commentAstNode, commentText);
                         analysis.variableDefinitions.add(var);
                         projectAnalysis.variableDefinitions.put(var.name, var);
                         projectAnalysis.variableRetrievals.put(var, new ArrayList<>());
 
-                        args[0] = "set_internal";
-                        var.value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
                         return var.value;
                     }));
 
