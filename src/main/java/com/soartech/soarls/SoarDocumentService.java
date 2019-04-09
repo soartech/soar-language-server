@@ -607,7 +607,13 @@ class SoarDocumentService implements TextDocumentService {
             return;
         }
 
-        FileAnalysis analysis = new FileAnalysis(uri);
+        // Initialize the collections needed to make a FileAnalysis.
+        Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
+        Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
+        List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
+        List<VariableDefinition> variableDefinitions = new ArrayList<>();
+        List<String> filesSourced = new ArrayList<>();
+        List<Production> productions = new ArrayList<>();
 
         /** Any information that needs to be accessable to the interpreter callbacks. */
         class Context {
@@ -637,7 +643,7 @@ class SoarDocumentService implements TextDocumentService {
                             Path currentPath = Paths.get(new URI(uri));
                             Path pathToSource = currentPath.resolveSibling(args[1]);
                             String path = pathToSource.toUri().toString();
-                            analysis.filesSourced.add(path);
+                            filesSourced.add(path);
 
                             analyseFile(projectAnalysis, agent, path);
                         } catch (Exception e) {
@@ -649,7 +655,7 @@ class SoarDocumentService implements TextDocumentService {
 
             agent.getInterpreter().addCommand("sp", soarCommand(args -> {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        analysis.productions.add(new Production(args[1], location));
+                        productions.add(new Production(args[1], location));
                         return "";
                     }));
 
@@ -671,7 +677,7 @@ class SoarDocumentService implements TextDocumentService {
                             }
                         }
                         ProcedureDefinition proc = new ProcedureDefinition(name, location, arguments, ctx.currentNode, commentAstNode, commentText);
-                        analysis.procedureDefinitions.add(proc);
+                        procedureDefinitions.add(proc);
                         projectAnalysis.procedureDefinitions.put(proc.name, proc);
                         projectAnalysis.procedureCalls.put(proc, new ArrayList<>());
 
@@ -701,7 +707,7 @@ class SoarDocumentService implements TextDocumentService {
                         args[0] = "set_internal";
                         String value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
                         VariableDefinition var = new VariableDefinition(name, location, ctx.currentNode, value, commentAstNode, commentText);
-                        analysis.variableDefinitions.add(var);
+                        variableDefinitions.add(var);
                         projectAnalysis.variableDefinitions.put(var.name, var);
                         projectAnalysis.variableRetrievals.put(var, new ArrayList<>());
 
@@ -751,7 +757,7 @@ class SoarDocumentService implements TextDocumentService {
                                 firstChild,
                                 projectAnalysis.procedureDefinitions.get(name));
 
-                            analysis.procedureCalls.put(firstChild, procedureCall);
+                            procedureCalls.put(firstChild, procedureCall);
                             procedureCall.definition.ifPresent(def -> {
                                     projectAnalysis.procedureCalls.get(def).add(procedureCall);
                                 });
@@ -765,7 +771,7 @@ class SoarDocumentService implements TextDocumentService {
                             VariableDefinition definition = projectAnalysis.variableDefinitions.get(name);
                             VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
 
-                            analysis.variableRetrievals.put(node, retrieval);
+                            variableRetrievals.put(node, retrieval);
                             retrieval.definition.ifPresent(def -> {
                                     projectAnalysis.variableRetrievals.get(def).add(retrieval);
                                 });
@@ -780,6 +786,14 @@ class SoarDocumentService implements TextDocumentService {
             SoarFile soarFile = new SoarFile(buffer_uri, expanded_file);
             documents.put(soarFile.uri, soarFile);
             
+            FileAnalysis analysis = new FileAnalysis(
+                uri,
+                procedureCalls,
+                variableRetrievals,
+                procedureDefinitions,
+                variableDefinitions,
+                filesSourced,
+                productions);
             projectAnalysis.files.put(uri, analysis);
         } finally {
             // Restore original commands
