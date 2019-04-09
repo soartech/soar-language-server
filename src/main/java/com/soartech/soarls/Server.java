@@ -45,6 +45,9 @@ public class Server implements LanguageServer, LanguageClientAware {
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
+    	
+    	this.workspaceService.setWorkspaceRoot(params.getRootUri());
+    	
         ServerCapabilities capabilities = new ServerCapabilities();
         capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
         // capabilities.setDocumentHighlightProvider(true);

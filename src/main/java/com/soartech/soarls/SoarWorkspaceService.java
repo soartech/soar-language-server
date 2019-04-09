@@ -1,19 +1,81 @@
 package com.soartech.soarls;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.gson.JsonElement;
-import com.google.gson.Gson;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.services.WorkspaceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.soartech.soarls.EntryPoints.EntryPoint;
 
 class SoarWorkspaceService implements WorkspaceService {
+	
+	private static final Logger LOG = LoggerFactory.getLogger(SoarWorkspaceService.class);
+	
+	private static final String SOAR_AGENTS_FILE = "soarAgents.json";
+	
     private final SoarDocumentService documentService;
+    private String workspaceRootUri;
+    private EntryPoints soarAgentEntryPoints;
 
     SoarWorkspaceService(SoarDocumentService documentService) {
         this.documentService = documentService;
+    }
+    
+    public void setWorkspaceRoot(String workspaceRootUri) {
+    	
+    	// if we don't have a workspace root URI, do nothing
+    	if(workspaceRootUri != null) {
+    		
+    		Path workspaceRootPath;
+    		try {
+				workspaceRootPath = Paths.get(new URI(workspaceRootUri));
+				this.workspaceRootUri = workspaceRootUri; // set it after we confirm it's valid syntax above
+			} catch (URISyntaxException e) {
+				LOG.error("Malformed workspace root URI " + workspaceRootUri, e);
+				return;
+			}
+
+    		Path soarAgentsPath = workspaceRootPath.resolve(SOAR_AGENTS_FILE);
+    		
+    		try {
+        		// read the SOAR_AGENTS_FILE into an EntryPoints object
+				String soarAgentsJson = new String(Files.readAllBytes(soarAgentsPath));
+				soarAgentEntryPoints = new Gson().fromJson(soarAgentsJson, EntryPoints.class);
+				
+				if(soarAgentEntryPoints.entryPoints.size() == 0) return; // bail out if there are no defined entry points
+
+				// get the active entry point (default to the first one)
+				
+				EntryPoint activeEntryPoint = soarAgentEntryPoints.entryPoints.get(0);
+				if(soarAgentEntryPoints.active != null) {
+			
+					activeEntryPoint = soarAgentEntryPoints.entryPoints.stream()
+							.filter(entryPoint -> entryPoint.name.equals(soarAgentEntryPoints.active))
+							.findAny()
+							.orElse(null);
+				}
+				
+				// set the entry point
+				
+				Path agentEntryPoint = workspaceRootPath.resolve(activeEntryPoint.path);
+				documentService.setEntryPoint(agentEntryPoint.toUri().toString());
+				
+			} catch (IOException e) {
+				LOG.error("Error trying to read " + soarAgentsPath, e);
+			}
+    	}
     }
 
     @Override
