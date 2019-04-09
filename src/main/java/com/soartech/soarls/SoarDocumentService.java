@@ -585,22 +585,49 @@ class SoarDocumentService implements TextDocumentService {
         return uri.substring(0, index) + "~" + uri.substring(index);
     }
 
+    /** This is essentially a version of ProjectAnalysis but with
+     * mutable fields. This is used to build up the analysis, and then
+     * it is converted to its immutable counterpart at the end. See
+     * that class for field documentation. */
+    private class ProjectContext {
+        final String entryPointUri;
+        Map<String, FileAnalysis> files = new HashMap<>();
+        Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
+        Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
+        Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
+        Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals = new HashMap<>();
+
+        ProjectContext(String entryPointUri) {
+            this.entryPointUri = entryPointUri;
+        }
+
+        ProjectAnalysis toAnalysis() {
+            return new ProjectAnalysis(
+                entryPointUri,
+                files,
+                procedureDefinitions,
+                procedureCalls,
+                variableDefinitions,
+                variableRetrievals);
+        }
+    }
+
     /** Perform a full analysis of a project starting from the given
      * entry point.
      */
     private ProjectAnalysis analyse(String uri) throws SoarException {
-        ProjectAnalysis analysis = new ProjectAnalysis(uri);
+        ProjectContext context = new ProjectContext(uri);
 
         Agent agent = new Agent();
-
         agent.getInterpreter().eval("rename proc proc_internal");
         agent.getInterpreter().eval("rename set set_internal");
-        analyseFile(analysis, agent, uri);
 
-        return analysis;
+        analyseFile(context, agent, uri);
+
+        return context.toAnalysis();
     }
 
-    private void analyseFile(ProjectAnalysis projectAnalysis, Agent agent, String uri) throws SoarException {
+    private void analyseFile(ProjectContext projectContext, Agent agent, String uri) throws SoarException {
         SoarFile file = getFile(uri);
         System.err.println("Retrieved file for " + uri + " :: " + file);
         if (file == null) {
@@ -645,7 +672,7 @@ class SoarDocumentService implements TextDocumentService {
                             String path = pathToSource.toUri().toString();
                             filesSourced.add(path);
 
-                            analyseFile(projectAnalysis, agent, path);
+                            analyseFile(projectContext, agent, path);
                         } catch (Exception e) {
                             System.err.println("exception while tracing source: ");
                             e.printStackTrace(System.err);
@@ -678,8 +705,8 @@ class SoarDocumentService implements TextDocumentService {
                         }
                         ProcedureDefinition proc = new ProcedureDefinition(name, location, arguments, ctx.currentNode, commentAstNode, commentText);
                         procedureDefinitions.add(proc);
-                        projectAnalysis.procedureDefinitions.put(proc.name, proc);
-                        projectAnalysis.procedureCalls.put(proc, new ArrayList<>());
+                        projectContext.procedureDefinitions.put(proc.name, proc);
+                        projectContext.procedureCalls.put(proc, new ArrayList<>());
 
                         // The args arrays has stripped away the
                         // braces, so we need to add them back in
@@ -708,8 +735,8 @@ class SoarDocumentService implements TextDocumentService {
                         String value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
                         VariableDefinition var = new VariableDefinition(name, location, ctx.currentNode, value, commentAstNode, commentText);
                         variableDefinitions.add(var);
-                        projectAnalysis.variableDefinitions.put(var.name, var);
-                        projectAnalysis.variableRetrievals.put(var, new ArrayList<>());
+                        projectContext.variableDefinitions.put(var.name, var);
+                        projectContext.variableRetrievals.put(var, new ArrayList<>());
 
                         return var.value;
                     }));
@@ -755,11 +782,11 @@ class SoarDocumentService implements TextDocumentService {
                             ProcedureCall procedureCall = new ProcedureCall(
                                 location,
                                 firstChild,
-                                projectAnalysis.procedureDefinitions.get(name));
+                                projectContext.procedureDefinitions.get(name));
 
                             procedureCalls.put(firstChild, procedureCall);
                             procedureCall.definition.ifPresent(def -> {
-                                    projectAnalysis.procedureCalls.get(def).add(procedureCall);
+                                    projectContext.procedureCalls.get(def).add(procedureCall);
                                 });
                         }
                     } break;
@@ -768,12 +795,12 @@ class SoarDocumentService implements TextDocumentService {
                         if (nameNode != null) {
                             String name = file.getNodeInternalText(nameNode);
                             Location location = new Location(uri, file.rangeForNode(node));
-                            VariableDefinition definition = projectAnalysis.variableDefinitions.get(name);
+                            VariableDefinition definition = projectContext.variableDefinitions.get(name);
                             VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
 
                             variableRetrievals.put(node, retrieval);
                             retrieval.definition.ifPresent(def -> {
-                                    projectAnalysis.variableRetrievals.get(def).add(retrieval);
+                                    projectContext.variableRetrievals.get(def).add(retrieval);
                                 });
                         }
                     } break;
@@ -794,7 +821,7 @@ class SoarDocumentService implements TextDocumentService {
                 variableDefinitions,
                 filesSourced,
                 productions);
-            projectAnalysis.files.put(uri, analysis);
+            projectContext.files.put(uri, analysis);
         } finally {
             // Restore original commands
             for (Map.Entry<String, SoarCommand> cmd: originalCommands.entrySet()) {
