@@ -14,8 +14,12 @@ import org.eclipse.lsp4j.services.LanguageClientAware;
 import org.eclipse.lsp4j.services.LanguageServer;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.eclipse.lsp4j.services.WorkspaceService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Server implements LanguageServer, LanguageClientAware {
+    private static final Logger LOG = LoggerFactory.getLogger(LanguageServer.class);
+    
     private final SoarDocumentService documentService = new SoarDocumentService();
     private final SoarWorkspaceService workspaceService = new SoarWorkspaceService(documentService);
 
@@ -45,7 +49,7 @@ public class Server implements LanguageServer, LanguageClientAware {
 
     @Override
     public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-    	
+        LOG.info("Initializing server");
     	this.workspaceService.setWorkspaceRoot(params.getRootUri());
     	
         ServerCapabilities capabilities = new ServerCapabilities();
@@ -66,6 +70,5 @@ public class Server implements LanguageServer, LanguageClientAware {
     @Override
     public void connect(LanguageClient client) {
         documentService.connect(client);
-        workspaceService.processEntryPoints();
     }
 }

@@ -62,8 +62,8 @@ class LanguageServerTestFixture implements LanguageClient {
         Server languageServer = new Server();
         InitializeParams init = new InitializeParams();
         init.setRootUri(workspaceRoot.toUri().toString());
-        capabilities = languageServer.initialize(init).get().getCapabilities();
         languageServer.connect(this);
+        capabilities = languageServer.initialize(init).get().getCapabilities();
         this.languageServer = languageServer;
     }
 
