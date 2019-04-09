@@ -2,6 +2,7 @@ package com.soartech.soarls;
 
 import java.util.List;
 import org.eclipse.lsp4j.Diagnostic;
+import org.junit.Ignore;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
@@ -10,7 +11,6 @@ import static org.junit.Assert.*;
  * the language server should not be tested here. For those tests, see
  * AnalysisTest.
  */
-@org.junit.Ignore
 public class ProjectTest extends LanguageServerTestFixture {
     public ProjectTest() throws Exception {
         super("project");
@@ -28,12 +28,14 @@ public class ProjectTest extends LanguageServerTestFixture {
     }
 
     @Test
+    @Ignore
     public void hasErrorsInLoadFile() {
         List<Diagnostic> diagnostics = diagnosticsForFile("load.soar");
         assert(!diagnostics.isEmpty());
     }
 
     @Test
+    @Ignore
     public void errorForMissingFile() {
         List<Diagnostic> diagnostics = diagnosticsForFile("load.soar");
         fail("unimplemented");
