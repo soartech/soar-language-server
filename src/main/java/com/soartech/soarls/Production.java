@@ -5,11 +5,11 @@ import org.eclipse.lsp4j.Location;
 /** A record of a production having been sourced.
  */
 class Production {
-    final String name;
+    public final String name;
 
-    final Location location;
+    public final Location location;
 
-    final String body;
+    public final String body;
 
     Production(String name, Location location) {
         // This is a hacky way to extract the name of a production,

@@ -175,7 +175,7 @@ class SoarDocumentService implements TextDocumentService {
                 location = goToDefinitionProcedure(file, node);
             }
         } else if (node.getType() == TclAstNode.VARIABLE || node.getType() == TclAstNode.VARIABLE_NAME) {
-            location = goToDefinitionVariable(file, node);
+            location = goToDefinitionVariable(file, node).orElse(null);
         }
 
         List<Location> goToLocation = new ArrayList<>();
@@ -296,7 +296,7 @@ class SoarDocumentService implements TextDocumentService {
         Function<TclAstNode, Hover> hoverVariable = node -> {
             VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
             if (retrieval == null) return null;
-            String value = retrieval.definition.value;
+            String value = retrieval.definition.map(def -> def.value).orElse("");
             Range range = file.rangeForNode(node);
             return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
         };
@@ -304,10 +304,10 @@ class SoarDocumentService implements TextDocumentService {
         Function<TclAstNode, Hover> hoverProcedureCall = node -> {
             ProcedureCall call = analysis.procedureCalls.get(node);
             if (call == null) return null;
-            String value = file.getNodeInternalText(node);
-            if (call.definition != null) {
-                value = call.definition.name + " " + Joiner.on(" ").join(call.definition.arguments);
-            }
+            String value = call
+                .definition
+                .map(def -> def.name + " " + Joiner.on(" ").join(def.arguments))
+                .orElse(file.getNodeInternalText(node));
             // We are clearly not storing the right information
             // here. Computing the range should be much simpler.
             List<TclAstNode> callChildren = call.callSiteAst.getParent().getChildren();
@@ -341,7 +341,7 @@ class SoarDocumentService implements TextDocumentService {
 
         Optional<ProcedureDefinition> procDef = fileAnalysis
             .procedureCall(astNode)
-            .flatMap(call -> Optional.ofNullable(call.definition));
+            .flatMap(call -> call.definition);
         if (!procDef.isPresent()) {
             procDef = fileAnalysis
                 .procedureDefinitions
@@ -357,7 +357,7 @@ class SoarDocumentService implements TextDocumentService {
 
         Optional<VariableDefinition> varDef = fileAnalysis
             .variableRetrieval(astNode)
-            .flatMap(ret -> Optional.ofNullable(ret.definition));
+            .flatMap(ret -> ret.definition);
         if (!varDef.isPresent()) {
             varDef = fileAnalysis
                 .variableDefinitions
@@ -383,12 +383,13 @@ class SoarDocumentService implements TextDocumentService {
         List<SignatureInformation> signatures = new ArrayList<>();
 
         ProcedureCall call = analysis.procedureCalls.get(astNode);
-        if (call != null && call.definition != null) {
-            ProcedureDefinition def = call.definition;
-            String label = def.name + " " + Joiner.on(" ").join(def.arguments);
-            List<ParameterInformation> arguments = def.arguments.stream().map(arg -> new ParameterInformation(arg)).collect(toList());
-            SignatureInformation info = new SignatureInformation(label, "", arguments);
-            signatures.add(info);
+        if (call != null) {
+            call.definition.ifPresent(def -> {
+                    String label = def.name + " " + Joiner.on(" ").join(def.arguments);
+                    List<ParameterInformation> arguments = def.arguments.stream().map(arg -> new ParameterInformation(arg)).collect(toList());
+                    SignatureInformation info = new SignatureInformation(label, "", arguments);
+                    signatures.add(info);
+                });
         }
 
         SignatureHelp help = new SignatureHelp(signatures, 0, 0);
@@ -519,7 +520,7 @@ class SoarDocumentService implements TextDocumentService {
         return definition.location;
     }
 
-    private Location goToDefinitionVariable(SoarFile file, TclAstNode node) {
+    private Optional<Location> goToDefinitionVariable(SoarFile file, TclAstNode node) {
         ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
         FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
 
@@ -527,7 +528,7 @@ class SoarDocumentService implements TextDocumentService {
         System.err.println("Looking of definition of variable at node " + variableNode);
         VariableRetrieval retrieval = fileAnalysis.variableRetrievals.get(variableNode);
         if (retrieval == null) return null;
-        return retrieval.definition.location;
+        return retrieval.definition.map(def -> def.location);
     }
 
     /** Method will get expanded code, write to temp buffer file,
@@ -584,29 +585,62 @@ class SoarDocumentService implements TextDocumentService {
         return uri.substring(0, index) + "~" + uri.substring(index);
     }
 
+    /** This is essentially a version of ProjectAnalysis but with
+     * mutable fields. This is used to build up the analysis, and then
+     * it is converted to its immutable counterpart at the end. See
+     * that class for field documentation. */
+    private class ProjectContext {
+        final String entryPointUri;
+        Map<String, FileAnalysis> files = new HashMap<>();
+        Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
+        Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
+        Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
+        Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals = new HashMap<>();
+
+        ProjectContext(String entryPointUri) {
+            this.entryPointUri = entryPointUri;
+        }
+
+        ProjectAnalysis toAnalysis() {
+            return new ProjectAnalysis(
+                entryPointUri,
+                files,
+                procedureDefinitions,
+                procedureCalls,
+                variableDefinitions,
+                variableRetrievals);
+        }
+    }
+
     /** Perform a full analysis of a project starting from the given
      * entry point.
      */
     private ProjectAnalysis analyse(String uri) throws SoarException {
-        ProjectAnalysis analysis = new ProjectAnalysis(uri);
+        ProjectContext context = new ProjectContext(uri);
 
         Agent agent = new Agent();
-
         agent.getInterpreter().eval("rename proc proc_internal");
         agent.getInterpreter().eval("rename set set_internal");
-        analyseFile(analysis, agent, uri);
 
-        return analysis;
+        analyseFile(context, agent, uri);
+
+        return context.toAnalysis();
     }
 
-    private void analyseFile(ProjectAnalysis projectAnalysis, Agent agent, String uri) throws SoarException {
+    private void analyseFile(ProjectContext projectContext, Agent agent, String uri) throws SoarException {
         SoarFile file = getFile(uri);
         System.err.println("Retrieved file for " + uri + " :: " + file);
         if (file == null) {
             return;
         }
 
-        FileAnalysis analysis = new FileAnalysis(uri);
+        // Initialize the collections needed to make a FileAnalysis.
+        Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
+        Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
+        List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
+        List<VariableDefinition> variableDefinitions = new ArrayList<>();
+        List<String> filesSourced = new ArrayList<>();
+        List<Production> productions = new ArrayList<>();
 
         /** Any information that needs to be accessable to the interpreter callbacks. */
         class Context {
@@ -636,9 +670,9 @@ class SoarDocumentService implements TextDocumentService {
                             Path currentPath = Paths.get(new URI(uri));
                             Path pathToSource = currentPath.resolveSibling(args[1]);
                             String path = pathToSource.toUri().toString();
-                            analysis.filesSourced.add(path);
+                            filesSourced.add(path);
 
-                            analyseFile(projectAnalysis, agent, path);
+                            analyseFile(projectContext, agent, path);
                         } catch (Exception e) {
                             System.err.println("exception while tracing source: ");
                             e.printStackTrace(System.err);
@@ -648,30 +682,31 @@ class SoarDocumentService implements TextDocumentService {
 
             agent.getInterpreter().addCommand("sp", soarCommand(args -> {
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        analysis.productions.add(new Production(args[1], location));
+                        productions.add(new Production(args[1], location));
                         return "";
                     }));
 
             agent.getInterpreter().addCommand("proc", soarCommand(args -> {
+                        String name = args[1];
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
-                        proc.ast = ctx.currentNode;
-                        proc.arguments = Arrays.asList(args[2].trim().split("\\s+"));
+                        List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
+                        TclAstNode commentAstNode = null;
+                        String commentText = null;
                         if (ctx.mostRecentComment != null) {
                             // Note that because of the newline,
                             // comments end at the beginning of the
                             // following line.
                             int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
                             int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                            System.err.println("comment ends at " + commentEndLine + "; proc starts at " + procStartLine);
                             if (commentEndLine == procStartLine) {
-                                proc.commentAstNode = ctx.mostRecentComment;
-                                proc.commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                                commentAstNode = ctx.mostRecentComment;
+                                commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
                             }
                         }
-                        analysis.procedureDefinitions.add(proc);
-                        projectAnalysis.procedureDefinitions.put(proc.name, proc);
-                        projectAnalysis.procedureCalls.put(proc, new ArrayList<>());
+                        ProcedureDefinition proc = new ProcedureDefinition(name, location, arguments, ctx.currentNode, commentAstNode, commentText);
+                        procedureDefinitions.add(proc);
+                        projectContext.procedureDefinitions.put(proc.name, proc);
+                        projectContext.procedureCalls.put(proc, new ArrayList<>());
 
                         // The args arrays has stripped away the
                         // braces, so we need to add them back in
@@ -684,22 +719,25 @@ class SoarDocumentService implements TextDocumentService {
             agent.getInterpreter().addCommand("set", soarCommand(args -> {
                         String name = args[1];
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        VariableDefinition var = new VariableDefinition(name, location);
-                        var.ast = ctx.currentNode;
+                        TclAstNode commentAstNode = null;
+                        String commentText = null;
                         if (ctx.mostRecentComment != null) {
                             int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
                             int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
                             if (commentEndLine == varStartLine) {
-                                var.commentAstNode = ctx.mostRecentComment;
-                                var.commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                                commentAstNode = ctx.mostRecentComment;
+                                commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
                             }
                         }
-                        analysis.variableDefinitions.add(var);
-                        projectAnalysis.variableDefinitions.put(var.name, var);
-                        projectAnalysis.variableRetrievals.put(var, new ArrayList<>());
-
+                        // We need to call the true set command, not
+                        // the one that we've registered here.
                         args[0] = "set_internal";
-                        var.value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                        String value = agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+                        VariableDefinition var = new VariableDefinition(name, location, ctx.currentNode, value, commentAstNode, commentText);
+                        variableDefinitions.add(var);
+                        projectContext.variableDefinitions.put(var.name, var);
+                        projectContext.variableRetrievals.put(var, new ArrayList<>());
+
                         return var.value;
                     }));
 
@@ -741,13 +779,15 @@ class SoarDocumentService implements TextDocumentService {
                         if (firstChild != null) {
                             String name = file.getNodeInternalText(firstChild);
                             Location location = new Location(uri, file.rangeForNode(node));
-                            ProcedureCall procedureCall = new ProcedureCall(location, firstChild);
-                            procedureCall.definition = projectAnalysis.procedureDefinitions.get(name);
+                            ProcedureCall procedureCall = new ProcedureCall(
+                                location,
+                                firstChild,
+                                projectContext.procedureDefinitions.get(name));
 
-                            analysis.procedureCalls.put(firstChild, procedureCall);
-                            if (procedureCall.definition != null) {
-                                projectAnalysis.procedureCalls.get(procedureCall.definition).add(procedureCall);
-                            }
+                            procedureCalls.put(firstChild, procedureCall);
+                            procedureCall.definition.ifPresent(def -> {
+                                    projectContext.procedureCalls.get(def).add(procedureCall);
+                                });
                         }
                     } break;
                     case TclAstNode.VARIABLE: {
@@ -755,14 +795,13 @@ class SoarDocumentService implements TextDocumentService {
                         if (nameNode != null) {
                             String name = file.getNodeInternalText(nameNode);
                             Location location = new Location(uri, file.rangeForNode(node));
-                            VariableRetrieval retrieval = new VariableRetrieval(location, node);
-                            retrieval.definition = projectAnalysis.variableDefinitions.get(name);
+                            VariableDefinition definition = projectContext.variableDefinitions.get(name);
+                            VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
 
-                            System.err.println("Recording retrieval of " + name + " at node " + node + ": " + retrieval);
-                            analysis.variableRetrievals.put(node, retrieval);
-                            if (retrieval.definition != null) {
-                                projectAnalysis.variableRetrievals.get(retrieval.definition).add(retrieval);
-                            }
+                            variableRetrievals.put(node, retrieval);
+                            retrieval.definition.ifPresent(def -> {
+                                    projectContext.variableRetrievals.get(def).add(retrieval);
+                                });
                         }
                     } break;
                 }
@@ -774,7 +813,15 @@ class SoarDocumentService implements TextDocumentService {
             SoarFile soarFile = new SoarFile(buffer_uri, expanded_file);
             documents.put(soarFile.uri, soarFile);
             
-            projectAnalysis.files.put(uri, analysis);
+            FileAnalysis analysis = new FileAnalysis(
+                uri,
+                procedureCalls,
+                variableRetrievals,
+                procedureDefinitions,
+                variableDefinitions,
+                filesSourced,
+                productions);
+            projectContext.files.put(uri, analysis);
         } finally {
             // Restore original commands
             for (Map.Entry<String, SoarCommand> cmd: originalCommands.entrySet()) {
