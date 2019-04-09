@@ -654,22 +654,23 @@ class SoarDocumentService implements TextDocumentService {
                     }));
 
             agent.getInterpreter().addCommand("proc", soarCommand(args -> {
+                        String name = args[1];
                         Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                        ProcedureDefinition proc = new ProcedureDefinition(args[1], location);
-                        proc.ast = ctx.currentNode;
-                        proc.arguments = Arrays.asList(args[2].trim().split("\\s+"));
+                        List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
+                        TclAstNode commentAstNode = null;
+                        String commentText = null;
                         if (ctx.mostRecentComment != null) {
                             // Note that because of the newline,
                             // comments end at the beginning of the
                             // following line.
                             int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
                             int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                            System.err.println("comment ends at " + commentEndLine + "; proc starts at " + procStartLine);
                             if (commentEndLine == procStartLine) {
-                                proc.commentAstNode = ctx.mostRecentComment;
-                                proc.commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                                commentAstNode = ctx.mostRecentComment;
+                                commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
                             }
                         }
+                        ProcedureDefinition proc = new ProcedureDefinition(name, location, arguments, ctx.currentNode, commentAstNode, commentText);
                         analysis.procedureDefinitions.add(proc);
                         projectAnalysis.procedureDefinitions.put(proc.name, proc);
                         projectAnalysis.procedureCalls.put(proc, new ArrayList<>());

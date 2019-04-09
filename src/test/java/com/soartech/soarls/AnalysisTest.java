@@ -216,13 +216,10 @@ public class AnalysisTest extends LanguageServerTestFixture {
         ProcedureDefinition procedure = analysis.procedureDefinitions.get(procedureName);
         assertNotNull(procedure);
 
-        if (commentPrefix.isPresent()) {
-            assertNotNull(procedure.commentAstNode);
-        } else {
-            assertNull(procedure.commentAstNode);
-        }
+        assertEquals(commentPrefix.isPresent(), procedure.commentAstNode.isPresent());
+        assertEquals(commentPrefix.isPresent(), procedure.commentText.isPresent());
 
-        commentPrefix.ifPresent(prefix -> assertTrue(procedure.commentText.startsWith(prefix)));
+        commentPrefix.ifPresent(prefix -> assertTrue(procedure.commentText.get().startsWith(prefix)));
     }
 
     /** Assert that a variable was defined with the given name, value,
