@@ -1,0 +1,37 @@
+{
+	"entryPoints": [
+		{
+			"path": "completion/test.soar",
+			"name": "completion"
+		},
+		{
+			"path": "definition/load.soar",
+			"name": "definition"
+		},
+		{
+			"path": "diagnostics/test.soar",
+			"name": "diagnostics"
+		},
+		{
+			"path": "file/test.soar",
+			"name": "file"
+		},
+		{
+			"path": "folding/test.soar",
+			"name": "folding"
+		},
+		{
+			"path": "hover/test.soar",
+			"name": "hover"
+		},
+		{
+			"path": "project/load.soar",
+			"name": "project"
+		},
+		{
+			"path": "signature/test.soar",
+			"name": "signature"
+		}
+	],
+	"active": "project"
+}
