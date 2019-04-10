@@ -429,21 +429,20 @@ class SoarDocumentService implements TextDocumentService {
 
   /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
   SoarFile getFile(String uri) {
-    SoarFile file = documents.get(uri);
+    Function<String, SoarFile> readFile =
+        key -> {
+          try {
+            Path path = Paths.get(new URI(uri));
+            List<String> lines = Files.readAllLines(path);
+            String contents = Joiner.on("\n").join(lines);
+            return new SoarFile(uri, contents);
+          } catch (Exception e) {
+            LOG.error("Failed to open file", e);
+            return null;
+          }
+        };
 
-    if (file == null) {
-      try {
-        Path path = Paths.get(new URI(uri));
-        List<String> lines = Files.readAllLines(path);
-        String contents = Joiner.on("\n").join(lines);
-        file = new SoarFile(uri, contents);
-        documents.put(uri, file);
-      } catch (Exception e) {
-        LOG.error("Failed to open file", e);
-      }
-    }
-
-    return file;
+    return documents.computeIfAbsent(uri, readFile);
   }
 
   private void reportDiagnostics() {
