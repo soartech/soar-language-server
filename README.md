@@ -8,6 +8,12 @@ This project provides editor/IDE support for the [Soar
 language](https://soar.eecs.umich.edu/) via the [Language Server
 Protocol](https://langserver.org/).
 
+# Running
+
+Download the latest build of the server from the [releases
+page](./releases), then find instructions for your editor in the
+[integrations](./integrations) pages.
+
 # Building
 
 First, clone this repository:
