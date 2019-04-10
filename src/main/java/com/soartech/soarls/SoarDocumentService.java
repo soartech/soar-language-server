@@ -427,12 +427,8 @@ class SoarDocumentService implements TextDocumentService {
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
   public void setEntryPoint(String uri) {
     this.activeEntryPoint = uri;
-    try {
-      ProjectAnalysis analysis = analyse(this.activeEntryPoint);
-      this.analyses.put(analysis.entryPointUri, analysis);
-    } catch (SoarException e) {
-      LOG.error("analyse error", e);
-    }
+    ProjectAnalysis analysis = analyse(this.activeEntryPoint);
+    this.analyses.put(analysis.entryPointUri, analysis);
   }
 
   /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
@@ -458,12 +454,8 @@ class SoarDocumentService implements TextDocumentService {
     reportDiagnosticsForOpenFiles();
 
     if (activeEntryPoint != null) {
-      try {
-        ProjectAnalysis analysis = analyse(activeEntryPoint);
-        this.analyses.put(analysis.entryPointUri, analysis);
-      } catch (SoarException e) {
-        LOG.error("analyse error", e);
-      }
+      ProjectAnalysis analysis = analyse(activeEntryPoint);
+      this.analyses.put(analysis.entryPointUri, analysis);
     }
   }
 
@@ -642,7 +634,7 @@ class SoarDocumentService implements TextDocumentService {
   }
 
   /** Perform a full analysis of a project starting from the given entry point. */
-  private ProjectAnalysis analyse(String uri) throws SoarException {
+  private ProjectAnalysis analyse(String uri) {
     ProjectContext context = new ProjectContext(uri);
     try {
       context.directoryStack.push(Paths.get(new URI(uri)).getParent());
@@ -650,11 +642,14 @@ class SoarDocumentService implements TextDocumentService {
       LOG.error("failed to initialize directory stack", e);
     }
 
-    Agent agent = new Agent();
-    agent.getInterpreter().eval("rename proc proc_internal");
-    agent.getInterpreter().eval("rename set set_internal");
-
-    analyseFile(context, agent, uri);
+    try {
+      Agent agent = new Agent();
+      agent.getInterpreter().eval("rename proc proc_internal");
+      agent.getInterpreter().eval("rename set set_internal");
+      analyseFile(context, agent, uri);
+    } catch (SoarException e) {
+      LOG.error("running analysis", e);
+    }
 
     return context.toAnalysis();
   }
