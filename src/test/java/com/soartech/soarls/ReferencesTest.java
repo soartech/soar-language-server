@@ -44,7 +44,7 @@ public class ReferencesTest extends LanguageServerTestFixture {
     @Test
     public void referencesToVariable() throws Exception {
         // set NGS_YES
-        List<Location> references = referencesForPoint("micro-ngs.tcl", 2, 4);
+        List<Location> references = referencesForPoint("micro-ngs/macros.tcl", 2, 4);
         assertReference(references, "productions.soar", range(3, 40, 3, 48));
         assertReference(references, "productions.soar", range(11, 44, 11, 52));
     }
@@ -68,7 +68,7 @@ public class ReferencesTest extends LanguageServerTestFixture {
     @Test
     public void referencesToProcedure() throws Exception {
         // proc ngs-match-top-state
-        List<Location> references = referencesForPoint("micro-ngs.tcl", 6, 5);
+        List<Location> references = referencesForPoint("micro-ngs/macros.tcl", 6, 5);
         assertReference(references, "productions.soar", range(1, 4, 1, 29));
         assertReference(references, "productions.soar", range(8, 4, 8, 29));
     }

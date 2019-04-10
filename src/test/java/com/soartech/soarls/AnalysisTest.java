@@ -61,7 +61,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
     @Test
     public void analysesSourcedFiles() {
-        assertNotNull(fileAnalysis("micro-ngs.tcl"));
+        assertNotNull(fileAnalysis("micro-ngs/macros.tcl"));
         assertNotNull(fileAnalysis("productions.soar"));
         // I'm not sure whether we should create analysis objects for files that don't exist.
         // assertNotNull(fileAnalysis("missing-file.soar"));
@@ -71,14 +71,14 @@ public class AnalysisTest extends LanguageServerTestFixture {
     public void detectSourcedFiles() {
         FileAnalysis analysis = fileAnalysis("load.soar");
 
-        assertEquals(analysis.filesSourced.get(0), resolve("micro-ngs.tcl"));
+        assertEquals(analysis.filesSourced.get(0), resolve("micro-ngs/load.soar"));
         assertEquals(analysis.filesSourced.get(1), resolve("productions.soar"));
         assertEquals(analysis.filesSourced.get(2), resolve("missing-file.soar"));
     }
 
     @Test
     public void leafFileSourcesNothing() {
-        FileAnalysis analysis = fileAnalysis("micro-ngs.tcl");
+        FileAnalysis analysis = fileAnalysis("micro-ngs/macros.tcl");
 
         assertNotNull(analysis);
         assert(analysis.filesSourced.isEmpty());
@@ -107,7 +107,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
      * file. It is not looking at procedures for the whole project. */
     @Test
     public void detectsProcedures() {
-        FileAnalysis analysis = fileAnalysis("micro-ngs.tcl");
+        FileAnalysis analysis = fileAnalysis("micro-ngs/macros.tcl");
 
         assertNotNull(analysis.procedureDefinitions);
         assertProcedure(analysis, "ngs-match-top-state", range(6, 0, 8, 1));
@@ -121,7 +121,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
     public void procedureDefinitionAstNodes() {
         ProjectAnalysis analysis = projectAnalysis();
         ProcedureDefinition def = analysis.procedureDefinitions.get("ngs-match-top-state");
-        assertEquals(def.location.getUri(), resolve("micro-ngs.tcl"));
+        assertEquals(def.location.getUri(), resolve("micro-ngs/macros.tcl"));
         assertEquals(def.location.getRange(), range(6, 0, 8, 1));
     }
 
@@ -153,8 +153,8 @@ public class AnalysisTest extends LanguageServerTestFixture {
     @Test
     public void variableDefinitions() {
         ProjectAnalysis analysis = projectAnalysis();
-        assertVariable(analysis, "NGS_YES", "*YES*", "micro-ngs.tcl");
-        assertVariable(analysis, "NGS_NO", "*NO*", "micro-ngs.tcl");
+        assertVariable(analysis, "NGS_YES", "*YES*", "micro-ngs/macros.tcl");
+        assertVariable(analysis, "NGS_NO", "*NO*", "micro-ngs/macros.tcl");
     }
 
     @Test

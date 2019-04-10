@@ -1,6 +1,6 @@
 # This is the root load.soar of a multi-file project.
 
-source micro-ngs.tcl
+source micro-ngs/load.soar
 source productions.soar
 
 # Attempting to load this file should cause an error.

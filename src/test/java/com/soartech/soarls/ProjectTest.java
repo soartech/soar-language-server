@@ -45,12 +45,12 @@ public class ProjectTest extends LanguageServerTestFixture {
 
     @Test
     public void analyzesTclFile() {
-        assertNotNull(diagnosticsForFile("micro-ngs.tcl"));
+        assertNotNull(diagnosticsForFile("micro-ngs/macros.tcl"));
     }
 
     @Test
     public void noErrorsInTclFile() {
-        List<Diagnostic> diagnostics = diagnosticsForFile("micro-ngs.tcl");
+        List<Diagnostic> diagnostics = diagnosticsForFile("micro-ngs/macros.tcl");
         assert(diagnostics.isEmpty());
     }
 
