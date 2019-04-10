@@ -1,0 +1,9 @@
+{
+  "entryPoints": [
+    {
+      "path": "load.soar",
+      "name": "directories"
+    }
+  ],
+  "active": "directories"
+}

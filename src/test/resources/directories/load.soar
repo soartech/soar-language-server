@@ -1,0 +1,17 @@
+pushd first-dir
+source first-file.soar
+
+pushd second-dir
+source second-file.soar
+
+popd
+popd
+
+source third-file.soar
+
+puts "$FIRST_FILE_VAR"
+puts "$SECOND_FILE_VAR"
+puts "$THIRD_FILE_VAR"
+
+set ROOT_FILE_VAR 0
+puts "$ROOT_FILE_VAR"
