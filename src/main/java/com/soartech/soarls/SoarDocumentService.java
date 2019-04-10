@@ -73,8 +73,12 @@ import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.SoarCommand;
 import org.jsoar.util.commands.SoarCommandContext;
 import org.jsoar.util.commands.SoarCommands;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class SoarDocumentService implements TextDocumentService {
+  private static final Logger LOG = LoggerFactory.getLogger(SoarDocumentService.class);
+
   /**
    * Soar and Tcl files in the workspace. This is just for maintaining the state of the files, which
    * includes their raw contents, parsed syntax tree, and convenience methods for working with this
@@ -427,7 +431,7 @@ class SoarDocumentService implements TextDocumentService {
       ProjectAnalysis analysis = analyse(this.activeEntryPoint);
       this.analyses.put(analysis.entryPointUri, analysis);
     } catch (SoarException e) {
-      System.err.println("analyse error: " + e);
+      LOG.error("analyse error", e);
     }
   }
 
@@ -443,7 +447,7 @@ class SoarDocumentService implements TextDocumentService {
         file = new SoarFile(uri, contents);
         documents.put(uri, file);
       } catch (Exception e) {
-        System.err.println("Failed to open file: " + e);
+        LOG.error("Failed to open file", e);
       }
     }
 
@@ -458,7 +462,7 @@ class SoarDocumentService implements TextDocumentService {
         ProjectAnalysis analysis = analyse(activeEntryPoint);
         this.analyses.put(analysis.entryPointUri, analysis);
       } catch (SoarException e) {
-        System.err.println("analyse error: " + e);
+        LOG.error("analyse error", e);
       }
     }
   }
@@ -471,7 +475,7 @@ class SoarDocumentService implements TextDocumentService {
   private void reportDiagnosticsForOpenFiles() {
     agent = new Agent();
 
-    System.err.println("Reporting diagnostics for " + documents.keySet());
+    LOG.trace("Reporting diagnostics for {}", documents.keySet());
 
     for (String uri : documents.keySet()) {
       final SoarFile file = documents.get(uri);
@@ -543,7 +547,7 @@ class SoarDocumentService implements TextDocumentService {
     FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
 
     TclAstNode variableNode = node.getType() == TclAstNode.VARIABLE ? node : node.getParent();
-    System.err.println("Looking of definition of variable at node " + variableNode);
+    LOG.trace("Looking up definition of variable at node {}", variableNode);
     VariableRetrieval retrieval = fileAnalysis.variableRetrievals.get(variableNode);
     if (retrieval == null) return null;
     return retrieval.definition.map(def -> def.location);
@@ -555,7 +559,7 @@ class SoarDocumentService implements TextDocumentService {
    */
   private Location goToDefinitionExpansion(SoarFile file, TclAstNode node) {
     if (node == null) return null;
-    System.err.println("expanding node: " + node.getInternalText(file.contents.toCharArray()));
+    LOG.trace("expanding node: {}", node.getInternalText(file.contents.toCharArray()));
 
     String expanded_soar = file.getExpandedCommand(agent, node);
 
@@ -643,7 +647,7 @@ class SoarDocumentService implements TextDocumentService {
     try {
       context.directoryStack.push(Paths.get(new URI(uri)).getParent());
     } catch (Exception e) {
-      System.err.println("failed to initialize directory stack");
+      LOG.error("failed to initialize directory stack", e);
     }
 
     Agent agent = new Agent();
@@ -658,7 +662,7 @@ class SoarDocumentService implements TextDocumentService {
   private void analyseFile(ProjectContext projectContext, Agent agent, String uri)
       throws SoarException {
     SoarFile file = getFile(uri);
-    System.err.println("Retrieved file for " + uri + " :: " + file);
+    LOG.trace("Retrieved file for {} :: {}", uri, file);
     if (file == null) {
       return;
     }
@@ -710,8 +714,7 @@ class SoarDocumentService implements TextDocumentService {
                       filesSourced.add(path);
                       analyseFile(projectContext, agent, path);
                     } catch (Exception e) {
-                      System.err.println("exception while tracing source: ");
-                      e.printStackTrace(System.err);
+                      LOG.error("exception while tracing source", e);
                     } finally {
                       projectContext.directoryStack.pop();
                     }
@@ -844,7 +847,7 @@ class SoarDocumentService implements TextDocumentService {
                 // If anything goes wrong, we just bail out
                 // early. The tree traversal will continue, so
                 // we might still collect useful information.
-                System.err.println("Error while evaluating Soar command: " + e);
+                LOG.error("Error while evaluating Soar command", e);
                 return;
               }
             }
@@ -959,7 +962,7 @@ class SoarDocumentService implements TextDocumentService {
     return new SoarCommand() {
       @Override
       public String execute(SoarCommandContext context, String[] args) throws SoarException {
-        System.err.println("Executing " + Arrays.toString(args));
+        LOG.trace("Executing {}", Arrays.toString(args));
         return implementation.execute(args);
       }
 
