@@ -9,7 +9,6 @@ import com.soartech.soarls.tcl.TclAstNode;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -83,7 +82,7 @@ class SoarDocumentService implements TextDocumentService {
    * includes their raw contents, parsed syntax tree, and convenience methods for working with this
    * representation. It does not include diagnostics information.
    */
-  private Map<String, SoarFile> documents = new HashMap<>();
+  public final Documents documents = new Documents();
 
   /**
    * Diagnostics information about each file. This includes things like the other files that get
@@ -112,9 +111,7 @@ class SoarDocumentService implements TextDocumentService {
   @Override
   public void didOpen(DidOpenTextDocumentParams params) {
     TextDocumentItem doc = params.getTextDocument();
-
-    SoarFile soarFile = new SoarFile(doc.getUri(), doc.getText());
-    documents.put(soarFile.uri, soarFile);
+    SoarFile soarFile = documents.open(doc);
 
     if (activeEntryPoint == null) {
       this.setEntryPoint(soarFile.uri);
@@ -130,13 +127,13 @@ class SoarDocumentService implements TextDocumentService {
 
   @Override
   public void didClose(DidCloseTextDocumentParams params) {
-    documents.remove(params.getTextDocument().getUri());
+    documents.close(params.getTextDocument().getUri());
   }
 
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
-    documents.compute(uri, (k, file) -> file.withChanges(params.getContentChanges()));
+    documents.applyChanges(params);
   }
 
   @Override
@@ -427,24 +424,6 @@ class SoarDocumentService implements TextDocumentService {
     this.analyses.put(analysis.entryPointUri, analysis);
   }
 
-  /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
-  SoarFile getFile(String uri) {
-    Function<String, SoarFile> readFile =
-        key -> {
-          try {
-            Path path = Paths.get(new URI(uri));
-            List<String> lines = Files.readAllLines(path);
-            String contents = Joiner.on("\n").join(lines);
-            return new SoarFile(uri, contents);
-          } catch (Exception e) {
-            LOG.error("Failed to open file", e);
-            return null;
-          }
-        };
-
-    return documents.computeIfAbsent(uri, readFile);
-  }
-
   private void reportDiagnostics() {
     reportDiagnosticsForOpenFiles();
 
@@ -462,9 +441,7 @@ class SoarDocumentService implements TextDocumentService {
   private void reportDiagnosticsForOpenFiles() {
     agent = new Agent();
 
-    LOG.trace("Reporting diagnostics for {}", documents.keySet());
-
-    for (String uri : documents.keySet()) {
+    for (String uri : documents.openUris()) {
       final SoarFile file = documents.get(uri);
       final List<Diagnostic> diagnosticList = new ArrayList<>();
 
@@ -651,7 +628,7 @@ class SoarDocumentService implements TextDocumentService {
 
   private void analyseFile(ProjectContext projectContext, Agent agent, String uri)
       throws SoarException {
-    SoarFile file = getFile(uri);
+    SoarFile file = documents.get(uri);
     LOG.trace("Retrieved file for {} :: {}", uri, file);
     if (file == null) {
       return;
@@ -892,11 +869,11 @@ class SoarDocumentService implements TextDocumentService {
             }
           });
 
-      String expanded_file = getExpandedFile(file);
-      String buffer_uri = getBufferedUri(uri);
-      createFileWithContent(buffer_uri, expanded_file);
-      SoarFile soarFile = new SoarFile(buffer_uri, expanded_file);
-      documents.put(soarFile.uri, soarFile);
+      // String expanded_file = getExpandedFile(file);
+      // String buffer_uri = getBufferedUri(uri);
+      // createFileWithContent(buffer_uri, expanded_file);
+      // SoarFile soarFile = new SoarFile(buffer_uri, expanded_file);
+      // documents.put(soarFile.uri, soarFile);
 
       FileAnalysis analysis =
           new FileAnalysis(

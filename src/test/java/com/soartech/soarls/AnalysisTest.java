@@ -45,7 +45,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
   }
 
   SoarFile file(String uri) {
-    return documentService().getFile(uri);
+    return documentService().documents.get(uri);
   }
 
   @Test
