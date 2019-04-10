@@ -1,9 +1,9 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import org.eclipse.lsp4j.Location;
 
 /** A record of a production having been sourced. */
-class Production {
+public class Production {
   public final String name;
 
   public final Location location;

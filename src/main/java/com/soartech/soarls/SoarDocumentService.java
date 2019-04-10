@@ -1,16 +1,17 @@
 package com.soartech.soarls;
 
-import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.soartech.soarls.analysis.Analysis;
+import com.soartech.soarls.analysis.FileAnalysis;
+import com.soartech.soarls.analysis.ProcedureCall;
+import com.soartech.soarls.analysis.ProcedureDefinition;
+import com.soartech.soarls.analysis.ProjectAnalysis;
+import com.soartech.soarls.analysis.VariableDefinition;
+import com.soartech.soarls.analysis.VariableRetrieval;
 import com.soartech.soarls.tcl.TclAstNode;
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,7 +19,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Stack;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -68,8 +68,6 @@ import org.jsoar.kernel.exceptions.SoarInterpreterException;
 import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
 import org.jsoar.kernel.exceptions.TclInterpreterException;
 import org.jsoar.util.SourceLocation;
-import org.jsoar.util.commands.SoarCommand;
-import org.jsoar.util.commands.SoarCommandContext;
 import org.jsoar.util.commands.SoarCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -420,7 +418,7 @@ class SoarDocumentService implements TextDocumentService {
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
   public void setEntryPoint(String uri) {
     this.activeEntryPoint = uri;
-    ProjectAnalysis analysis = analyse(this.activeEntryPoint);
+    ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
     this.analyses.put(analysis.entryPointUri, analysis);
   }
 
@@ -428,7 +426,7 @@ class SoarDocumentService implements TextDocumentService {
     reportDiagnosticsForOpenFiles();
 
     if (activeEntryPoint != null) {
-      ProjectAnalysis analysis = analyse(activeEntryPoint);
+      ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
       this.analyses.put(analysis.entryPointUri, analysis);
     }
   }
@@ -573,370 +571,5 @@ class SoarDocumentService implements TextDocumentService {
   private String getBufferedUri(String uri) {
     int index = uri.lastIndexOf("/") + 1;
     return uri.substring(0, index) + "~" + uri.substring(index);
-  }
-
-  /**
-   * This is essentially a version of ProjectAnalysis but with mutable fields. This is used to build
-   * up the analysis, and then it is converted to its immutable counterpart at the end. See that
-   * class for field documentation.
-   */
-  private class ProjectContext {
-    final String entryPointUri;
-    Map<String, FileAnalysis> files = new HashMap<>();
-    Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
-    Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
-    Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
-    Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals = new HashMap<>();
-
-    Stack<Path> directoryStack = new Stack<>();
-
-    ProjectContext(String entryPointUri) {
-      this.entryPointUri = entryPointUri;
-    }
-
-    ProjectAnalysis toAnalysis() {
-      return new ProjectAnalysis(
-          entryPointUri,
-          files,
-          procedureDefinitions,
-          procedureCalls,
-          variableDefinitions,
-          variableRetrievals);
-    }
-  }
-
-  /** Perform a full analysis of a project starting from the given entry point. */
-  private ProjectAnalysis analyse(String uri) {
-    ProjectContext context = new ProjectContext(uri);
-    try {
-      context.directoryStack.push(Paths.get(new URI(uri)).getParent());
-    } catch (Exception e) {
-      LOG.error("failed to initialize directory stack", e);
-    }
-
-    try {
-      Agent agent = new Agent();
-      agent.getInterpreter().eval("rename proc proc_internal");
-      agent.getInterpreter().eval("rename set set_internal");
-      analyseFile(context, agent, uri);
-    } catch (SoarException e) {
-      LOG.error("running analysis", e);
-    }
-
-    return context.toAnalysis();
-  }
-
-  private void analyseFile(ProjectContext projectContext, Agent agent, String uri)
-      throws SoarException {
-    SoarFile file = documents.get(uri);
-    LOG.trace("Retrieved file for {} :: {}", uri, file);
-    if (file == null) {
-      return;
-    }
-
-    // Initialize the collections needed to make a FileAnalysis.
-    Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
-    Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
-    List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
-    List<VariableDefinition> variableDefinitions = new ArrayList<>();
-    List<String> filesSourced = new ArrayList<>();
-    List<Production> productions = new ArrayList<>();
-
-    /** Any information that needs to be accessable to the interpreter callbacks. */
-    class Context {
-      /** The node we are currently iterating over. */
-      TclAstNode currentNode = null;
-
-      /** Tho most recent comment that was iterated over. */
-      TclAstNode mostRecentComment = null;
-    }
-    final Context ctx = new Context();
-
-    // We need to save the commands we override so that we can
-    // restore them later. It's okay if we try to get a command
-    // that does not yet exist; for example, on the first pass,
-    // the proc command will not have been added.
-    Map<String, SoarCommand> originalCommands = new HashMap<>();
-    for (String cmd : Arrays.asList("source", "sp", "proc", "set")) {
-      try {
-        originalCommands.put(cmd, agent.getInterpreter().getCommand(cmd, null));
-      } catch (SoarException e) {
-      }
-    }
-
-    try {
-      agent
-          .getInterpreter()
-          .addCommand(
-              "source",
-              soarCommand(
-                  args -> {
-                    try {
-                      Path currentDirectory = projectContext.directoryStack.peek();
-                      Path pathToSource = currentDirectory.resolve(args[1]);
-                      Path newDirectory = pathToSource.getParent();
-                      projectContext.directoryStack.push(newDirectory);
-
-                      String path = pathToSource.toUri().toString();
-                      filesSourced.add(path);
-                      analyseFile(projectContext, agent, path);
-                    } catch (Exception e) {
-                      LOG.error("exception while tracing source", e);
-                    } finally {
-                      projectContext.directoryStack.pop();
-                    }
-                    return "";
-                  }));
-
-      agent
-          .getInterpreter()
-          .addCommand(
-              "pushd",
-              soarCommand(
-                  args -> {
-                    Path newDirectory = projectContext.directoryStack.peek().resolve(args[1]);
-                    projectContext.directoryStack.push(newDirectory);
-                    return "";
-                  }));
-
-      agent
-          .getInterpreter()
-          .addCommand(
-              "popd",
-              soarCommand(
-                  args -> {
-                    projectContext.directoryStack.pop();
-                    return "";
-                  }));
-
-      agent
-          .getInterpreter()
-          .addCommand(
-              "sp",
-              soarCommand(
-                  args -> {
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    productions.add(new Production(args[1], location));
-                    return "";
-                  }));
-
-      agent
-          .getInterpreter()
-          .addCommand(
-              "proc",
-              soarCommand(
-                  args -> {
-                    String name = args[1];
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
-                    TclAstNode commentAstNode = null;
-                    String commentText = null;
-                    if (ctx.mostRecentComment != null) {
-                      // Note that because of the newline,
-                      // comments end at the beginning of the
-                      // following line.
-                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-                      int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                      if (commentEndLine == procStartLine) {
-                        commentAstNode = ctx.mostRecentComment;
-                        commentText =
-                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-                      }
-                    }
-                    ProcedureDefinition proc =
-                        new ProcedureDefinition(
-                            name,
-                            location,
-                            arguments,
-                            ctx.currentNode,
-                            commentAstNode,
-                            commentText);
-                    procedureDefinitions.add(proc);
-                    projectContext.procedureDefinitions.put(proc.name, proc);
-                    projectContext.procedureCalls.put(proc, new ArrayList<>());
-
-                    // The args arrays has stripped away the
-                    // braces, so we need to add them back in
-                    // before we evaluate the command, but using
-                    // the real proc command instead.
-                    args[0] = "proc_internal";
-                    return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
-                  }));
-
-      agent
-          .getInterpreter()
-          .addCommand(
-              "set",
-              soarCommand(
-                  args -> {
-                    String name = args[1];
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    TclAstNode commentAstNode = null;
-                    String commentText = null;
-                    if (ctx.mostRecentComment != null) {
-                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-                      int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                      if (commentEndLine == varStartLine) {
-                        commentAstNode = ctx.mostRecentComment;
-                        commentText =
-                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-                      }
-                    }
-                    // We need to call the true set command, not
-                    // the one that we've registered here.
-                    args[0] = "set_internal";
-                    String value =
-                        agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
-                    VariableDefinition var =
-                        new VariableDefinition(
-                            name, location, ctx.currentNode, value, commentAstNode, commentText);
-                    variableDefinitions.add(var);
-                    projectContext.variableDefinitions.put(var.name, var);
-                    projectContext.variableRetrievals.put(var, new ArrayList<>());
-
-                    return var.value;
-                  }));
-
-      // Traverse file ast tree
-      // for each COMMAND node found, if the node contains a NORMAL_WORD child
-      // then add the procedure call to the file analysis
-      file.traverseAstTree(
-          node -> {
-            if (node.expanded == null) node.expanded = file.getNodeInternalText(node);
-
-            if (node.getType() == TclAstNode.COMMENT) {
-              ctx.mostRecentComment = node;
-            } else if (node.getType() == TclAstNode.COMMAND) {
-              ctx.currentNode = node;
-              try {
-                agent.getInterpreter().eval(node.expanded);
-              } catch (SoarException e) {
-                // If anything goes wrong, we just bail out
-                // early. The tree traversal will continue, so
-                // we might still collect useful information.
-                LOG.error("Error while evaluating Soar command", e);
-                return;
-              }
-            }
-
-            switch (node.getType()) {
-              case TclAstNode.COMMAND:
-                {
-                  TclAstNode quoted_word = node.getChild(TclAstNode.QUOTED_WORD);
-                  // if command is production
-                  if (quoted_word != null) {
-                    quoted_word.expanded = getExpandedCode(file, quoted_word);
-                    TclAstNode command = node.getChild(TclAstNode.NORMAL_WORD);
-                    command.expanded = file.getNodeInternalText(command);
-                    node.expanded = command.expanded + " \"" + quoted_word.expanded + '"';
-                  }
-                }
-              case TclAstNode.COMMAND_WORD:
-                {
-                  TclAstNode firstChild = node.getChild(TclAstNode.NORMAL_WORD);
-                  if (firstChild != null) {
-                    String name = file.getNodeInternalText(firstChild);
-                    Location location = new Location(uri, file.rangeForNode(node));
-                    ProcedureCall procedureCall =
-                        new ProcedureCall(
-                            location, firstChild, projectContext.procedureDefinitions.get(name));
-
-                    procedureCalls.put(firstChild, procedureCall);
-                    procedureCall.definition.ifPresent(
-                        def -> {
-                          projectContext.procedureCalls.get(def).add(procedureCall);
-                        });
-                  }
-                }
-                break;
-              case TclAstNode.VARIABLE:
-                {
-                  TclAstNode nameNode = node.getChild(TclAstNode.VARIABLE_NAME);
-                  if (nameNode != null) {
-                    String name = file.getNodeInternalText(nameNode);
-                    Location location = new Location(uri, file.rangeForNode(node));
-                    VariableDefinition definition = projectContext.variableDefinitions.get(name);
-                    VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
-
-                    variableRetrievals.put(node, retrieval);
-                    retrieval.definition.ifPresent(
-                        def -> {
-                          projectContext.variableRetrievals.get(def).add(retrieval);
-                        });
-                  }
-                }
-                break;
-            }
-          });
-
-      // String expanded_file = getExpandedFile(file);
-      // String buffer_uri = getBufferedUri(uri);
-      // createFileWithContent(buffer_uri, expanded_file);
-      // SoarFile soarFile = new SoarFile(buffer_uri, expanded_file);
-      // documents.put(soarFile.uri, soarFile);
-
-      FileAnalysis analysis =
-          new FileAnalysis(
-              uri,
-              procedureCalls,
-              variableRetrievals,
-              procedureDefinitions,
-              variableDefinitions,
-              filesSourced,
-              productions);
-      projectContext.files.put(uri, analysis);
-    } finally {
-      // Restore original commands
-      for (Map.Entry<String, SoarCommand> cmd : originalCommands.entrySet()) {
-        agent.getInterpreter().addCommand(cmd.getKey(), cmd.getValue());
-      }
-    }
-  }
-
-  String getExpandedFile(SoarFile file) {
-    return file.ast.getChildren().stream().map(child -> child.expanded).collect(joining("\n"));
-  }
-
-  private String printAstTree(SoarFile file) {
-    final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    try (PrintStream ps = new PrintStream(baos, true)) {
-      file.ast.printTree(ps, file.contents.toCharArray(), 4);
-    }
-    String data = new String(baos.toByteArray());
-    return data;
-  }
-
-  private String getExpandedCode(SoarFile file, TclAstNode node) {
-    return getExpandedCode(file.getNodeInternalText(node));
-  }
-
-  private String getExpandedCode(String code) {
-    try {
-      return agent.getInterpreter().eval(code.substring(1, code.length() - 2));
-    } catch (SoarException e) {
-      return code;
-    }
-  }
-
-  interface SoarCommandExecute {
-    String execute(String[] args) throws SoarException;
-  }
-
-  /**
-   * A convenience function for implementing the SoarCommand interface by passing a lambda instead.
-   */
-  static SoarCommand soarCommand(SoarCommandExecute implementation) {
-    return new SoarCommand() {
-      @Override
-      public String execute(SoarCommandContext context, String[] args) throws SoarException {
-        LOG.trace("Executing {}", Arrays.toString(args));
-        return implementation.execute(args);
-      }
-
-      @Override
-      public Object getCommand() {
-        return this;
-      }
-    };
   }
 }

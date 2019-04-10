@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
  * This class owns and maintains the SoarFiles that are open in the workspace, and provides safe
  * concurrent access to them.
  */
-class Documents {
+public class Documents {
   private static final Logger LOG = LoggerFactory.getLogger(Documents.class);
 
   private ConcurrentMap<String, SoarFile> documents = new ConcurrentHashMap<>();

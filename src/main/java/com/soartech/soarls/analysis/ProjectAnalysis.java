@@ -1,4 +1,4 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
@@ -15,7 +15,7 @@ import java.util.Map;
  * loaded with respect to a different interpreter state each time. The dramatically limits or
  * eliminates the possibility to share analysis data.
  */
-class ProjectAnalysis {
+public class ProjectAnalysis {
   public final String entryPointUri;
 
   public final ImmutableMap<String, FileAnalysis> files;

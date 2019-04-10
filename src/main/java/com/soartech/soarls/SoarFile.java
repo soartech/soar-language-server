@@ -7,6 +7,7 @@ import com.soartech.soarls.tcl.TclParser;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
@@ -22,7 +23,7 @@ import org.jsoar.kernel.SoarException;
  * <p>Note that this class should be treated as immutable after construction. To apply edits to the
  * file, use the withChanges() method, which returns a new SoarFile.
  */
-class SoarFile {
+public class SoarFile {
   public final String uri;
 
   public final String contents;
@@ -92,22 +93,18 @@ class SoarFile {
     return this.withChanges(Arrays.asList(change));
   }
 
-  void traverseAstTree(TreeTraverseExecute implementation) {
+  public void traverseAstTree(Consumer<TclAstNode> implementation) {
     traverseAstTreeHelper(implementation, this.ast);
   }
 
-  private void traverseAstTreeHelper(TreeTraverseExecute implementation, TclAstNode currentNode) {
-    implementation.execute(currentNode);
+  private void traverseAstTreeHelper(Consumer<TclAstNode> implementation, TclAstNode currentNode) {
+    implementation.accept(currentNode);
     for (TclAstNode child : currentNode.getChildren()) {
       traverseAstTreeHelper(implementation, child);
     }
   }
 
-  interface TreeTraverseExecute {
-    void execute(TclAstNode currentNode);
-  }
-
-  String getNodeInternalText(TclAstNode node) {
+  public String getNodeInternalText(TclAstNode node) {
     return node.getInternalText(this.contents.toCharArray());
   }
 
@@ -153,7 +150,7 @@ class SoarFile {
   }
 
   /** Get the 0-based offset at the given position. */
-  int offset(Position position) {
+  public int offset(Position position) {
     int offset = 0;
     int lines = position.getLine();
     for (char ch : contents.toCharArray()) {
@@ -169,7 +166,7 @@ class SoarFile {
   }
 
   /** Get the line/column of the given 0-based offset. */
-  Position position(int offset) {
+  public Position position(int offset) {
     int line = 0;
     int character = 0;
     for (int i = 0; i != offset; ++i) {
@@ -246,7 +243,7 @@ class SoarFile {
   }
 
   /** Get the range that encompasses the given Tcl AST node. */
-  Range rangeForNode(TclAstNode node) {
+  public Range rangeForNode(TclAstNode node) {
     return new Range(position(node.getStart()), position(node.getEnd()));
   }
 }

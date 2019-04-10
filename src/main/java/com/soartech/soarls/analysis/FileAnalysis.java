@@ -1,4 +1,4 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
@@ -12,7 +12,7 @@ import java.util.Optional;
  *
  * <p>This structure is populated by the document service.
  */
-class FileAnalysis {
+public class FileAnalysis {
   /** The URI of the file that was analised. */
   public final String uri;
 
@@ -48,12 +48,12 @@ class FileAnalysis {
   // Helpers
 
   /** Get the procedure call at the given node. */
-  Optional<ProcedureCall> procedureCall(TclAstNode node) {
+  public Optional<ProcedureCall> procedureCall(TclAstNode node) {
     return Optional.ofNullable(procedureCalls.get(node));
   }
 
   /** Get the variable retrieval at the given node. */
-  Optional<VariableRetrieval> variableRetrieval(TclAstNode node) {
+  public Optional<VariableRetrieval> variableRetrieval(TclAstNode node) {
     // Retrievals are indexed by their VARIABLE node, but most of
     // the spans of those nodes are covered by their VARIABLE_NAME
     // child.

@@ -2,6 +2,13 @@ package com.soartech.soarls;
 
 import static org.junit.Assert.*;
 
+import com.soartech.soarls.analysis.FileAnalysis;
+import com.soartech.soarls.analysis.ProcedureCall;
+import com.soartech.soarls.analysis.ProcedureDefinition;
+import com.soartech.soarls.analysis.Production;
+import com.soartech.soarls.analysis.ProjectAnalysis;
+import com.soartech.soarls.analysis.VariableDefinition;
+import com.soartech.soarls.analysis.VariableRetrieval;
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.List;
 import java.util.Optional;

@@ -1,11 +1,11 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.Optional;
 import org.eclipse.lsp4j.Location;
 
 /** A record of a Tcl variable that was defined and its associated metadata. */
-class VariableDefinition {
+public class VariableDefinition {
   /** The name of the variable. */
   public final String name;
 
