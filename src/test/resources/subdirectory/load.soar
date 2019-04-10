@@ -1,6 +1,0 @@
-# This is the root load.soar of a multi-file project with a subdirectory.
-
-source micro-ngs.tcl
-pushd subdir
-source load.soar
-popd

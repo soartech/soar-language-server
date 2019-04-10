@@ -1,9 +1,0 @@
-{
-	"entryPoints": [
-		{
-			"path": "load.soar",
-			"name": "subdirectory"
-		}
-	],
-	"active": "subdirectory"
-}
