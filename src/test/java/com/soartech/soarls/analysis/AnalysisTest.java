@@ -1,14 +1,10 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import static org.junit.Assert.*;
 
-import com.soartech.soarls.analysis.FileAnalysis;
-import com.soartech.soarls.analysis.ProcedureCall;
-import com.soartech.soarls.analysis.ProcedureDefinition;
-import com.soartech.soarls.analysis.Production;
-import com.soartech.soarls.analysis.ProjectAnalysis;
-import com.soartech.soarls.analysis.VariableDefinition;
-import com.soartech.soarls.analysis.VariableRetrieval;
+import com.soartech.soarls.LanguageServerTestFixture;
+import com.soartech.soarls.SoarDocumentService;
+import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.List;
 import java.util.Optional;

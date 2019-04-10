@@ -36,10 +36,10 @@ import org.eclipse.lsp4j.services.LanguageServer;
  *
  * <p>This is largely borrowed from the Kotlin language server.
  */
-class LanguageServerTestFixture implements LanguageClient {
-  final Path workspaceRoot;
+public class LanguageServerTestFixture implements LanguageClient {
+  protected final Path workspaceRoot;
 
-  final LanguageServer languageServer;
+  protected final LanguageServer languageServer;
 
   /** The capabilities that were returned from the server on initialization. */
   final ServerCapabilities capabilities;
@@ -50,7 +50,7 @@ class LanguageServerTestFixture implements LanguageClient {
   /** A record of all edits that have been applied to each file. */
   Map<String, List<TextEdit>> edits = new HashMap<>();
 
-  LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
+  protected LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
     URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
     workspaceRoot = Paths.get(anchorUri).getParent().resolve(relativeWorkspaceRoot);
 
@@ -73,7 +73,7 @@ class LanguageServerTestFixture implements LanguageClient {
     return new TextDocumentPositionParams(fileId, position);
   }
 
-  void open(String relativePath) throws Exception {
+  protected void open(String relativePath) throws Exception {
     Path path = workspaceRoot.resolve(relativePath);
     String content = new String(Files.readAllBytes(path));
     TextDocumentItem document = new TextDocumentItem(path.toUri().toString(), "Soar", 0, content);
@@ -125,7 +125,7 @@ class LanguageServerTestFixture implements LanguageClient {
 
   // Helpers
 
-  static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
+  protected static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
     return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
   }
 }

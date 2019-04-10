@@ -109,12 +109,12 @@ public class SoarFile {
   }
 
   /** Get the Tcl AST node at the given position. */
-  TclAstNode tclNode(Position position) {
+  public TclAstNode tclNode(Position position) {
     return tclNode(offset(position));
   }
 
   /** Get the Tcl AST node at the given offset. */
-  TclAstNode tclNode(int offset) {
+  public TclAstNode tclNode(int offset) {
     // Start at the root, which contains the entire file.
     TclAstNode node = this.ast;
 

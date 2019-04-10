@@ -72,7 +72,7 @@ import org.jsoar.util.commands.SoarCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class SoarDocumentService implements TextDocumentService {
+public class SoarDocumentService implements TextDocumentService {
   private static final Logger LOG = LoggerFactory.getLogger(SoarDocumentService.class);
 
   /**
