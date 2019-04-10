@@ -1,0 +1,10 @@
+# comment
+
+sp "propose*init*ngs
+    [ngs-match-top-state <s>]
+    [ngs-not [ngs-eq <s> initialized] ]
+    (<s> ^foo bar) # non-tcl condition
+-->
+    (<s> ^foo bar2) # non-tcl action
+    [ngs-log $defaultLoggerName $NGS_INFO "this is a message; <s>"]
+"
