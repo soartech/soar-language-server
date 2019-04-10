@@ -12,9 +12,8 @@ public class ParsingTest extends LanguageServerTestFixture {
     open("test.soar");
   }
 
-  @Test(timeout=100)
+  @Test(timeout = 100)
   public void test() {
-      // nothing specifically to do, just want to ensure that we don't get stuck in an infinite loop
+    // nothing specifically to do, just want to ensure that we don't get stuck in an infinite loop
   }
-
 }
