@@ -942,7 +942,7 @@ class SoarDocumentService implements TextDocumentService {
 
   private String getExpandedCode(String code) {
     try {
-      return agent.getInterpreter().eval("return " + '"' + code + '"');
+      return agent.getInterpreter().eval(code.substring(1, code.length() - 2));
     } catch (SoarException e) {
       return code;
     }
