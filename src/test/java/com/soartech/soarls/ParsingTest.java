@@ -1,9 +1,7 @@
 package com.soartech.soarls;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
-@Ignore
 public class ParsingTest extends LanguageServerTestFixture {
 
   public ParsingTest() throws Exception {

@@ -212,9 +212,13 @@ public class TclParser {
     TclAstNode node = new TclAstNode(TclAstNode.NORMAL_WORD, getOffset());
     char c = lookAhead(0);
     while (c != EOF) {
-      // Stop at first whitespace or semi-colon
-      if (Character.isWhitespace(c) || c == ';' || c == terminator) {
+      // Stop at first whitespace or terminator
+      if (Character.isWhitespace(c) || c == terminator) {
         node.setEnd(getOffset());
+        return node;
+      } else if (c == ';') {
+        node.setEnd(getOffset());
+        consume();
         return node;
       } else if (c == '\\') {
         consumeEscapedCharacter();
