@@ -56,7 +56,6 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureInformation;
-import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
@@ -137,10 +136,7 @@ class SoarDocumentService implements TextDocumentService {
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
-
-    for (TextDocumentContentChangeEvent change : params.getContentChanges()) {
-      documents.get(uri).applyChange(change);
-    }
+    documents.compute(uri, (k, file) -> file.withChanges(params.getContentChanges()));
   }
 
   @Override

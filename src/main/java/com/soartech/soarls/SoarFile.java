@@ -4,8 +4,9 @@ import static java.util.stream.Collectors.toList;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.BiFunction;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
@@ -18,60 +19,27 @@ import org.jsoar.kernel.SoarException;
  * This class keeps track of the contents of a Soar source file along with a (currently primitive)
  * parse tree and some utilities for converting between offsets and line/column positions.
  *
- * <p>We are using incremental document sync, which means that when the client makes changes we
- * receive notifications about only what changed. However, since we are representing the contents as
- * a String, we still have to re-allocate and re-parse the entire file on every change. This is
- * probably not going to be a bottleneck early on, but it is a candidate for optimization later.
- *
- * <p>That said, we can't simply replace the backing data structure with something like a rope,
- * because the Tcl parser still expects a char array - we would have to copy the contents of any
- * data structure into a new buffer no matter what.
+ * <p>Note that this class should be treated as immutable after construction. To apply edits to the
+ * file, use the withChanges() method, which returns a new SoarFile.
  */
 class SoarFile {
   public final String uri;
 
-  public String contents;
+  public final String contents;
 
-  public List<Diagnostic> diagnostics = new ArrayList<>();
+  public final List<Diagnostic> diagnostics;
 
-  public TclAstNode ast = null;
+  /**
+   * The Tcl syntax tree from parsing this file. Even if the file is not valid syntax, this will at
+   * least contain a root node. Note that instances of the SoarFile class should be treated as
+   * immutable, even though we can't enforce that you won't modify the AST after it is constructed.
+   * Please don't do that.
+   */
+  public final TclAstNode ast;
 
   public SoarFile(String uri, String contents) {
     this.uri = uri;
     this.contents = fixLineEndings(contents);
-
-    parseFile();
-  }
-
-  /** Apply the changes from a textDocument/didChange notification. */
-  void applyChange(TextDocumentContentChangeEvent change) {
-    // The parameters which are set depends on whether we are
-    // using full or incremental updates.
-    if (change.getRange() == null) {
-      // We are using full document updates.
-      this.contents = change.getText();
-    } else {
-      // We are using incremental updates.
-
-      // This is not the most efficient way of modifying strings,
-      // but it's definitely the most convenient.
-      int start = offset(change.getRange().getStart());
-      int end = offset(change.getRange().getEnd());
-      String prefix = this.contents.substring(0, start);
-      String suffix = this.contents.substring(end);
-      this.contents = prefix + change.getText() + suffix;
-    }
-
-    parseFile();
-  }
-
-  /**
-   * Parse the contents of the file and pull out the following information: - Soar commands, for
-   * which we use the JSoar interpreter. - A Tcl AST, for which we use the Tcl parser borrowed from
-   * the SoarIDE.
-   */
-  void parseFile() {
-    diagnostics.clear();
 
     TclParser parser = new TclParser();
     parser.setInput(this.contents.toCharArray(), 0, this.contents.length());
@@ -91,6 +59,37 @@ class SoarFile {
                       "soar");
                 })
             .collect(toList());
+  }
+
+  /** Apply the changes from a textDocument/didChange notification and returns a new file. */
+  SoarFile withChanges(List<TextDocumentContentChangeEvent> changes) {
+    BiFunction<StringBuffer, TextDocumentContentChangeEvent, StringBuffer> applyChange =
+        (buffer, change) -> {
+          // The parameters which are set depends on whether we are
+          // using full or incremental updates.
+          if (change.getRange() == null) {
+            // We are using full document updates.
+            return new StringBuffer(change.getText());
+          } else {
+            // We are using incremental updates.
+            int start = offset(change.getRange().getStart());
+            int end = offset(change.getRange().getEnd());
+            return buffer.replace(start, end, change.getText());
+          }
+        };
+
+    String newContents =
+        changes
+            .stream()
+            .reduce(new StringBuffer(this.contents), applyChange, (u, v) -> v)
+            .toString();
+
+    return new SoarFile(this.uri, newContents);
+  }
+
+  /** A special case of the withChanges function, where there is only a single change to apply. */
+  SoarFile withChange(TextDocumentContentChangeEvent change) {
+    return this.withChanges(Arrays.asList(change));
   }
 
   void traverseAstTree(TreeTraverseExecute implementation) {

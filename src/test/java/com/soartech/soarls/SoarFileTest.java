@@ -26,34 +26,37 @@ public class SoarFileTest extends LanguageServerTestFixture {
   @Test
   public void applyChangeRemoveLine() {
     int lineLength = file.line(0).length();
-    this.file.applyChange(
-        new TextDocumentContentChangeEvent(
-            new Range(new Position(0, 0), new Position(1, 0)), lineLength, ""));
+    SoarFile newFile =
+        this.file.withChange(
+            new TextDocumentContentChangeEvent(
+                new Range(new Position(0, 0), new Position(1, 0)), lineLength, ""));
 
-    assertEquals(file.line(0), "\n");
+    assertEquals(newFile.line(0), "\n");
   }
 
   /** When we remove the first two lines, then the first tcl node should no longer be a comment. */
   @Test
   public void applyChangeRemoveComment() {
     int lineLength = file.line(0).length() + file.line(1).length();
-    this.file.applyChange(
-        new TextDocumentContentChangeEvent(
-            new Range(new Position(0, 0), new Position(2, 0)), lineLength, ""));
+    SoarFile newFile =
+        this.file.withChange(
+            new TextDocumentContentChangeEvent(
+                new Range(new Position(0, 0), new Position(2, 0)), lineLength, ""));
 
     // This is the 'sp' token of the first production.
-    TclAstNode node = file.tclNode(new Position(0, 0));
+    TclAstNode node = newFile.tclNode(new Position(0, 0));
     assertEquals(node.getType(), TclAstNode.NORMAL_WORD);
   }
 
   @Test
   public void applyChangeAddCharacter() {
     // Insert another '#' at the beginning of the line.
-    this.file.applyChange(
-        new TextDocumentContentChangeEvent(
-            new Range(new Position(0, 0), new Position(0, 0)), 0, "#"));
+    SoarFile newFile =
+        this.file.withChange(
+            new TextDocumentContentChangeEvent(
+                new Range(new Position(0, 0), new Position(0, 0)), 0, "#"));
 
-    assertEquals(file.line(0), "## comment\n");
+    assertEquals(newFile.line(0), "## comment\n");
   }
 
   @Test
