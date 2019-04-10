@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -597,6 +598,8 @@ class SoarDocumentService implements TextDocumentService {
         Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
         Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals = new HashMap<>();
 
+        Stack<Path> directoryStack = new Stack<>();
+
         ProjectContext(String entryPointUri) {
             this.entryPointUri = entryPointUri;
         }
@@ -617,6 +620,11 @@ class SoarDocumentService implements TextDocumentService {
      */
     private ProjectAnalysis analyse(String uri) throws SoarException {
         ProjectContext context = new ProjectContext(uri);
+        try {
+            context.directoryStack.push(Paths.get(new URI(uri)).getParent());
+        } catch (Exception e) {
+            System.err.println("failed to initialize directory stack");
+        }
 
         Agent agent = new Agent();
         agent.getInterpreter().eval("rename proc proc_internal");
@@ -667,16 +675,31 @@ class SoarDocumentService implements TextDocumentService {
         try {
             agent.getInterpreter().addCommand("source", soarCommand(args -> {
                         try {
-                            Path currentPath = Paths.get(new URI(uri));
-                            Path pathToSource = currentPath.resolveSibling(args[1]);
+                            Path currentDirectory = projectContext.directoryStack.peek();
+                            Path pathToSource = currentDirectory.resolve(args[1]);
+                            Path newDirectory = pathToSource.getParent();
+                            projectContext.directoryStack.push(newDirectory);
+
                             String path = pathToSource.toUri().toString();
                             filesSourced.add(path);
-
                             analyseFile(projectContext, agent, path);
                         } catch (Exception e) {
                             System.err.println("exception while tracing source: ");
                             e.printStackTrace(System.err);
+                        } finally {
+                            projectContext.directoryStack.pop();
                         }
+                        return "";
+                    }));
+
+            agent.getInterpreter().addCommand("pushd", soarCommand(args -> {
+                        Path newDirectory = projectContext.directoryStack.peek().resolve(args[1]);
+                        projectContext.directoryStack.push(newDirectory);
+                        return "";
+                    }));
+
+            agent.getInterpreter().addCommand("popd", soarCommand(args -> {
+                        projectContext.directoryStack.pop();
                         return "";
                     }));
 
