@@ -32,7 +32,7 @@ with the path to your language server executable:
             "command": ["path/to/soar-language-server"],
             "languageId": "soar",
             "scopes": ["source.soar", "source.tcl"],
-            "syntaxes": ["soar"]
+            "syntaxes": ["soar", "tcl"]
         }
     }
 }
