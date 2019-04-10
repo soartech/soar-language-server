@@ -1,0 +1,8 @@
+#!/bin/sh
+
+# Executes the Google Java formatter on any 
+
+set -e
+
+REPO_ROOT_DIR="$(git rev-parse --show-toplevel)"
+${REPO_ROOT_DIR}/gradlew verifyGoogleJavaFormat

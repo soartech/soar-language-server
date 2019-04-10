@@ -15,6 +15,7 @@ install:
   # to successfully be configured - it's not enough to simply declare
   # it as a task dependency.
   - ./gradlew compileJSoar
+  - ./gradlew verifyGoogleJavaFormat
   - ./gradlew assemble
 
 before_deploy:

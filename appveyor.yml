@@ -5,6 +5,7 @@ install:
   - gradlew.bat compileJSoar
 
 build_script:
+  - gradlew.bat verifyGoogleJavaFormat
   - gradlew.bat assemble
 
 test_script:

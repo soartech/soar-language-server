@@ -18,57 +18,56 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Server implements LanguageServer, LanguageClientAware {
-    private static final Logger LOG = LoggerFactory.getLogger(LanguageServer.class);
-    
-    private final SoarDocumentService documentService = new SoarDocumentService();
-    private final SoarWorkspaceService workspaceService = new SoarWorkspaceService(documentService);
+  private static final Logger LOG = LoggerFactory.getLogger(LanguageServer.class);
 
-    Server() {
-        // NOTE: I'm not sure where the proper place to set this is.
-        System.setProperty("jsoar.agent.interpreter", "tcl");
-    }
+  private final SoarDocumentService documentService = new SoarDocumentService();
+  private final SoarWorkspaceService workspaceService = new SoarWorkspaceService(documentService);
 
-    @Override
-    public WorkspaceService getWorkspaceService() {
-        return workspaceService;
-    }
+  Server() {
+    // NOTE: I'm not sure where the proper place to set this is.
+    System.setProperty("jsoar.agent.interpreter", "tcl");
+  }
 
-    @Override
-    public TextDocumentService getTextDocumentService() {
-        return documentService;
-    }
+  @Override
+  public WorkspaceService getWorkspaceService() {
+    return workspaceService;
+  }
 
-    @Override
-    public CompletableFuture<Object> shutdown() {
-        return CompletableFuture.completedFuture(null);
-    }
+  @Override
+  public TextDocumentService getTextDocumentService() {
+    return documentService;
+  }
 
-    @Override
-    public void exit() {
-    }
+  @Override
+  public CompletableFuture<Object> shutdown() {
+    return CompletableFuture.completedFuture(null);
+  }
 
-    @Override
-    public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
-        LOG.info("Initializing server");
-    	this.workspaceService.setWorkspaceRoot(params.getRootUri());
-    	
-        ServerCapabilities capabilities = new ServerCapabilities();
-        capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
-        // capabilities.setDocumentHighlightProvider(true);
-        capabilities.setFoldingRangeProvider(true);
-        capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
-        capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
-        capabilities.setHoverProvider(true);
-        capabilities.setDefinitionProvider(true);
-        capabilities.setCodeActionProvider(true);
-        capabilities.setExecuteCommandProvider(new ExecuteCommandOptions());
-        capabilities.setReferencesProvider(true);
+  @Override
+  public void exit() {}
 
-        return CompletableFuture.completedFuture(new InitializeResult(capabilities));
-    }
+  @Override
+  public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
+    LOG.info("Initializing server");
+    this.workspaceService.setWorkspaceRoot(params.getRootUri());
 
-    @Override
-    public void connect(LanguageClient client) {
-        documentService.connect(client);
-    }
+    ServerCapabilities capabilities = new ServerCapabilities();
+    capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
+    // capabilities.setDocumentHighlightProvider(true);
+    capabilities.setFoldingRangeProvider(true);
+    capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
+    capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
+    capabilities.setHoverProvider(true);
+    capabilities.setDefinitionProvider(true);
+    capabilities.setCodeActionProvider(true);
+    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions());
+    capabilities.setReferencesProvider(true);
+
+    return CompletableFuture.completedFuture(new InitializeResult(capabilities));
+  }
+
+  @Override
+  public void connect(LanguageClient client) {
+    documentService.connect(client);
+  }
 }

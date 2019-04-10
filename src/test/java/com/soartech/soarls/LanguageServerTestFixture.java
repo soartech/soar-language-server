@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.Diagnostic;
@@ -30,107 +29,103 @@ import org.eclipse.lsp4j.services.LanguageServer;
 
 /**
  * Extend this to create a test class. Create a Soar project in
- * test/resources/<relativeWorkspaceRoot>, and this class will
- * instantiate a langauge client in that directory.
+ * test/resources/<relativeWorkspaceRoot>, and this class will instantiate a langauge client in that
+ * directory.
  *
- * See also SingleFileTestFixture, which is a convenience for simpler
- * tests.
+ * <p>See also SingleFileTestFixture, which is a convenience for simpler tests.
  *
- * This is largely borrowed from the Kotlin language server.
+ * <p>This is largely borrowed from the Kotlin language server.
  */
 class LanguageServerTestFixture implements LanguageClient {
-    final Path workspaceRoot;
+  final Path workspaceRoot;
 
-    final LanguageServer languageServer;
+  final LanguageServer languageServer;
 
-    /** The capabilities that were returned from the server on
-     * initialization. */
-    final ServerCapabilities capabilities;
+  /** The capabilities that were returned from the server on initialization. */
+  final ServerCapabilities capabilities;
 
-    /** The most recent diagnostics that were sent from the server for
-     * each file.
-     */
-    Map<String, PublishDiagnosticsParams> diagnostics = new HashMap<>();
+  /** The most recent diagnostics that were sent from the server for each file. */
+  Map<String, PublishDiagnosticsParams> diagnostics = new HashMap<>();
 
-    /** A record of all edits that have been applied to each file. */
-    Map<String, List<TextEdit>> edits = new HashMap<>();
+  /** A record of all edits that have been applied to each file. */
+  Map<String, List<TextEdit>> edits = new HashMap<>();
 
-    LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
-        URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
-        workspaceRoot = Paths.get(anchorUri).getParent().resolve(relativeWorkspaceRoot);
+  LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
+    URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
+    workspaceRoot = Paths.get(anchorUri).getParent().resolve(relativeWorkspaceRoot);
 
-        Server languageServer = new Server();
-        InitializeParams init = new InitializeParams();
-        init.setRootUri(workspaceRoot.toUri().toString());
-        languageServer.connect(this);
-        capabilities = languageServer.initialize(init).get().getCapabilities();
-        this.languageServer = languageServer;
-    }
+    Server languageServer = new Server();
+    InitializeParams init = new InitializeParams();
+    init.setRootUri(workspaceRoot.toUri().toString());
+    languageServer.connect(this);
+    capabilities = languageServer.initialize(init).get().getCapabilities();
+    this.languageServer = languageServer;
+  }
 
-    TextDocumentIdentifier fileId(String relativePath) {
-        Path file = workspaceRoot.resolve(relativePath);
-        return new TextDocumentIdentifier(file.toUri().toString());
-    }
+  TextDocumentIdentifier fileId(String relativePath) {
+    Path file = workspaceRoot.resolve(relativePath);
+    return new TextDocumentIdentifier(file.toUri().toString());
+  }
 
-    TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {
-        TextDocumentIdentifier fileId = fileId(relativePath);
-        Position position = new Position(line, column);
-        return new TextDocumentPositionParams(fileId, position);
-    }
+  TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {
+    TextDocumentIdentifier fileId = fileId(relativePath);
+    Position position = new Position(line, column);
+    return new TextDocumentPositionParams(fileId, position);
+  }
 
-    void open(String relativePath) throws Exception {
-        Path path = workspaceRoot.resolve(relativePath);
-        String content = new String(Files.readAllBytes(path));
-        TextDocumentItem document = new TextDocumentItem(path.toUri().toString(), "Soar", 0, content);
+  void open(String relativePath) throws Exception {
+    Path path = workspaceRoot.resolve(relativePath);
+    String content = new String(Files.readAllBytes(path));
+    TextDocumentItem document = new TextDocumentItem(path.toUri().toString(), "Soar", 0, content);
 
-        languageServer.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(document));
-    }
+    languageServer.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(document));
+  }
 
-    List<Diagnostic> diagnosticsForFile(String relativePath) {
-        Path path = workspaceRoot.resolve(relativePath);
-        return diagnostics.get(path.toUri().toString()).getDiagnostics();
-    }
+  List<Diagnostic> diagnosticsForFile(String relativePath) {
+    Path path = workspaceRoot.resolve(relativePath);
+    return diagnostics.get(path.toUri().toString()).getDiagnostics();
+  }
 
-    // Implement LanguageClient
+  // Implement LanguageClient
 
-    @Override
-    public void logMessage(MessageParams message) {
-        System.out.println(message.toString());
-    }
+  @Override
+  public void logMessage(MessageParams message) {
+    System.out.println(message.toString());
+  }
 
-    @Override
-    public void publishDiagnostics(PublishDiagnosticsParams params) {
-        System.out.println(params.toString());
-        this.diagnostics.put(params.getUri(), params);
-    }
+  @Override
+  public void publishDiagnostics(PublishDiagnosticsParams params) {
+    System.out.println(params.toString());
+    this.diagnostics.put(params.getUri(), params);
+  }
 
-    @Override
-    public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {
-        System.out.println(params.toString());
-        this.edits = params.getEdit().getChanges();
+  @Override
+  public CompletableFuture<ApplyWorkspaceEditResponse> applyEdit(ApplyWorkspaceEditParams params) {
+    System.out.println(params.toString());
+    this.edits = params.getEdit().getChanges();
 
-        return CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true));
-    }
+    return CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true));
+  }
 
-    @Override
-    public void showMessage(MessageParams message) {
-        System.out.println(message.toString());
-    }
+  @Override
+  public void showMessage(MessageParams message) {
+    System.out.println(message.toString());
+  }
 
-    @Override
-    public CompletableFuture<MessageActionItem> showMessageRequest(ShowMessageRequestParams params) {
-        System.out.println(params.toString());
-        return null;
-    }
+  @Override
+  public CompletableFuture<MessageActionItem> showMessageRequest(ShowMessageRequestParams params) {
+    System.out.println(params.toString());
+    return null;
+  }
 
-    @Override
-    public void telemetryEvent(Object object) {
-        System.out.println(object.toString());
-    }
+  @Override
+  public void telemetryEvent(Object object) {
+    System.out.println(object.toString());
+  }
 
-    // Helpers
+  // Helpers
 
-    static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
-        return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
-    }
+  static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
+    return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
+  }
 }

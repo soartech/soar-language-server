@@ -1,46 +1,33 @@
-/**
- * This Tcl parser originally comes from the SoarIDE.
- */
-
+/** This Tcl parser originally comes from the SoarIDE. */
 package com.soartech.soarls.tcl;
 
-/**
- * @author ray
- */
-public class TclParserError
-{
-    private int start;
-    private int length;
-    private String message;
-    
-    public TclParserError(int offset, int length, String message)
-    {
-        super();
-        this.start = offset;
-        this.length = length;
-        this.message = message;
-    }
+/** @author ray */
+public class TclParserError {
+  private int start;
+  private int length;
+  private String message;
 
-    public int getLength()
-    {
-        return length;
-    }
+  public TclParserError(int offset, int length, String message) {
+    super();
+    this.start = offset;
+    this.length = length;
+    this.message = message;
+  }
 
-    public String getMessage()
-    {
-        return message;
-    }
+  public int getLength() {
+    return length;
+  }
 
-    public int getStart()
-    {
-        return start;
-    }
+  public String getMessage() {
+    return message;
+  }
 
-    @Override
-    public String toString()
-    {
-        return "[" + start + ", " + length + "): " + message;
-    }
-    
-    
+  public int getStart() {
+    return start;
+  }
+
+  @Override
+  public String toString() {
+    return "[" + start + ", " + length + "): " + message;
+  }
 }
