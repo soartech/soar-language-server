@@ -533,7 +533,7 @@ class SoarDocumentService implements TextDocumentService {
    * definition or null if it doesn't exist
    */
   private Location goToDefinitionProcedure(SoarFile file, TclAstNode node) {
-    ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
+    ProjectAnalysis projectAnalysis = getAnalysis(activeEntryPoint);
 
     String name = file.getNodeInternalText(node);
     ProcedureDefinition definition = projectAnalysis.procedureDefinitions.get(name);
@@ -543,7 +543,7 @@ class SoarDocumentService implements TextDocumentService {
   }
 
   private Optional<Location> goToDefinitionVariable(SoarFile file, TclAstNode node) {
-    ProjectAnalysis projectAnalysis = analyses.get(activeEntryPoint);
+    ProjectAnalysis projectAnalysis = getAnalysis(activeEntryPoint);
     FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
 
     TclAstNode variableNode = node.getType() == TclAstNode.VARIABLE ? node : node.getParent();
