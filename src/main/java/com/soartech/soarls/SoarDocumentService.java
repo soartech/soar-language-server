@@ -571,11 +571,8 @@ public class SoarDocumentService implements TextDocumentService {
       ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
     FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
 
-    TclAstNode variableNode = node.getType() == TclAstNode.VARIABLE ? node : node.getParent();
-    LOG.trace("Looking up definition of variable at node {}", variableNode);
-    VariableRetrieval retrieval = fileAnalysis.variableRetrievals.get(variableNode);
-    if (retrieval == null) Optional.empty();
-    return retrieval.definition.map(def -> def.location);
+    LOG.trace("Looking up definition of variable at node {}", node);
+    return fileAnalysis.variableRetrieval(node).flatMap(r -> r.definition).map(def -> def.location);
   }
 
   /**
