@@ -103,7 +103,7 @@ public class Analysis {
 
   private void analyseFile(String uri) throws SoarException {
     final SoarFile file = documents.get(uri);
-    LOG.trace("Retrieved file for {} :: {}", uri, file);
+    LOG.info("Retrieved file for {} :: {}", uri, file);
     if (file == null) {
       return;
     }
@@ -411,7 +411,7 @@ public class Analysis {
     try {
       return agent.getInterpreter().eval(command);
     } catch (SoarException e) {
-      LOG.error("Evaluating command: {}", command, e);
+      LOG.trace("Evaluating command: {}", command, e);
       return "";
     }
   }
