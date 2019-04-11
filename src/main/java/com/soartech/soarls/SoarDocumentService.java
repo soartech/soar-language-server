@@ -12,6 +12,8 @@ import com.soartech.soarls.analysis.ProjectAnalysis;
 import com.soartech.soarls.analysis.VariableDefinition;
 import com.soartech.soarls.analysis.VariableRetrieval;
 import com.soartech.soarls.tcl.TclAstNode;
+import com.soartech.soarls.util.Debouncer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -20,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
@@ -87,7 +90,17 @@ public class SoarDocumentService implements TextDocumentService {
    * sourced, declarations of Tcl procedures and variables, production declarations, and so on. The
    * analyseFile method is the entry point for how this information gets generated.
    */
-  private Map<String, ProjectAnalysis> analyses = new HashMap<>();
+  private final ConcurrentHashMap<String, ProjectAnalysis> analyses = new ConcurrentHashMap<>();
+
+  /** Handles to diagnostics information that is currently being computed. */
+  private final ConcurrentHashMap<String, CompletableFuture<ProjectAnalysis>> pendingAnalyses =
+      new ConcurrentHashMap<>();
+
+  /**
+   * The debouncer is used to schedule analysis runs. They can be submitted as often as you like,
+   * but they will only be run periodically.
+   */
+  private final Debouncer debouncer = new Debouncer(Duration.ofMillis(250));
 
   /**
    * The URI of the currently active entry point. The results of analysing a codebase can be
@@ -101,9 +114,26 @@ public class SoarDocumentService implements TextDocumentService {
 
   private Agent agent = new Agent();
 
-  /** Retrieve the analysis for the given entry point. */
-  public ProjectAnalysis getAnalysis(String uri) {
-    return analyses.get(uri);
+  /**
+   * Retrieve the most recently completed analysis for the given entry point. If an analysis has
+   * already been completed then the future will resolve immediately; otherwise, you may assume that
+   * the analysis is in progress and the future will resolve eventually.
+   */
+  public CompletableFuture<ProjectAnalysis> getAnalysis(String uri) {
+    CompletableFuture<ProjectAnalysis> pending = pendingAnalyses.get(uri);
+    if (pending != null) {
+      if (pending.isDone()) {
+        try {
+          analyses.put(uri, pending.get());
+          pendingAnalyses.remove(uri, pending);
+        } catch (Exception e) {
+          LOG.error("Retrieving result of analysis", e);
+        }
+      }
+    }
+
+    ProjectAnalysis analysis = analyses.get(uri);
+    return analysis == null ? pending : CompletableFuture.completedFuture(analysis);
   }
 
   @Override
@@ -132,6 +162,7 @@ public class SoarDocumentService implements TextDocumentService {
   public void didChange(DidChangeTextDocumentParams params) {
     String uri = params.getTextDocument().getUri();
     documents.applyChanges(params);
+    scheduleAnalysis();
   }
 
   @Override
@@ -150,97 +181,105 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>>
       definition(TextDocumentPositionParams params) {
-    SoarFile file = documents.get(params.getTextDocument().getUri());
-    TclAstNode node = file.tclNode(params.getPosition());
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            analysis -> {
+              SoarFile file = documents.get(params.getTextDocument().getUri());
+              TclAstNode node = file.tclNode(params.getPosition());
 
-    Location location = null;
-    if (node.getType() == TclAstNode.NORMAL_WORD) {
-      TclAstNode parent = node.getParent();
+              Location location = null;
+              if (node.getType() == TclAstNode.NORMAL_WORD) {
+                TclAstNode parent = node.getParent();
 
-      // if parent is QUOTED_WORD then currently on an SP command -> expand the code in buffer
-      // if parent is COMMAND_WORD then go to procedure definition if found.
-      if (parent.getType() == TclAstNode.QUOTED_WORD) {
-        location = goToDefinitionExpansion(file, parent);
-      } else if (parent.getType() == TclAstNode.COMMAND_WORD) {
-        location = goToDefinitionProcedure(file, node);
-      }
-    } else if (node.getType() == TclAstNode.VARIABLE
-        || node.getType() == TclAstNode.VARIABLE_NAME) {
-      location = goToDefinitionVariable(file, node).orElse(null);
-    }
+                // if parent is QUOTED_WORD then currently on an SP command -> expand the code in
+                // buffer
+                // if parent is COMMAND_WORD then go to procedure definition if found.
+                if (parent.getType() == TclAstNode.QUOTED_WORD) {
+                  location = goToDefinitionExpansion(file, parent);
+                } else if (parent.getType() == TclAstNode.COMMAND_WORD) {
+                  location = goToDefinitionProcedure(analysis, file, node);
+                }
+              } else if (node.getType() == TclAstNode.VARIABLE
+                  || node.getType() == TclAstNode.VARIABLE_NAME) {
+                location = goToDefinitionVariable(analysis, file, node).orElse(null);
+              }
 
-    List<Location> goToLocation = new ArrayList<>();
-    if (location != null) {
-      goToLocation.add(location);
-    }
+              List<Location> goToLocation = new ArrayList<>();
+              if (location != null) {
+                goToLocation.add(location);
+              }
 
-    return CompletableFuture.completedFuture(Either.forLeft(goToLocation));
+              return Either.forLeft(goToLocation);
+            });
   }
 
   @Override
   public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(
       CompletionParams params) {
-    ProjectAnalysis analysis = getAnalysis(activeEntryPoint);
-    SoarFile file = documents.get(params.getTextDocument().getUri());
-    String line = file.line(params.getPosition().getLine());
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            analysis -> {
+              SoarFile file = analysis.files.get(params.getTextDocument().getUri()).file;
+              String line = file.line(params.getPosition().getLine());
 
-    int cursor = params.getPosition().getCharacter();
-    if (cursor >= line.length()) {
-      return CompletableFuture.completedFuture(Either.forLeft(new ArrayList<>()));
-    }
+              int cursor = params.getPosition().getCharacter();
+              if (cursor >= line.length()) {
+                return Either.forLeft(new ArrayList<>());
+              }
 
-    // The position of the start of the token.
-    int start = -1;
-    // The set of completions to draw from.
-    Set<String> source = null;
-    CompletionItemKind kind = CompletionItemKind.Function;
+              // The position of the start of the token.
+              int start = -1;
+              // The set of completions to draw from.
+              Set<String> source = null;
+              CompletionItemKind kind = CompletionItemKind.Function;
 
-    // Find the start of the token and determine its type.
-    for (int i = cursor; i >= 0; --i) {
-      switch (line.charAt(i)) {
-        case '$':
-          source = analysis.variableDefinitions.keySet();
-          kind = CompletionItemKind.Constant;
-          break;
-        case ' ':
-        case '[':
-          source = analysis.procedureDefinitions.keySet();
-          kind = CompletionItemKind.Function;
-          break;
-      }
-      if (source != null) {
-        start = i + 1;
-        break;
-      }
-    }
-    if (source == null) {
-      source = analysis.procedureDefinitions.keySet();
-      kind = CompletionItemKind.Function;
-      start = 0;
-    }
+              // Find the start of the token and determine its type.
+              for (int i = cursor; i >= 0; --i) {
+                switch (line.charAt(i)) {
+                  case '$':
+                    source = analysis.variableDefinitions.keySet();
+                    kind = CompletionItemKind.Constant;
+                    break;
+                  case ' ':
+                  case '[':
+                    source = analysis.procedureDefinitions.keySet();
+                    kind = CompletionItemKind.Function;
+                    break;
+                }
+                if (source != null) {
+                  start = i + 1;
+                  break;
+                }
+              }
+              if (source == null) {
+                source = analysis.procedureDefinitions.keySet();
+                kind = CompletionItemKind.Function;
+                start = 0;
+              }
 
-    CompletionItemKind itemKind = kind;
+              CompletionItemKind itemKind = kind;
 
-    if (start >= line.length()) start = line.length() - 1;
-    if (start < 0) start = 0;
+              if (start >= line.length()) start = line.length() - 1;
+              if (start < 0) start = 0;
 
-    if (cursor > line.length()) cursor = line.length();
-    if (cursor < start) cursor = start;
+              if (cursor > line.length()) cursor = line.length();
+              if (cursor < start) cursor = start;
 
-    String prefix = line.substring(start, cursor);
-    List<CompletionItem> completions =
-        source
-            .stream()
-            .filter(s -> s.startsWith(prefix))
-            .map(CompletionItem::new)
-            .map(
-                item -> {
-                  item.setKind(itemKind);
-                  return item;
-                })
-            .collect(toList());
+              String prefix = line.substring(start, cursor);
+              List<CompletionItem> completions =
+                  source
+                      .stream()
+                      .filter(s -> s.startsWith(prefix))
+                      .map(CompletionItem::new)
+                      .map(
+                          item -> {
+                            item.setKind(itemKind);
+                            return item;
+                          })
+                      .collect(toList());
 
-    return CompletableFuture.completedFuture(Either.forLeft(completions));
+              return Either.forLeft(completions);
+            });
   }
 
   @Override
@@ -292,122 +331,133 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
-    FileAnalysis analysis =
-        getAnalysis(activeEntryPoint).files.get(params.getTextDocument().getUri());
-    SoarFile file = analysis.file;
-    TclAstNode hoveredNode = file.tclNode(params.getPosition());
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            projectAnalysis -> {
+              FileAnalysis analysis = projectAnalysis.files.get(params.getTextDocument().getUri());
+              SoarFile file = analysis.file;
+              TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
-    Function<TclAstNode, Hover> hoverVariable =
-        node -> {
-          VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
-          if (retrieval == null) return null;
-          String value = retrieval.definition.map(def -> def.value).orElse("");
-          Range range = file.rangeForNode(node);
-          return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-        };
+              Function<TclAstNode, Hover> hoverVariable =
+                  node -> {
+                    VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
+                    if (retrieval == null) return null;
+                    String value = retrieval.definition.map(def -> def.value).orElse("");
+                    Range range = file.rangeForNode(node);
+                    return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+                  };
 
-    Function<TclAstNode, Hover> hoverProcedureCall =
-        node -> {
-          ProcedureCall call = analysis.procedureCalls.get(node);
-          if (call == null) return null;
-          String value =
-              call.definition
-                  .map(def -> def.name + " " + Joiner.on(" ").join(def.arguments))
-                  .orElse(file.getNodeInternalText(node));
-          // We are clearly not storing the right information
-          // here. Computing the range should be much simpler.
-          List<TclAstNode> callChildren = call.callSiteAst.getParent().getChildren();
-          Range range =
-              new Range(
-                  file.position(callChildren.get(0).getStart()),
-                  file.position(callChildren.get(callChildren.size() - 1).getEnd()));
-          return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-        };
+              Function<TclAstNode, Hover> hoverProcedureCall =
+                  node -> {
+                    ProcedureCall call = analysis.procedureCalls.get(node);
+                    if (call == null) return null;
+                    String value =
+                        call.definition
+                            .map(def -> def.name + " " + Joiner.on(" ").join(def.arguments))
+                            .orElse(file.getNodeInternalText(node));
+                    // We are clearly not storing the right information
+                    // here. Computing the range should be much simpler.
+                    List<TclAstNode> callChildren = call.callSiteAst.getParent().getChildren();
+                    Range range =
+                        new Range(
+                            file.position(callChildren.get(0).getStart()),
+                            file.position(callChildren.get(callChildren.size() - 1).getEnd()));
+                    return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+                  };
 
-    Supplier<Hover> getHover =
-        () -> {
-          switch (hoveredNode.getType()) {
-            case TclAstNode.VARIABLE:
-              return hoverVariable.apply(hoveredNode);
-            case TclAstNode.VARIABLE_NAME:
-              return hoverVariable.apply(hoveredNode.getParent());
-            default:
-              return hoverProcedureCall.apply(hoveredNode);
-          }
-        };
+              Supplier<Hover> getHover =
+                  () -> {
+                    switch (hoveredNode.getType()) {
+                      case TclAstNode.VARIABLE:
+                        return hoverVariable.apply(hoveredNode);
+                      case TclAstNode.VARIABLE_NAME:
+                        return hoverVariable.apply(hoveredNode.getParent());
+                      default:
+                        return hoverProcedureCall.apply(hoveredNode);
+                    }
+                  };
 
-    return CompletableFuture.completedFuture(getHover.get());
+              return getHover.get();
+            });
   }
 
   @Override
   public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
-    SoarFile file = documents.get(params.getTextDocument().getUri());
-    TclAstNode astNode = file.tclNode(params.getPosition());
-    ProjectAnalysis analysis = getAnalysis(activeEntryPoint);
-    FileAnalysis fileAnalysis = analysis.files.get(file.uri);
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            analysis -> {
+              FileAnalysis fileAnalysis = analysis.files.get(params.getTextDocument().getUri());
+              TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
 
-    List<Location> references = new ArrayList<>();
+              List<Location> references = new ArrayList<>();
 
-    Optional<ProcedureDefinition> procDef =
-        fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
-    if (!procDef.isPresent()) {
-      procDef =
-          fileAnalysis
-              .procedureDefinitions
-              .stream()
-              .filter(def -> def.ast.containsChild(astNode))
-              .findFirst();
-    }
-    procDef.ifPresent(
-        def -> {
-          for (ProcedureCall call : analysis.procedureCalls.get(def)) {
-            references.add(call.callSiteLocation);
-          }
-        });
+              Optional<ProcedureDefinition> procDef =
+                  fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
+              if (!procDef.isPresent()) {
+                procDef =
+                    fileAnalysis
+                        .procedureDefinitions
+                        .stream()
+                        .filter(def -> def.ast.containsChild(astNode))
+                        .findFirst();
+              }
+              procDef.ifPresent(
+                  def -> {
+                    for (ProcedureCall call : analysis.procedureCalls.get(def)) {
+                      references.add(call.callSiteLocation);
+                    }
+                  });
 
-    Optional<VariableDefinition> varDef =
-        fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
-    if (!varDef.isPresent()) {
-      varDef =
-          fileAnalysis
-              .variableDefinitions
-              .stream()
-              .filter(def -> def.ast.containsChild(astNode))
-              .findFirst();
-    }
-    varDef.ifPresent(
-        def -> {
-          for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
-            references.add(ret.readSiteLocation);
-          }
-        });
+              Optional<VariableDefinition> varDef =
+                  fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
+              if (!varDef.isPresent()) {
+                varDef =
+                    fileAnalysis
+                        .variableDefinitions
+                        .stream()
+                        .filter(def -> def.ast.containsChild(astNode))
+                        .findFirst();
+              }
+              varDef.ifPresent(
+                  def -> {
+                    for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
+                      references.add(ret.readSiteLocation);
+                    }
+                  });
 
-    return CompletableFuture.completedFuture(references);
+              return references;
+            });
   }
 
   @Override
   public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
-    FileAnalysis analysis =
-        getAnalysis(activeEntryPoint).files.get(params.getTextDocument().getUri());
-    SoarFile file = analysis.file;
-    TclAstNode astNode = file.tclNode(params.getPosition());
+    return getAnalysis(activeEntryPoint)
+        .thenApply(analysis -> analysis.files.get(params.getTextDocument().getUri()))
+        .thenApply(
+            analysis -> {
+              SoarFile file = analysis.file;
+              TclAstNode astNode = file.tclNode(params.getPosition());
 
-    List<SignatureInformation> signatures = new ArrayList<>();
+              List<SignatureInformation> signatures = new ArrayList<>();
 
-    ProcedureCall call = analysis.procedureCalls.get(astNode);
-    if (call != null) {
-      call.definition.ifPresent(
-          def -> {
-            String label = def.name + " " + Joiner.on(" ").join(def.arguments);
-            List<ParameterInformation> arguments =
-                def.arguments.stream().map(arg -> new ParameterInformation(arg)).collect(toList());
-            SignatureInformation info = new SignatureInformation(label, "", arguments);
-            signatures.add(info);
-          });
-    }
+              ProcedureCall call = analysis.procedureCalls.get(astNode);
+              if (call != null) {
+                call.definition.ifPresent(
+                    def -> {
+                      String label = def.name + " " + Joiner.on(" ").join(def.arguments);
+                      List<ParameterInformation> arguments =
+                          def.arguments
+                              .stream()
+                              .map(arg -> new ParameterInformation(arg))
+                              .collect(toList());
+                      SignatureInformation info = new SignatureInformation(label, "", arguments);
+                      signatures.add(info);
+                    });
+              }
 
-    SignatureHelp help = new SignatureHelp(signatures, 0, 0);
-    return CompletableFuture.completedFuture(help);
+              SignatureHelp help = new SignatureHelp(signatures, 0, 0);
+              return help;
+            });
   }
 
   /** Wire up a reference to the client, so that we can send diagnostics. */
@@ -418,17 +468,29 @@ public class SoarDocumentService implements TextDocumentService {
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
   public void setEntryPoint(String uri) {
     this.activeEntryPoint = uri;
-    ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
-    this.analyses.put(analysis.entryPointUri, analysis);
+    scheduleAnalysis();
   }
 
   private void reportDiagnostics() {
     reportDiagnosticsForOpenFiles();
+  }
 
-    if (activeEntryPoint != null) {
-      ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
-      this.analyses.put(analysis.entryPointUri, analysis);
+  /**
+   * Schedule an analysis run. It is safe to call this multiple times in quick succession, because
+   * the requests are debounced.
+   */
+  private void scheduleAnalysis() {
+    CompletableFuture<ProjectAnalysis> future =
+        pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture());
+
+    if (future.isDone()) {
+      return;
     }
+    debouncer.submit(
+        () -> {
+          ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
+          future.complete(analysis);
+        });
   }
 
   /**
@@ -494,9 +556,8 @@ public class SoarDocumentService implements TextDocumentService {
    * Finds the procedure definition of the given node Returns the location of the procedure
    * definition or null if it doesn't exist
    */
-  private Location goToDefinitionProcedure(SoarFile file, TclAstNode node) {
-    ProjectAnalysis projectAnalysis = getAnalysis(activeEntryPoint);
-
+  private Location goToDefinitionProcedure(
+      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
     String name = file.getNodeInternalText(node);
     ProcedureDefinition definition = projectAnalysis.procedureDefinitions.get(name);
     if (definition == null) return null;
@@ -504,8 +565,8 @@ public class SoarDocumentService implements TextDocumentService {
     return definition.location;
   }
 
-  private Optional<Location> goToDefinitionVariable(SoarFile file, TclAstNode node) {
-    ProjectAnalysis projectAnalysis = getAnalysis(activeEntryPoint);
+  private Optional<Location> goToDefinitionVariable(
+      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
     FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
 
     TclAstNode variableNode = node.getType() == TclAstNode.VARIABLE ? node : node.getParent();
