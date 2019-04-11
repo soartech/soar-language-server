@@ -292,14 +292,7 @@ public class Analysis {
             switch (node.getType()) {
               case TclAstNode.COMMAND:
                 {
-                  TclAstNode quoted_word = node.getChild(TclAstNode.QUOTED_WORD);
-                  // if command is production
-                  if (quoted_word != null) {
-                    quoted_word.expanded = getExpandedCode(file, quoted_word);
-                    TclAstNode command = node.getChild(TclAstNode.NORMAL_WORD);
-                    command.expanded = file.getNodeInternalText(command);
-                    node.expanded = command.expanded + " \"" + quoted_word.expanded + '"';
-                  }
+                  // TODO: collect changed variables and new productions.
                 }
               case TclAstNode.COMMAND_WORD:
                 {
@@ -374,18 +367,6 @@ public class Analysis {
     }
     String data = new String(baos.toByteArray());
     return data;
-  }
-
-  private String getExpandedCode(SoarFile file, TclAstNode node) {
-    return getExpandedCode(file.getNodeInternalText(node));
-  }
-
-  private String getExpandedCode(String code) {
-    try {
-      return agent.getInterpreter().eval(code.substring(1, code.length() - 2));
-    } catch (SoarException e) {
-      return code;
-    }
   }
 
   interface SoarCommandExecute {
