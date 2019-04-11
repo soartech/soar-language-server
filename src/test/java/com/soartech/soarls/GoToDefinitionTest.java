@@ -72,12 +72,12 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
     // check that edit contains correct expanded tcl/ngs
     assertEquals(
-        "sp \"proc-not-defined\n"
+        "sp {proc-not-defined\n"
             + "    (state <s> ^superstate nil)\n"
             + "    \n"
             + "-->\n"
             + "    (<s> ^object-exists *YES*)\n"
-            + "\"",
+            + "}",
         edit.getNewText().trim());
   }
 

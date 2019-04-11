@@ -1,8 +1,10 @@
 package com.soartech.soarls;
 
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
@@ -195,7 +197,7 @@ public class SoarDocumentService implements TextDocumentService {
                 // buffer
                 // if parent is COMMAND_WORD then go to procedure definition if found.
                 if (parent.getType() == TclAstNode.QUOTED_WORD) {
-                  location = goToDefinitionExpansion(file, parent);
+                  location = goToDefinitionExpansion(analysis, file, parent);
                 } else if (parent.getType() == TclAstNode.COMMAND_WORD) {
                   location = goToDefinitionProcedure(analysis, file, node);
                 }
@@ -580,19 +582,31 @@ public class SoarDocumentService implements TextDocumentService {
    * Method will get expanded code, write to temp buffer file, then return location of expanded code
    * Assumes that the node to be expanded is of type QUOTED_WORD
    */
-  private Location goToDefinitionExpansion(SoarFile file, TclAstNode node) {
-    if (node == null) return null;
-    LOG.trace("expanding node: {}", node.getInternalText(file.contents.toCharArray()));
+  private Location goToDefinitionExpansion(
+      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
+    TclAstNode commandNode = node;
+    if (commandNode.getParent() == null) return null;
+    while (commandNode.getParent().getType() != TclAstNode.ROOT) {
+      commandNode = commandNode.getParent();
+    }
 
-    String expanded_soar = file.getExpandedCommand(agent, node);
+    String expandedSoar =
+        projectAnalysis
+            .files
+            .get(file.uri)
+            .productions
+            .getOrDefault(commandNode, ImmutableList.of())
+            .stream()
+            .map(production -> "sp {" + production.body + "}\n")
+            .collect(joining("\n"));
 
-    if (expanded_soar == null || expanded_soar.isEmpty()) return null;
+    if (expandedSoar == null || expandedSoar.isEmpty()) return null;
     // add new line for separation from any existing code
     // when appending to the top of the file
-    expanded_soar += "\n\n";
+    expandedSoar += "\n\n";
 
     String new_uri = getBufferedUri(file.uri);
-    Position create_position = createFileWithContent(new_uri, expanded_soar);
+    Position create_position = createFileWithContent(new_uri, expandedSoar);
 
     return new Location(new_uri, new Range(create_position, create_position));
   }
