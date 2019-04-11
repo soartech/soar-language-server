@@ -10,18 +10,12 @@ public class Production {
 
   public final String body;
 
-  Production(String name, Location location) {
-    // This is a hacky way to extract the name of a production,
-    // because what should be the name argument is actually the
-    // entire argument to the sp command.
-    //
-    // We'll come back to this later.
-    String productionName = name.split("\\s+")[0];
-
-    String body = name.substring(name.indexOf(productionName) + productionName.length());
+  Production(String body, Location location) {
+    // The name of a production is the first word of its body.
+    String productionName = body.split("\\s+")[0];
 
     this.name = productionName;
     this.location = location;
-    this.body = body.trim();
+    this.body = body;
   }
 }
