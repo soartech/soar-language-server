@@ -1,7 +1,6 @@
 package com.soartech.soarls.analysis;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
-import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -257,7 +256,7 @@ public class Analysis {
                 // If anything goes wrong, we just bail out
                 // early. The tree traversal will continue, so
                 // we might still collect useful information.
-                LOG.error("Error while evaluating Soar command", e);
+                LOG.error("Error while evaluating Soar command: {}", node.expanded, e);
                 return;
               }
             }
@@ -268,7 +267,8 @@ public class Analysis {
                   ImmutableMap<String, String> newVariables = getCurrentVariables();
                   MapDifference difference = Maps.difference(currentVariables, newVariables);
                   Map<String, String> onRight = difference.entriesOnlyOnRight();
-                  Map<String, MapDifference.ValueDifference<String>> differing = difference.entriesDiffering();
+                  Map<String, MapDifference.ValueDifference<String>> differing =
+                      difference.entriesDiffering();
 
                   for (Map.Entry<String, String> e : onRight.entrySet()) {
                     String name = e.getKey();
@@ -293,8 +293,8 @@ public class Analysis {
                     this.variableRetrievals.put(var, new ArrayList<>());
                   }
 
-
-                  for (Map.Entry<String, MapDifference.ValueDifference<String>> e : differing.entrySet()) {
+                  for (Map.Entry<String, MapDifference.ValueDifference<String>> e :
+                      differing.entrySet()) {
                     String name = e.getKey();
                     Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                     String value = e.getValue().rightValue();
