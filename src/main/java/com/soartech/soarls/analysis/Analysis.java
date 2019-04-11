@@ -1,8 +1,12 @@
 package com.soartech.soarls.analysis;
 
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
 import static java.util.stream.Collectors.joining;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.MapDifference;
+import com.google.common.collect.Maps;
 import com.soartech.soarls.Documents;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
@@ -39,6 +43,9 @@ public class Analysis {
 
   private final Agent agent = new Agent();
 
+  /** The values of globally accessable variables in scope. */
+  private ImmutableMap<String, String> currentVariables;
+
   // These are essentially copies of the fields in the
   // ProjectAnalysis class, but mutable. They are used to build up
   // the analysis, and then they are copied to their immutable
@@ -64,7 +71,7 @@ public class Analysis {
 
     try {
       agent.getInterpreter().eval("rename proc proc_internal");
-      agent.getInterpreter().eval("rename set set_internal");
+      currentVariables = getCurrentVariables();
     } catch (SoarException e) {
       LOG.error("initializing agent", e);
     }
@@ -124,7 +131,7 @@ public class Analysis {
     // that does not yet exist; for example, on the first pass,
     // the proc command will not have been added.
     Map<String, SoarCommand> originalCommands = new HashMap<>();
-    for (String cmd : Arrays.asList("source", "sp", "proc", "set")) {
+    for (String cmd : Arrays.asList("source", "sp", "proc")) {
       try {
         originalCommands.put(cmd, this.agent.getInterpreter().getCommand(cmd, null));
       } catch (SoarException e) {
@@ -233,40 +240,6 @@ public class Analysis {
                     return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
                   }));
 
-      agent
-          .getInterpreter()
-          .addCommand(
-              "set",
-              soarCommand(
-                  args -> {
-                    String name = args[1];
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    TclAstNode commentAstNode = null;
-                    String commentText = null;
-                    if (ctx.mostRecentComment != null) {
-                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-                      int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                      if (commentEndLine == varStartLine) {
-                        commentAstNode = ctx.mostRecentComment;
-                        commentText =
-                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-                      }
-                    }
-                    // We need to call the true set command, not
-                    // the one that we've registered here.
-                    args[0] = "set_internal";
-                    String value =
-                        agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
-                    VariableDefinition var =
-                        new VariableDefinition(
-                            name, location, ctx.currentNode, value, commentAstNode, commentText);
-                    variableDefinitions.add(var);
-                    this.variableDefinitions.put(var.name, var);
-                    this.variableRetrievals.put(var, new ArrayList<>());
-
-                    return var.value;
-                  }));
-
       // Traverse file ast tree
       // for each COMMAND node found, if the node contains a NORMAL_WORD child
       // then add the procedure call to the file analysis
@@ -292,7 +265,34 @@ public class Analysis {
             switch (node.getType()) {
               case TclAstNode.COMMAND:
                 {
-                  // TODO: collect changed variables and new productions.
+                  ImmutableMap<String, String> newVariables = getCurrentVariables();
+                  MapDifference difference = Maps.difference(currentVariables, newVariables);
+                  Map<String, String> onRight = difference.entriesOnlyOnRight();
+
+                  for (Map.Entry<String, String> e : onRight.entrySet()) {
+                    String name = e.getKey();
+                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                    String value = e.getValue();
+                    TclAstNode commentAstNode = null;
+                    String commentText = null;
+                    if (ctx.mostRecentComment != null) {
+                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
+                      int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
+                      if (commentEndLine == varStartLine) {
+                        commentAstNode = ctx.mostRecentComment;
+                        commentText =
+                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                      }
+                    }
+                    VariableDefinition var =
+                        new VariableDefinition(
+                            name, location, ctx.currentNode, value, commentAstNode, commentText);
+                    variableDefinitions.add(var);
+                    this.variableDefinitions.put(var.name, var);
+                    this.variableRetrievals.put(var, new ArrayList<>());
+                  }
+
+                  currentVariables = newVariables;
                 }
               case TclAstNode.COMMAND_WORD:
                 {
@@ -389,5 +389,25 @@ public class Analysis {
         return this;
       }
     };
+  }
+
+  /** Evaluate the given command, swallowing the SoarException if it occurs. */
+  String evalCommand(String command) {
+    try {
+      return agent.getInterpreter().eval(command);
+    } catch (SoarException e) {
+      LOG.error("Evaluating command: {}", command, e);
+      return "";
+    }
+  }
+
+  /**
+   * Get the values of all variables in global scope, where the keys are the variable names and the
+   * values and the variable values.
+   */
+  ImmutableMap<String, String> getCurrentVariables() {
+    String[] variableNames = evalCommand("info globals").split("\\s+");
+    return Arrays.stream(variableNames)
+        .collect(toImmutableMap(var -> var, var -> evalCommand("set " + var)));
   }
 }
