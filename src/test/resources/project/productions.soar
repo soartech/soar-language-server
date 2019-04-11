@@ -11,3 +11,11 @@ sp "proc-not-defined
 -->
     [ngs-create-attribute <s> object-exists $NGS_YES]
 "
+
+set NGS_YES ngs-yes-was-redefined
+
+sp "proc-with-renamed-var
+    [ngs-match-top-state <s>]
+-->
+    [ngs-create-attribute <s> top-state $NGS_YES]
+"

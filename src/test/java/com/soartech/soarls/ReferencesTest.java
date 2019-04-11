@@ -48,6 +48,15 @@ public class ReferencesTest extends LanguageServerTestFixture {
     List<Location> references = referencesForPoint("micro-ngs/macros.tcl", 2, 4);
     assertReference(references, "productions.soar", range(3, 40, 3, 48));
     assertReference(references, "productions.soar", range(11, 44, 11, 52));
+    assertEquals(references.size(), 2);
+  }
+
+  @Test
+  public void referencesToRedefinedVariable() throws Exception {
+    // set NGS_YES (redefined, in productions.soar)
+    List<Location> references = referencesForPoint("productions.soar", 14, 0);
+    assertReference(references, "productions.soar", range(19, 40, 19, 48));
+    assertEquals(references.size(), 1);
   }
 
   @Test

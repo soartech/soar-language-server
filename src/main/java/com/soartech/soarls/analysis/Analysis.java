@@ -268,11 +268,36 @@ public class Analysis {
                   ImmutableMap<String, String> newVariables = getCurrentVariables();
                   MapDifference difference = Maps.difference(currentVariables, newVariables);
                   Map<String, String> onRight = difference.entriesOnlyOnRight();
+                  Map<String, MapDifference.ValueDifference<String>> differing = difference.entriesDiffering();
 
                   for (Map.Entry<String, String> e : onRight.entrySet()) {
                     String name = e.getKey();
                     Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
                     String value = e.getValue();
+                    TclAstNode commentAstNode = null;
+                    String commentText = null;
+                    if (ctx.mostRecentComment != null) {
+                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
+                      int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
+                      if (commentEndLine == varStartLine) {
+                        commentAstNode = ctx.mostRecentComment;
+                        commentText =
+                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+                      }
+                    }
+                    VariableDefinition var =
+                        new VariableDefinition(
+                            name, location, ctx.currentNode, value, commentAstNode, commentText);
+                    variableDefinitions.add(var);
+                    this.variableDefinitions.put(var.name, var);
+                    this.variableRetrievals.put(var, new ArrayList<>());
+                  }
+
+
+                  for (Map.Entry<String, MapDifference.ValueDifference<String>> e : differing.entrySet()) {
+                    String name = e.getKey();
+                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                    String value = e.getValue().rightValue();
                     TclAstNode commentAstNode = null;
                     String commentText = null;
                     if (ctx.mostRecentComment != null) {

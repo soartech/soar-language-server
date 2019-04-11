@@ -130,6 +130,15 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
     assertEquals(location.getRange(), range(2, 0, 2, 17));
   }
 
+  @Test
+  public void variableRedefinition() throws Exception {
+    List<Location> locations = definitionsForPosition("productions.soar", 29, 42);
+
+    Location location = locations.get(0);
+    assertEquals(location.getUri(), resolve("productions.soar"));
+    assertEquals(location.getRange(), range(24, 0, 24, 33));
+  }
+
   String resolve(String relativePath) {
     return workspaceRoot.resolve(relativePath).toUri().toString();
   }

@@ -147,7 +147,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
   @Test
   public void variableDefinitions() {
-    assertVariable("NGS_YES", "*YES*", "micro-ngs/macros.tcl");
+    assertVariable("NGS_YES", "ngs-yes-was-redefined", "productions.soar");
     assertVariable("NGS_NO", "*NO*", "micro-ngs/macros.tcl");
   }
 
@@ -163,7 +163,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
     assertNotNull(def);
     List<VariableRetrieval> usages = analysis.variableRetrievals.get(def);
     assertNotNull(usages);
-    assertEquals(usages.size(), 2);
+    assertEquals(usages.size(), 1);
   }
 
   /** Assert that a file contains the given production. */
