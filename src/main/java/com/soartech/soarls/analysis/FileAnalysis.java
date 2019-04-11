@@ -1,5 +1,7 @@
 package com.soartech.soarls.analysis;
 
+import static com.google.common.collect.ImmutableMap.toImmutableMap;
+
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.soartech.soarls.SoarFile;
@@ -46,8 +48,11 @@ public class FileAnalysis {
    */
   public final ImmutableList<String> filesSourced;
 
-  /** Productions that were defined while sourcing this file. */
-  public final ImmutableList<Production> productions;
+  /**
+   * Productions that were defined while sourcing each command in the file. The map is indexed by
+   * the AST node of the command that caused the productions to be defined.
+   */
+  public final ImmutableMap<TclAstNode, ImmutableList<Production>> productions;
 
   // Helpers
 
@@ -74,7 +79,7 @@ public class FileAnalysis {
       List<ProcedureDefinition> procedureDefinitions,
       List<VariableDefinition> variableDefinitions,
       List<String> filesSourced,
-      List<Production> productions) {
+      Map<TclAstNode, List<Production>> productions) {
     this.uri = file.uri;
     this.file = file;
     this.procedureCalls = ImmutableMap.copyOf(procedureCalls);
@@ -82,6 +87,10 @@ public class FileAnalysis {
     this.procedureDefinitions = ImmutableList.copyOf(procedureDefinitions);
     this.variableDefinitions = ImmutableList.copyOf(variableDefinitions);
     this.filesSourced = ImmutableList.copyOf(filesSourced);
-    this.productions = ImmutableList.copyOf(productions);
+    this.productions =
+        productions
+            .entrySet()
+            .stream()
+            .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
   }
 }

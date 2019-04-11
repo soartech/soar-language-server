@@ -107,7 +107,7 @@ public class Analysis {
     List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
     List<VariableDefinition> variableDefinitions = new ArrayList<>();
     List<String> filesSourced = new ArrayList<>();
-    List<Production> productions = new ArrayList<>();
+    Map<TclAstNode, List<Production>> productions = new HashMap<>();
 
     /** Any information that needs to be accessable to the interpreter callbacks. */
     class Context {
@@ -183,7 +183,10 @@ public class Analysis {
               soarCommand(
                   args -> {
                     Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    productions.add(new Production(args[1], location));
+                    Production production = new Production(args[1], location);
+                    productions
+                        .computeIfAbsent(ctx.currentNode, key -> new ArrayList<>())
+                        .add(production);
                     return "";
                   }));
 
