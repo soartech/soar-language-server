@@ -357,12 +357,6 @@ public class Analysis {
             }
           });
 
-      // String expanded_file = getExpandedFile(file);
-      // String buffer_uri = getBufferedUri(uri);
-      // createFileWithContent(buffer_uri, expanded_file);
-      // SoarFile soarFile = new SoarFile(buffer_uri, expanded_file);
-      // documents.put(soarFile.uri, soarFile);
-
       FileAnalysis analysis =
           new FileAnalysis(
               file,
@@ -379,10 +373,6 @@ public class Analysis {
         agent.getInterpreter().addCommand(cmd.getKey(), cmd.getValue());
       }
     }
-  }
-
-  String getExpandedFile(SoarFile file) {
-    return file.ast.getChildren().stream().map(child -> child.expanded).collect(joining("\n"));
   }
 
   private String printAstTree(SoarFile file) {
