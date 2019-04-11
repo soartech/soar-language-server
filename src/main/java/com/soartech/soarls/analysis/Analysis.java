@@ -95,7 +95,7 @@ public class Analysis {
   }
 
   private void analyseFile(String uri) throws SoarException {
-    SoarFile file = documents.get(uri);
+    final SoarFile file = documents.get(uri);
     LOG.trace("Retrieved file for {} :: {}", uri, file);
     if (file == null) {
       return;
@@ -344,7 +344,7 @@ public class Analysis {
 
       FileAnalysis analysis =
           new FileAnalysis(
-              uri,
+              file,
               procedureCalls,
               variableRetrievals,
               procedureDefinitions,

@@ -294,7 +294,7 @@ public class SoarDocumentService implements TextDocumentService {
   public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
     FileAnalysis analysis =
         getAnalysis(activeEntryPoint).files.get(params.getTextDocument().getUri());
-    SoarFile file = documents.get(analysis.uri);
+    SoarFile file = analysis.file;
     TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
     Function<TclAstNode, Hover> hoverVariable =
@@ -389,7 +389,7 @@ public class SoarDocumentService implements TextDocumentService {
   public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
     FileAnalysis analysis =
         getAnalysis(activeEntryPoint).files.get(params.getTextDocument().getUri());
-    SoarFile file = documents.get(analysis.uri);
+    SoarFile file = analysis.file;
     TclAstNode astNode = file.tclNode(params.getPosition());
 
     List<SignatureInformation> signatures = new ArrayList<>();
