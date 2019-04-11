@@ -1,11 +1,11 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.Optional;
 import org.eclipse.lsp4j.Location;
 
 /** A record of a procedure being called and its associated metadata. */
-class ProcedureCall {
+public class ProcedureCall {
   /** The location where the call occurs. */
   public final Location callSiteLocation;
 

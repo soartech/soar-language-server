@@ -1,4 +1,4 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.List;
@@ -6,7 +6,7 @@ import java.util.Optional;
 import org.eclipse.lsp4j.Location;
 
 /** A record of a Tcl procedure that was defined and its associated metadata. */
-class ProcedureDefinition {
+public class ProcedureDefinition {
   /** The name of the procedure. */
   public final String name;
 

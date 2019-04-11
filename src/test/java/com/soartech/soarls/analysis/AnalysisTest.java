@@ -1,7 +1,10 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import static org.junit.Assert.*;
 
+import com.soartech.soarls.LanguageServerTestFixture;
+import com.soartech.soarls.SoarDocumentService;
+import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.List;
 import java.util.Optional;
@@ -17,9 +20,13 @@ import org.junit.Test;
  * class.
  */
 public class AnalysisTest extends LanguageServerTestFixture {
+  /** The project analysis for the entire project, assuming load.soar as the entry point. */
+  final ProjectAnalysis analysis;
+
   public AnalysisTest() throws Exception {
     super("project");
     open("load.soar");
+    this.analysis = documentService().getAnalysis(resolve("load.soar")).get();
   }
 
   String resolve(String relativePath) {
@@ -34,24 +41,19 @@ public class AnalysisTest extends LanguageServerTestFixture {
     return (SoarDocumentService) languageServer.getTextDocumentService();
   }
 
-  /** Retrieve the analysis for the entire project, assuming load.soar as the entry point. */
-  ProjectAnalysis projectAnalysis() {
-    return documentService().getAnalysis(resolve("load.soar"));
-  }
-
   /** Retrieve the analysis for the file with the given relative path. */
   FileAnalysis fileAnalysis(String relativePath) {
-    return projectAnalysis().files.get(resolve(relativePath));
+    return analysis.files.get(resolve(relativePath));
   }
 
   SoarFile file(String uri) {
-    return documentService().getFile(uri);
+    return documentService().documents.get(uri);
   }
 
   @Test
   public void performsAnalysis() {
-    FileAnalysis analysis = fileAnalysis("load.soar");
-    assertNotNull(analysis);
+    FileAnalysis fileAnalysis = fileAnalysis("load.soar");
+    assertNotNull(fileAnalysis);
   }
 
   @Test
@@ -115,7 +117,6 @@ public class AnalysisTest extends LanguageServerTestFixture {
   /** This is similar to the detectsProcedures test, but it is starting at the project analysis. */
   @Test
   public void procedureDefinitionAstNodes() {
-    ProjectAnalysis analysis = projectAnalysis();
     ProcedureDefinition def = analysis.procedureDefinitions.get("ngs-match-top-state");
     assertEquals(def.location.getUri(), resolve("micro-ngs/macros.tcl"));
     assertEquals(def.location.getRange(), range(6, 0, 8, 1));
@@ -123,16 +124,13 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
   @Test
   public void procedureDefinitionComments() {
-    ProjectAnalysis analysis = projectAnalysis();
-    assertProcComment(
-        analysis, "ngs-match-top-state", Optional.of("# This is the actual implementation"));
-    assertProcComment(analysis, "ngs-create-attribute", Optional.empty());
-    assertProcComment(analysis, "ngs-bind", Optional.of("# The actual implementation of ngs-bind"));
+    assertProcComment("ngs-match-top-state", Optional.of("# This is the actual implementation"));
+    assertProcComment("ngs-create-attribute", Optional.empty());
+    assertProcComment("ngs-bind", Optional.of("# The actual implementation of ngs-bind"));
   }
 
   @Test
   public void collectProjectWideProcedureDefinitions() {
-    ProjectAnalysis analysis = projectAnalysis();
     assertNotNull(analysis.procedureDefinitions.get("ngs-match-top-state"));
     assertNotNull(analysis.procedureDefinitions.get("ngs-bind"));
     assertNotNull(analysis.procedureDefinitions.get("ngs-create-attribute"));
@@ -149,9 +147,8 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
   @Test
   public void variableDefinitions() {
-    ProjectAnalysis analysis = projectAnalysis();
-    assertVariable(analysis, "NGS_YES", "*YES*", "micro-ngs/macros.tcl");
-    assertVariable(analysis, "NGS_NO", "*NO*", "micro-ngs/macros.tcl");
+    assertVariable("NGS_YES", "*YES*", "micro-ngs/macros.tcl");
+    assertVariable("NGS_NO", "*NO*", "micro-ngs/macros.tcl");
   }
 
   @Test
@@ -162,7 +159,6 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
   @Test
   public void variableUsages() {
-    ProjectAnalysis analysis = projectAnalysis();
     VariableDefinition def = analysis.variableDefinitions.get("NGS_YES");
     assertNotNull(def);
     List<VariableRetrieval> usages = analysis.variableRetrievals.get(def);
@@ -205,8 +201,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
    * Assert that a procedure definition either does not have a comment, or if it does, that the
    * prefix matches.
    */
-  void assertProcComment(
-      ProjectAnalysis analysis, String procedureName, Optional<String> commentPrefix) {
+  void assertProcComment(String procedureName, Optional<String> commentPrefix) {
     ProcedureDefinition procedure = analysis.procedureDefinitions.get(procedureName);
     assertNotNull(procedure);
 
@@ -217,7 +212,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
   }
 
   /** Assert that a variable was defined with the given name, value, and source file. */
-  void assertVariable(ProjectAnalysis analysis, String name, String value, String relativePath) {
+  void assertVariable(String name, String value, String relativePath) {
     VariableDefinition def = analysis.variableDefinitions.get(name);
     assertNotNull(def);
     assertEquals(def.name, name);

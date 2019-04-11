@@ -38,8 +38,8 @@ class SoarWorkspaceService implements WorkspaceService {
   }
 
   /**
-   * Processes the SOAR_AGENTS_FILE and sets the entry point if possible Note that setting the entry
-   * point currently triggers other processing that requires a valid client connection
+   * Processes the SOAR_AGENTS_FILE and sets the entry point if possible. Note that setting the
+   * entry point currently triggers other processing that requires a valid client connection.
    */
   public void processEntryPoints() {
     LOG.info("Processing entry points: workspace URI: " + workspaceRootUri);

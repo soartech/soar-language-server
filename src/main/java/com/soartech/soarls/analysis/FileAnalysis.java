@@ -1,7 +1,8 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.List;
 import java.util.Map;
@@ -12,9 +13,12 @@ import java.util.Optional;
  *
  * <p>This structure is populated by the document service.
  */
-class FileAnalysis {
+public class FileAnalysis {
   /** The URI of the file that was analised. */
   public final String uri;
+
+  /** The state of the file that was analised. */
+  public final SoarFile file;
 
   /**
    * All the Tcl procedure calls that were made in this file. The keys to this map are the AST
@@ -48,12 +52,12 @@ class FileAnalysis {
   // Helpers
 
   /** Get the procedure call at the given node. */
-  Optional<ProcedureCall> procedureCall(TclAstNode node) {
+  public Optional<ProcedureCall> procedureCall(TclAstNode node) {
     return Optional.ofNullable(procedureCalls.get(node));
   }
 
   /** Get the variable retrieval at the given node. */
-  Optional<VariableRetrieval> variableRetrieval(TclAstNode node) {
+  public Optional<VariableRetrieval> variableRetrieval(TclAstNode node) {
     // Retrievals are indexed by their VARIABLE node, but most of
     // the spans of those nodes are covered by their VARIABLE_NAME
     // child.
@@ -64,14 +68,15 @@ class FileAnalysis {
   }
 
   public FileAnalysis(
-      String uri,
+      SoarFile file,
       Map<TclAstNode, ProcedureCall> procedureCalls,
       Map<TclAstNode, VariableRetrieval> variableRetrievals,
       List<ProcedureDefinition> procedureDefinitions,
       List<VariableDefinition> variableDefinitions,
       List<String> filesSourced,
       List<Production> productions) {
-    this.uri = uri;
+    this.uri = file.uri;
+    this.file = file;
     this.procedureCalls = ImmutableMap.copyOf(procedureCalls);
     this.variableRetrievals = ImmutableMap.copyOf(variableRetrievals);
     this.procedureDefinitions = ImmutableList.copyOf(procedureDefinitions);

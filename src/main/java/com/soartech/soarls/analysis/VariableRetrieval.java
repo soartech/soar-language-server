@@ -1,11 +1,11 @@
-package com.soartech.soarls;
+package com.soartech.soarls.analysis;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.Optional;
 import org.eclipse.lsp4j.Location;
 
 /** A record of a variable's value being retrieved and its associated metadata. */
-class VariableRetrieval {
+public class VariableRetrieval {
   /** The location where the call occurs. */
   public final Location readSiteLocation;
 
