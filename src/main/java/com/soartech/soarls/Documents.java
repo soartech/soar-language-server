@@ -10,7 +10,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.slf4j.Logger;
@@ -23,9 +22,18 @@ import org.slf4j.LoggerFactory;
 public class Documents {
   private static final Logger LOG = LoggerFactory.getLogger(Documents.class);
 
-  private ConcurrentMap<String, SoarFile> documents = new ConcurrentHashMap<>();
+  /**
+   * The current state of the documents in the workspace. The documents may or may not be open in
+   * the client. If they are, then the state comes from the client; if they are not, then the state
+   * comes from the filesystem.
+   */
+  private final ConcurrentHashMap<String, SoarFile> documents = new ConcurrentHashMap<>();
 
-  private Set<String> openDocuments = new HashSet<>();
+  /**
+   * The set of URIs that point to currently open documents. This is a subset of the keys of the
+   * documents hash map.
+   */
+  private final Set<String> openDocuments = new HashSet<>();
 
   /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
   public SoarFile get(String uri) {
