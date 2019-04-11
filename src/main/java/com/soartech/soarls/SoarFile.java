@@ -13,8 +13,6 @@ import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
-import org.jsoar.kernel.Agent;
-import org.jsoar.kernel.SoarException;
 
 /**
  * This class keeps track of the contents of a Soar source file along with a (currently primitive)
@@ -184,32 +182,6 @@ public class SoarFile {
     contents = contents.replace("\r\n", "\n");
     contents = contents.replace("\r", "\n");
     return contents;
-  }
-
-  public String getExpandedCommand(Agent agent, TclAstNode node) {
-    // compare children of node to ast root
-    // if they are the same then assume that done on production "name" so expand the whole thing
-    // otherwise return the unexpanded text
-
-    // if not on quoted production return null
-    if (node.getType() != TclAstNode.QUOTED_WORD) return null;
-
-    // find production node
-    TclAstNode parent = findRootBranchNode(node);
-
-    if (parent == null) return node.getInternalText(contents.toCharArray());
-
-    String parent_command = parent.getInternalText(contents.toCharArray());
-    // strip beginning sp from command (up till first ")
-    int first_quote_index = parent_command.indexOf('"');
-    String beginning = parent_command.substring(0, first_quote_index + 1);
-    parent_command = parent_command.substring(first_quote_index);
-
-    try {
-      return beginning + agent.getInterpreter().eval("return " + parent_command) + '"';
-    } catch (SoarException e) {
-      return parent_command;
-    }
   }
 
   TclAstNode findRootBranchNode(TclAstNode node) {
