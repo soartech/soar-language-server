@@ -23,10 +23,6 @@ import org.junit.Test;
 public class GoToDefinitionTest extends LanguageServerTestFixture {
   public GoToDefinitionTest() throws Exception {
     super("definition");
-
-    // Opening any file in the project should trigger diagnostics
-    // for the entire project.
-    open("load.soar");
   }
 
   List<Location> definitionsForPosition(String relativePath, int line, int character)

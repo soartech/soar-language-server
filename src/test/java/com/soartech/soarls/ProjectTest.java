@@ -15,10 +15,6 @@ import org.junit.Test;
 public class ProjectTest extends LanguageServerTestFixture {
   public ProjectTest() throws Exception {
     super("project");
-
-    // Opening any file in the project should trigger diagnostics
-    // for the entire project.
-    open("productions.soar");
   }
 
   // Tests for load.soar
