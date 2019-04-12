@@ -102,7 +102,7 @@ public class SoarDocumentService implements TextDocumentService {
    * The debouncer is used to schedule analysis runs. They can be submitted as often as you like,
    * but they will only be run periodically.
    */
-  private final Debouncer debouncer = new Debouncer(Duration.ofMillis(250));
+  private final Debouncer debouncer = new Debouncer(Duration.ofMillis(1000));
 
   /**
    * The URI of the currently active entry point. The results of analysing a codebase can be
