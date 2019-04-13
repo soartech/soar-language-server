@@ -22,7 +22,6 @@ public class ProjectTest extends LanguageServerTestFixture {
   // Tests for load.soar
 
   @Test
-  @Ignore
   public void analyzesLoadFile() {
     assertNotNull(diagnosticsForFile("load.soar"));
   }
@@ -44,13 +43,11 @@ public class ProjectTest extends LanguageServerTestFixture {
   // Tests for micro-ngs.tcl
 
   @Test
-  @Ignore
   public void analyzesTclFile() {
     assertNotNull(diagnosticsForFile("micro-ngs/macros.tcl"));
   }
 
   @Test
-  @Ignore
   public void noErrorsInTclFile() {
     List<Diagnostic> diagnostics = diagnosticsForFile("micro-ngs/macros.tcl");
     assert (diagnostics.isEmpty());
