@@ -4,7 +4,6 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.Diagnostic;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -27,17 +26,17 @@ public class ProjectTest extends LanguageServerTestFixture {
   }
 
   @Test
-  @Ignore
   public void hasErrorsInLoadFile() {
     List<Diagnostic> diagnostics = diagnosticsForFile("load.soar");
     assert (!diagnostics.isEmpty());
   }
 
   @Test
-  @Ignore
   public void errorForMissingFile() {
     List<Diagnostic> diagnostics = diagnosticsForFile("load.soar");
-    fail("unimplemented");
+    Diagnostic sourceError = diagnostics.get(0);
+    assertEquals(sourceError.getRange(), range(6, 0, 6, 24));
+    assertEquals(sourceError.getMessage(), "File not found");
   }
 
   // Tests for micro-ngs.tcl

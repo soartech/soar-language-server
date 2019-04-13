@@ -98,7 +98,8 @@ public class Analysis {
   public static ProjectAnalysis analyse(Documents documents, String entryPointUri) {
     try {
       Analysis analysis = new Analysis(documents, entryPointUri);
-      analysis.analyseFile(entryPointUri);
+      SoarFile file = documents.get(entryPointUri);
+      analysis.analyseFile(file);
       return analysis.toProjectAnalysis();
     } catch (SoarException e) {
       LOG.error("running analysis", e);
@@ -123,14 +124,7 @@ public class Analysis {
    *
    * <p>NOTE: There is currently no protection against infinite loops.
    */
-  private void analyseFile(String uri) throws SoarException {
-    final SoarFile file = documents.get(uri);
-    LOG.info("Retrieved file for {} :: {}", uri, file);
-    if (file == null) {
-      // TODO: This is where we should add diagnostics for missing files.
-      return;
-    }
-
+  private void analyseFile(SoarFile file) throws SoarException {
     // Initialize the collections needed to make a FileAnalysis.
     Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
     Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
@@ -172,9 +166,21 @@ public class Analysis {
               Path newDirectory = pathToSource.getParent();
               this.directoryStack.push(newDirectory);
 
-              String path = pathToSource.toUri().toString();
-              filesSourced.add(path);
-              analyseFile(path);
+              String uri = pathToSource.toUri().toString();
+              filesSourced.add(uri);
+              SoarFile sourcedFile = documents.get(uri);
+              LOG.info("Retrieved file for {} :: {}", uri, sourcedFile);
+              if (sourcedFile == null) {
+                Diagnostic diagnostic =
+                    new Diagnostic(
+                        file.rangeForNode(ctx.currentNode),
+                        "File not found",
+                        DiagnosticSeverity.Error,
+                        "soar");
+                diagnosticList.add(diagnostic);
+              } else {
+                analyseFile(sourcedFile);
+              }
             } catch (Exception e) {
               LOG.error("exception while tracing source", e);
             } finally {
@@ -201,10 +207,10 @@ public class Analysis {
       addCommand(
           "sp",
           (context, args) -> {
-            Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+            Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
             Production production = new Production(args[1], location);
             productions.computeIfAbsent(ctx.currentNode, key -> new ArrayList<>()).add(production);
-            LOG.info("Added production {} to {}", production.name, uri);
+            LOG.info("Added production {} to {}", production.name, file.uri);
 
             // Call the original implementation, which will throw an exception if the production is
             // invalid (caught below).
@@ -215,7 +221,7 @@ public class Analysis {
           "proc",
           (context, args) -> {
             String name = args[1];
-            Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+            Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
             List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
             TclAstNode commentAstNode = null;
             String commentText = null;
@@ -299,7 +305,7 @@ public class Analysis {
 
                   for (Map.Entry<String, String> e : onRight.entrySet()) {
                     String name = e.getKey();
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                    Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
                     String value = e.getValue();
                     TclAstNode commentAstNode = null;
                     String commentText = null;
@@ -323,7 +329,7 @@ public class Analysis {
                   for (Map.Entry<String, MapDifference.ValueDifference<String>> e :
                       differing.entrySet()) {
                     String name = e.getKey();
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+                    Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
                     String value = e.getValue().rightValue();
                     TclAstNode commentAstNode = null;
                     String commentText = null;
@@ -351,7 +357,7 @@ public class Analysis {
                   TclAstNode firstChild = node.getChild(TclAstNode.NORMAL_WORD);
                   if (firstChild != null) {
                     String name = file.getNodeInternalText(firstChild);
-                    Location location = new Location(uri, file.rangeForNode(node));
+                    Location location = new Location(file.uri, file.rangeForNode(node));
                     ProcedureCall procedureCall =
                         new ProcedureCall(
                             location, firstChild, this.procedureDefinitions.get(name));
@@ -369,7 +375,7 @@ public class Analysis {
                   TclAstNode nameNode = node.getChild(TclAstNode.VARIABLE_NAME);
                   if (nameNode != null) {
                     String name = file.getNodeInternalText(nameNode);
-                    Location location = new Location(uri, file.rangeForNode(node));
+                    Location location = new Location(file.uri, file.rangeForNode(node));
                     VariableDefinition definition = this.variableDefinitions.get(name);
                     VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
 
@@ -405,7 +411,7 @@ public class Analysis {
               filesSourced,
               productions,
               diagnosticList);
-      this.files.put(uri, analysis);
+      this.files.put(file.uri, analysis);
     } finally {
       // Restore original commands
       for (Map.Entry<String, SoarCommand> cmd : originalCommands.entrySet()) {
