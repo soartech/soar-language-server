@@ -11,7 +11,7 @@ import org.junit.Test;
  *
  * <p>The LanguageServerTestFixture (from which this test class inherits) stores the most recent
  * PublishDiagnosticsParams that were sent from the server. Thus, this class is for integration
- * tests that expressed in terms of the LSP API.
+ * tests that are expressed in terms of the LSP API.
  *
  * <p>These tests are for Soar productions where any Tcl is successfully interpreted, but the
  * resulting Soar code is invalid.
@@ -19,6 +19,7 @@ import org.junit.Test;
 public class DiagnosticsTest extends SingleFileTestFixture {
   public DiagnosticsTest() throws Exception {
     super("diagnostics", "test.soar");
+    waitForAnalysis("test.soar");
   }
 
   @Test

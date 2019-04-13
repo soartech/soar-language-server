@@ -15,6 +15,8 @@ import org.junit.Test;
 public class ProjectTest extends LanguageServerTestFixture {
   public ProjectTest() throws Exception {
     super("project");
+
+    waitForAnalysis("load.soar");
   }
 
   // Tests for load.soar

@@ -53,6 +53,7 @@ public class LanguageServerTestFixture implements LanguageClient {
   protected LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
     URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
     workspaceRoot = Paths.get(anchorUri).getParent().resolve(relativeWorkspaceRoot);
+    System.out.println("Creating test fixture with workspace root " + workspaceRoot);
 
     Server languageServer = new Server();
     InitializeParams init = new InitializeParams();
@@ -60,6 +61,12 @@ public class LanguageServerTestFixture implements LanguageClient {
     languageServer.connect(this);
     capabilities = languageServer.initialize(init).get().getCapabilities();
     this.languageServer = languageServer;
+  }
+
+  void waitForAnalysis(String relativePath) throws Exception {
+    String uri = workspaceRoot.resolve(relativePath).toUri().toString();
+    System.out.println("Waiting for analysis from " + uri);
+    ((SoarDocumentService) languageServer.getTextDocumentService()).getAnalysis(uri).get();
   }
 
   TextDocumentIdentifier fileId(String relativePath) {
