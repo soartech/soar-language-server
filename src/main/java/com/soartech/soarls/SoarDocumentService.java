@@ -555,8 +555,8 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /**
-   * Finds the procedure definition of the given node Returns the location of the procedure
-   * definition or null if it doesn't exist
+   * Find the procedure definition of the given node. Returns the location of the procedure
+   * definition or null if it doesn't exist.
    */
   private Location goToDefinitionProcedure(
       ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
