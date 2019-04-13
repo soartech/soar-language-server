@@ -104,6 +104,7 @@ public class Analysis {
     final SoarFile file = documents.get(uri);
     LOG.info("Retrieved file for {} :: {}", uri, file);
     if (file == null) {
+      // TODO: This is where we should add diagnostics for missing files.
       return;
     }
 
