@@ -138,106 +138,83 @@ public class Analysis {
     }
 
     try {
-      agent
-          .getInterpreter()
-          .addCommand(
-              "source",
-              soarCommand(
-                  args -> {
-                    try {
-                      Path currentDirectory = this.directoryStack.peek();
-                      Path pathToSource = currentDirectory.resolve(args[1]);
-                      Path newDirectory = pathToSource.getParent();
-                      this.directoryStack.push(newDirectory);
+      addCommand(
+          "source",
+          args -> {
+            try {
+              Path currentDirectory = this.directoryStack.peek();
+              Path pathToSource = currentDirectory.resolve(args[1]);
+              Path newDirectory = pathToSource.getParent();
+              this.directoryStack.push(newDirectory);
 
-                      String path = pathToSource.toUri().toString();
-                      filesSourced.add(path);
-                      analyseFile(path);
-                    } catch (Exception e) {
-                      LOG.error("exception while tracing source", e);
-                    } finally {
-                      this.directoryStack.pop();
-                    }
-                    return "";
-                  }));
+              String path = pathToSource.toUri().toString();
+              filesSourced.add(path);
+              analyseFile(path);
+            } catch (Exception e) {
+              LOG.error("exception while tracing source", e);
+            } finally {
+              this.directoryStack.pop();
+            }
+            return "";
+          });
 
-      agent
-          .getInterpreter()
-          .addCommand(
-              "pushd",
-              soarCommand(
-                  args -> {
-                    Path newDirectory = this.directoryStack.peek().resolve(args[1]);
-                    this.directoryStack.push(newDirectory);
-                    return "";
-                  }));
+      addCommand(
+          "pushd",
+          args -> {
+            Path newDirectory = this.directoryStack.peek().resolve(args[1]);
+            this.directoryStack.push(newDirectory);
+            return "";
+          });
 
-      agent
-          .getInterpreter()
-          .addCommand(
-              "popd",
-              soarCommand(
-                  args -> {
-                    this.directoryStack.pop();
-                    return "";
-                  }));
+      addCommand(
+          "popd",
+          args -> {
+            this.directoryStack.pop();
+            return "";
+          });
 
-      agent
-          .getInterpreter()
-          .addCommand(
-              "sp",
-              soarCommand(
-                  args -> {
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    Production production = new Production(args[1], location);
-                    productions
-                        .computeIfAbsent(ctx.currentNode, key -> new ArrayList<>())
-                        .add(production);
-                    return "";
-                  }));
+      addCommand(
+          "sp",
+          args -> {
+            Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+            Production production = new Production(args[1], location);
+            productions.computeIfAbsent(ctx.currentNode, key -> new ArrayList<>()).add(production);
+            return "";
+          });
 
-      agent
-          .getInterpreter()
-          .addCommand(
-              "proc",
-              soarCommand(
-                  args -> {
-                    String name = args[1];
-                    Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
-                    List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
-                    TclAstNode commentAstNode = null;
-                    String commentText = null;
-                    if (ctx.mostRecentComment != null) {
-                      // Note that because of the newline,
-                      // comments end at the beginning of the
-                      // following line.
-                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-                      int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                      if (commentEndLine == procStartLine) {
-                        commentAstNode = ctx.mostRecentComment;
-                        commentText =
-                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-                      }
-                    }
-                    ProcedureDefinition proc =
-                        new ProcedureDefinition(
-                            name,
-                            location,
-                            arguments,
-                            ctx.currentNode,
-                            commentAstNode,
-                            commentText);
-                    procedureDefinitions.add(proc);
-                    this.procedureDefinitions.put(proc.name, proc);
-                    this.procedureCalls.put(proc, new ArrayList<>());
+      addCommand(
+          "proc",
+          args -> {
+            String name = args[1];
+            Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
+            List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
+            TclAstNode commentAstNode = null;
+            String commentText = null;
+            if (ctx.mostRecentComment != null) {
+              // Note that because of the newline,
+              // comments end at the beginning of the
+              // following line.
+              int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
+              int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
+              if (commentEndLine == procStartLine) {
+                commentAstNode = ctx.mostRecentComment;
+                commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
+              }
+            }
+            ProcedureDefinition proc =
+                new ProcedureDefinition(
+                    name, location, arguments, ctx.currentNode, commentAstNode, commentText);
+            procedureDefinitions.add(proc);
+            this.procedureDefinitions.put(proc.name, proc);
+            this.procedureCalls.put(proc, new ArrayList<>());
 
-                    // The args arrays has stripped away the
-                    // braces, so we need to add them back in
-                    // before we evaluate the command, but using
-                    // the real proc command instead.
-                    args[0] = "proc_internal";
-                    return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
-                  }));
+            // The args arrays has stripped away the
+            // braces, so we need to add them back in
+            // before we evaluate the command, but using
+            // the real proc command instead.
+            args[0] = "proc_internal";
+            return agent.getInterpreter().eval("{" + Joiner.on("} {").join(args) + "}");
+          });
 
       // Traverse file ast tree
       // for each COMMAND node found, if the node contains a NORMAL_WORD child
@@ -391,19 +368,24 @@ public class Analysis {
   /**
    * A convenience function for implementing the SoarCommand interface by passing a lambda instead.
    */
-  static SoarCommand soarCommand(SoarCommandExecute implementation) {
-    return new SoarCommand() {
-      @Override
-      public String execute(SoarCommandContext context, String[] args) throws SoarException {
-        LOG.trace("Executing {}", Arrays.toString(args));
-        return implementation.execute(args);
-      }
+  private void addCommand(String commandName, SoarCommandExecute implementation) {
+    agent
+        .getInterpreter()
+        .addCommand(
+            commandName,
+            new SoarCommand() {
+              @Override
+              public String execute(SoarCommandContext context, String[] args)
+                  throws SoarException {
+                LOG.trace("Executing {}", Arrays.toString(args));
+                return implementation.execute(args);
+              }
 
-      @Override
-      public Object getCommand() {
-        return this;
-      }
-    };
+              @Override
+              public Object getCommand() {
+                return this;
+              }
+            });
   }
 
   /** Evaluate the given command, swallowing the SoarException if it occurs. */
