@@ -20,9 +20,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Location;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.Range;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
+import org.jsoar.kernel.exceptions.SoarInterpreterException;
+import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
+import org.jsoar.kernel.exceptions.TclInterpreterException;
+import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.SoarCommand;
 import org.jsoar.util.commands.SoarCommandContext;
 import org.slf4j.Logger;
@@ -40,7 +48,20 @@ public class Analysis {
 
   private Stack<Path> directoryStack = new Stack<>();
 
+  /**
+   * The agent that will be used during this analysis. Whereas a normal Soar agent would just call
+   * the source() method with the URI of the entry point, we will crawl the AST and evaluate one
+   * command at a time, in order to be able to provide positions for errors. Keep in mind that the
+   * agent is STATEFUL, and that evaluating side-effecting commands in an order that differs from
+   * how they would normally be evaluated may produce different results.
+   */
   private final Agent agent = new Agent();
+
+  /**
+   * Since we override the sp command to detect when it is called, we also need to keep the original
+   * implementation around so we can call it and detect exceptions that are thrown.
+   */
+  private final SoarCommand spCommand;
 
   /** The values of globally accessable variables in scope. */
   private ImmutableMap<String, String> currentVariables;
@@ -58,7 +79,7 @@ public class Analysis {
   private final Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals =
       new HashMap<>();
 
-  private Analysis(Documents documents, String entryPointUri) {
+  private Analysis(Documents documents, String entryPointUri) throws SoarException {
     this.documents = documents;
     this.entryPointUri = entryPointUri;
 
@@ -68,25 +89,21 @@ public class Analysis {
       LOG.error("failed to initialize directory stack", e);
     }
 
-    try {
-      agent.getInterpreter().eval("rename proc proc_internal");
-      currentVariables = getCurrentVariables();
-    } catch (SoarException e) {
-      LOG.error("initializing agent", e);
-    }
+    agent.getInterpreter().eval("rename proc proc_internal");
+    spCommand = agent.getInterpreter().getCommand("sp", null);
+    currentVariables = getCurrentVariables();
   }
 
   /** Perform a full analysis of a project starting from the given entry point. */
   public static ProjectAnalysis analyse(Documents documents, String entryPointUri) {
-    Analysis analysis = new Analysis(documents, entryPointUri);
-
     try {
+      Analysis analysis = new Analysis(documents, entryPointUri);
       analysis.analyseFile(entryPointUri);
+      return analysis.toProjectAnalysis();
     } catch (SoarException e) {
       LOG.error("running analysis", e);
+      return null;
     }
-
-    return analysis.toProjectAnalysis();
   }
 
   /** Copy all accumulated state to an immutable ProjectAnalysis object. */
@@ -100,6 +117,12 @@ public class Analysis {
         variableRetrievals);
   }
 
+  /**
+   * Perform an analysis of a single file. This will be recursively called if this file sources
+   * other files.
+   *
+   * <p>NOTE: There is currently no protection against infinite loops.
+   */
   private void analyseFile(String uri) throws SoarException {
     final SoarFile file = documents.get(uri);
     LOG.info("Retrieved file for {} :: {}", uri, file);
@@ -115,6 +138,7 @@ public class Analysis {
     List<VariableDefinition> variableDefinitions = new ArrayList<>();
     List<String> filesSourced = new ArrayList<>();
     Map<TclAstNode, List<Production>> productions = new HashMap<>();
+    List<Diagnostic> diagnosticList = new ArrayList<>();
 
     /** Any information that needs to be accessable to the interpreter callbacks. */
     class Context {
@@ -141,7 +165,7 @@ public class Analysis {
     try {
       addCommand(
           "source",
-          args -> {
+          (context, args) -> {
             try {
               Path currentDirectory = this.directoryStack.peek();
               Path pathToSource = currentDirectory.resolve(args[1]);
@@ -161,7 +185,7 @@ public class Analysis {
 
       addCommand(
           "pushd",
-          args -> {
+          (context, args) -> {
             Path newDirectory = this.directoryStack.peek().resolve(args[1]);
             this.directoryStack.push(newDirectory);
             return "";
@@ -169,23 +193,27 @@ public class Analysis {
 
       addCommand(
           "popd",
-          args -> {
+          (context, args) -> {
             this.directoryStack.pop();
             return "";
           });
 
       addCommand(
           "sp",
-          args -> {
+          (context, args) -> {
             Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
             Production production = new Production(args[1], location);
             productions.computeIfAbsent(ctx.currentNode, key -> new ArrayList<>()).add(production);
-            return "";
+            LOG.info("Added production {} to {}", production.name, uri);
+
+            // Call the original implementation, which will throw an exception if the production is
+            // invalid (caught below).
+            return spCommand.execute(context, args);
           });
 
       addCommand(
           "proc",
-          args -> {
+          (context, args) -> {
             String name = args[1];
             Location location = new Location(uri, file.rangeForNode(ctx.currentNode));
             List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
@@ -230,12 +258,33 @@ public class Analysis {
               ctx.currentNode = node;
               try {
                 agent.getInterpreter().eval(node.expanded);
-              } catch (SoarException e) {
-                // If anything goes wrong, we just bail out
-                // early. The tree traversal will continue, so
-                // we might still collect useful information.
-                LOG.error("Error while evaluating Soar command: {}", node.expanded, e);
-                return;
+              } catch (SoarInterpreterException ex) {
+                LOG.error("interpreter exception {}", ex);
+                SourceLocation location = ex.getSourceLocation();
+                Position start =
+                    file.position(
+                        location.getOffset() - 1); // -1 to include starting character in diagnostic
+                Position end = file.position(location.getOffset() + location.getLength());
+                Diagnostic diagnostic =
+                    new Diagnostic(
+                        new Range(start, end),
+                        "Failed to source production in this file: " + ex,
+                        DiagnosticSeverity.Error,
+                        "soar");
+                diagnosticList.add(diagnostic);
+              } catch (TclInterpreterException ex) {
+              } catch (SoarException ex) {
+                LOG.error("Error while evaluating Soar command: {}", node.expanded, ex);
+
+                // Hard code a location, but include the exception text
+                // Default exception will highlight first 8 characters of first line
+                Diagnostic diagnostic =
+                    new Diagnostic(
+                        new Range(new Position(0, 0), new Position(0, 8)),
+                        "PLACEHOLDER: Failed to source production in this file: " + ex,
+                        DiagnosticSeverity.Error,
+                        "soar");
+                diagnosticList.add(diagnostic);
               }
             }
 
@@ -335,6 +384,17 @@ public class Analysis {
             }
           });
 
+      // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
+      for (SoftTclInterpreterException e :
+          agent.getInterpreter().getExceptionsManager().getExceptions()) {
+        int offset = file.contents.indexOf(e.getCommand());
+        if (offset < 0) offset = 0;
+        Range range =
+            new Range(file.position(offset), file.position(offset + e.getCommand().length()));
+        diagnosticList.add(
+            new Diagnostic(range, e.getMessage().trim(), DiagnosticSeverity.Error, "soar"));
+      }
+
       FileAnalysis analysis =
           new FileAnalysis(
               file,
@@ -343,7 +403,8 @@ public class Analysis {
               procedureDefinitions,
               variableDefinitions,
               filesSourced,
-              productions);
+              productions,
+              diagnosticList);
       this.files.put(uri, analysis);
     } finally {
       // Restore original commands
@@ -363,7 +424,7 @@ public class Analysis {
   }
 
   interface SoarCommandExecute {
-    String execute(String[] args) throws SoarException;
+    String execute(SoarCommandContext context, String[] args) throws SoarException;
   }
 
   /**
@@ -379,7 +440,7 @@ public class Analysis {
               public String execute(SoarCommandContext context, String[] args)
                   throws SoarException {
                 LOG.trace("Executing {}", Arrays.toString(args));
-                return implementation.execute(args);
+                return implementation.execute(context, args);
               }
 
               @Override

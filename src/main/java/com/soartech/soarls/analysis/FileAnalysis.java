@@ -9,6 +9,7 @@ import com.soartech.soarls.tcl.TclAstNode;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import org.eclipse.lsp4j.Diagnostic;
 
 /**
  * Complete analysis information for a single file.
@@ -54,6 +55,9 @@ public class FileAnalysis {
    */
   public final ImmutableMap<TclAstNode, ImmutableList<Production>> productions;
 
+  /** Errors and warnings that were detected in this file. */
+  public final ImmutableList<Diagnostic> diagnostics;
+
   // Helpers
 
   /** Get the procedure call at the given node. */
@@ -79,7 +83,8 @@ public class FileAnalysis {
       List<ProcedureDefinition> procedureDefinitions,
       List<VariableDefinition> variableDefinitions,
       List<String> filesSourced,
-      Map<TclAstNode, List<Production>> productions) {
+      Map<TclAstNode, List<Production>> productions,
+      List<Diagnostic> diagnostics) {
     this.uri = file.uri;
     this.file = file;
     this.procedureCalls = ImmutableMap.copyOf(procedureCalls);
@@ -92,5 +97,6 @@ public class FileAnalysis {
             .entrySet()
             .stream()
             .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
+    this.diagnostics = ImmutableList.copyOf(diagnostics);
   }
 }

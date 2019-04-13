@@ -39,7 +39,6 @@ import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.CreateFile;
 import org.eclipse.lsp4j.CreateFileOptions;
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
@@ -67,13 +66,6 @@ import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
-import org.jsoar.kernel.Agent;
-import org.jsoar.kernel.SoarException;
-import org.jsoar.kernel.exceptions.SoarInterpreterException;
-import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
-import org.jsoar.kernel.exceptions.TclInterpreterException;
-import org.jsoar.util.SourceLocation;
-import org.jsoar.util.commands.SoarCommands;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -114,8 +106,6 @@ public class SoarDocumentService implements TextDocumentService {
 
   private LanguageClient client;
 
-  private Agent agent = new Agent();
-
   /**
    * Retrieve the most recently completed analysis for the given entry point. If an analysis has
    * already been completed then the future will resolve immediately; otherwise, you may assume that
@@ -146,14 +136,10 @@ public class SoarDocumentService implements TextDocumentService {
     if (activeEntryPoint == null) {
       this.setEntryPoint(soarFile.uri);
     }
-
-    reportDiagnostics();
   }
 
   @Override
-  public void didSave(DidSaveTextDocumentParams params) {
-    reportDiagnostics();
-  }
+  public void didSave(DidSaveTextDocumentParams params) {}
 
   @Override
   public void didClose(DidCloseTextDocumentParams params) {
@@ -473,10 +459,6 @@ public class SoarDocumentService implements TextDocumentService {
     scheduleAnalysis();
   }
 
-  private void reportDiagnostics() {
-    reportDiagnosticsForOpenFiles();
-  }
-
   /**
    * Schedule an analysis run. It is safe to call this multiple times in quick succession, because
    * the requests are debounced.
@@ -491,65 +473,23 @@ public class SoarDocumentService implements TextDocumentService {
     debouncer.submit(
         () -> {
           ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
+          reportDiagnostics(analysis);
           future.complete(analysis);
         });
   }
 
-  /**
-   * This implementation tries to load each open file and computes diagnostics on a per-file basis.
-   * The problem with this approach is that a file might rely on variables and procedures having
-   * been defined before it is loaded.
-   */
-  private void reportDiagnosticsForOpenFiles() {
-    agent = new Agent();
-
-    for (String uri : documents.openUris()) {
-      final SoarFile file = documents.get(uri);
+  /** Report diagnostics from the given analysis. */
+  private void reportDiagnostics(ProjectAnalysis projectAnalysis) {
+    for (FileAnalysis fileAnalysis : projectAnalysis.files.values()) {
       final List<Diagnostic> diagnosticList = new ArrayList<>();
 
-      try {
-        SoarCommands.source(agent.getInterpreter(), uri);
-      } catch (SoarInterpreterException ex) {
-        SourceLocation location = ex.getSourceLocation();
-        Position start =
-            file.position(
-                location.getOffset() - 1); // -1 to include starting character in diagnostic
-        Position end = file.position(location.getOffset() + location.getLength());
-        Diagnostic diagnostic =
-            new Diagnostic(
-                new Range(start, end),
-                "Failed to source production in this file: " + ex,
-                DiagnosticSeverity.Error,
-                "soar");
-        diagnosticList.add(diagnostic);
-      } catch (TclInterpreterException ex) {
-      } catch (SoarException ex) {
-        // Hard code a location, but include the exception text
-        // Default exception will highlight first 8 characters of first line
-        Diagnostic diagnostic =
-            new Diagnostic(
-                new Range(new Position(0, 0), new Position(0, 8)),
-                "PLACEHOLDER: Failed to source production in this file: " + ex,
-                DiagnosticSeverity.Error,
-                "soar");
-        diagnosticList.add(diagnostic);
-      }
+      diagnosticList.addAll(fileAnalysis.diagnostics);
 
       // add any diagnostics found while initially parsing file
-      diagnosticList.addAll(file.getDiagnostics());
+      diagnosticList.addAll(fileAnalysis.file.getDiagnostics());
 
-      // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
-      for (SoftTclInterpreterException e :
-          agent.getInterpreter().getExceptionsManager().getExceptions()) {
-        int offset = file.contents.indexOf(e.getCommand());
-        if (offset < 0) offset = 0;
-        Range range =
-            new Range(file.position(offset), file.position(offset + e.getCommand().length()));
-        diagnosticList.add(
-            new Diagnostic(range, e.getMessage().trim(), DiagnosticSeverity.Error, "soar"));
-      }
-
-      PublishDiagnosticsParams diagnostics = new PublishDiagnosticsParams(uri, diagnosticList);
+      PublishDiagnosticsParams diagnostics =
+          new PublishDiagnosticsParams(fileAnalysis.uri, diagnosticList);
       client.publishDiagnostics(diagnostics);
     }
   }
