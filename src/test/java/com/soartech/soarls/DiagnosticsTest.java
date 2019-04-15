@@ -34,7 +34,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
       if (diagnostic
           .getMessage()
           .contains("In production 'missing-arrow', expected --> in production")) {
-        assertEquals(diagnostic.getRange(), range(4, 4, 7, 0));
+        assertEquals(diagnostic.getRange(), range(4, 0, 7, 1));
         diagnosticFound = true;
         break;
       }
@@ -50,7 +50,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
           .getMessage()
           .equals(
               "Warning: On the LHS of production missing-state-keyword, identifier <s> is not connected to any goal or impasse.")) {
-        assertEquals(diagnostic.getRange(), range(9, 4, 13, 0));
+        assertEquals(diagnostic.getRange(), range(9, 0, 13, 1));
         diagnosticFound = true;
         break;
       }
@@ -65,7 +65,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
       if (diagnostic
           .getMessage()
           .contains("Error: production unbound-rhs-variable has a bad RHS--")) {
-        assertEquals(diagnostic.getRange(), range(15, 4, 19, 0));
+        assertEquals(diagnostic.getRange(), range(15, 0, 19, 1));
         diagnosticFound = true;
         break;
       }
@@ -81,7 +81,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
           .getMessage()
           .contains("In production 'missing-caret', expected ^ followed by attribute")) {
         diagnosticFound = true;
-        assertEquals(diagnostic.getRange(), range(21, 4, 25, 0));
+        assertEquals(diagnostic.getRange(), range(21, 0, 25, 1));
         break;
       }
     }
@@ -102,7 +102,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     Diagnostic sourcedDiagnostic =
         getFileDiagnostics()
             .stream()
-            .filter(d -> d.getRange().equals(range(27, 3, 27, 16)))
+            .filter(d -> d.getRange().equals(range(27, 0, 27, 16)))
             .findAny()
             .get();
     assertEquals(

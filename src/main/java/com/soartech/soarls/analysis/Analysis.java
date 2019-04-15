@@ -304,6 +304,8 @@ public class Analysis {
             switch (node.getType()) {
               case TclAstNode.COMMAND:
                 {
+                  // Collect values of variables that have changed.
+
                   ImmutableMap<String, String> newVariables = getCurrentVariables();
                   MapDifference<String, String> difference =
                       Maps.difference(currentVariables, newVariables);
@@ -359,6 +361,17 @@ public class Analysis {
                   }
 
                   currentVariables = newVariables;
+
+                  // Add diagnostics for any "soft" exceptions that were thrown and caught but not
+                  // propagated up.
+                  for (SoftTclInterpreterException e :
+                      agent.getInterpreter().getExceptionsManager().getExceptions()) {
+                    Range range = file.rangeForNode(ctx.currentNode);
+                    diagnosticList.add(
+                        new Diagnostic(
+                            range, e.getMessage().trim(), DiagnosticSeverity.Error, "soar"));
+                  }
+                  agent.getInterpreter().getExceptionsManager().clearExceptions();
                 }
               case TclAstNode.COMMAND_WORD:
                 {
@@ -397,17 +410,6 @@ public class Analysis {
                 break;
             }
           });
-
-      // add diagnostics for any "soft" exceptions that were thrown and caught but not propagated up
-      for (SoftTclInterpreterException e :
-          agent.getInterpreter().getExceptionsManager().getExceptions()) {
-        int offset = file.contents.indexOf(e.getCommand());
-        if (offset < 0) offset = 0;
-        Range range =
-            new Range(file.position(offset), file.position(offset + e.getCommand().length()));
-        diagnosticList.add(
-            new Diagnostic(range, e.getMessage().trim(), DiagnosticSeverity.Error, "soar"));
-      }
 
       FileAnalysis analysis =
           new FileAnalysis(
