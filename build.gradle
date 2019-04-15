@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'org.slf4j:slf4j-simple:1.7.26'
+    implementation 'ch.qos.logback:logback-classic:1.2.3'
 
     // This dependency is found on compile classpath of this component and consumers.
     implementation 'com.google.guava:guava:27.1-jre'
