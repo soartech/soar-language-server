@@ -498,7 +498,7 @@ public class SoarDocumentService implements TextDocumentService {
    */
   private void scheduleAnalysis() {
     CompletableFuture<ProjectAnalysis> future =
-        pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture());
+        pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture<>());
 
     if (future.isDone()) {
       return;
