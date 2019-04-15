@@ -16,7 +16,7 @@ import java.util.concurrent.TimeUnit;
  * <p>This is heavily borrowed from the Kotlin language server.
  */
 public class Debouncer {
-  private final Duration delay;
+  private Duration delay;
 
   private final ScheduledExecutorService workerThread = Executors.newScheduledThreadPool(1);
 
@@ -35,5 +35,9 @@ public class Debouncer {
       pendingTask.cancel(false);
     }
     pendingTask = workerThread.schedule(task, delay.toMillis(), TimeUnit.MILLISECONDS);
+  }
+
+  public void setDelay(Duration delay) {
+    this.delay = delay;
   }
 }

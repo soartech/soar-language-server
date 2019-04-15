@@ -25,8 +25,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
@@ -36,6 +40,8 @@ import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
+import org.eclipse.lsp4j.ConfigurationItem;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.CreateFile;
 import org.eclipse.lsp4j.CreateFileOptions;
 import org.eclipse.lsp4j.Diagnostic;
@@ -451,6 +457,33 @@ public class SoarDocumentService implements TextDocumentService {
   /** Wire up a reference to the client, so that we can send diagnostics. */
   public void connect(LanguageClient client) {
     this.client = client;
+
+    // Query the client for configuration values. This is a
+    // quick-and-dirty way to customize the debounce time. It will
+    // probably need some refactoring soon.
+
+    try {
+      Function<String, ConfigurationItem> makeItem =
+          section -> {
+            ConfigurationItem item = new ConfigurationItem();
+            item.setSection(section);
+            return item;
+          };
+      List<ConfigurationItem> items = Stream.of("debounceTime").map(makeItem).collect(toList());
+
+      ConfigurationParams params = new ConfigurationParams(items);
+      client
+          .configuration(params)
+          .thenAccept(
+              responses -> {
+                if (responses.get(0) instanceof Integer) {
+                  debouncer.setDelay(Duration.ofMillis((int) responses.get(0)));
+                }
+              })
+          .get(1, TimeUnit.SECONDS);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      LOG.error("Failed to get configuration", e);
+    }
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
