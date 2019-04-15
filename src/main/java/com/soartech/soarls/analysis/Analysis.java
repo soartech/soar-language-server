@@ -100,6 +100,7 @@ public class Analysis {
       Analysis analysis = new Analysis(documents, entryPointUri);
       SoarFile file = documents.get(entryPointUri);
       analysis.analyseFile(file);
+      LOG.info("Completed analysis {}", analysis);
       return analysis.toProjectAnalysis();
     } catch (SoarException e) {
       LOG.error("running analysis", e);
