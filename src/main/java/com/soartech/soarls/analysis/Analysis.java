@@ -102,7 +102,7 @@ public class Analysis {
       analysis.analyseFile(file);
       LOG.info("Completed analysis {}", analysis);
       return analysis.toProjectAnalysis();
-    } catch (SoarException e) {
+    } catch (Exception e) {
       LOG.error("running analysis", e);
       return null;
     }
