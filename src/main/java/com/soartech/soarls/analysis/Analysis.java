@@ -149,7 +149,7 @@ public class Analysis {
     // that does not yet exist; for example, on the first pass,
     // the proc command will not have been added.
     Map<String, SoarCommand> originalCommands = new HashMap<>();
-    for (String cmd : Arrays.asList("source", "sp", "proc", "pushd", "popd")) {
+    for (String cmd : Arrays.asList("source", "sp", "proc", "pushd", "popd", "pwd")) {
       try {
         originalCommands.put(cmd, this.agent.getInterpreter().getCommand(cmd, null));
       } catch (SoarException e) {
@@ -203,6 +203,12 @@ public class Analysis {
             this.directoryStack.pop();
             return "";
           });
+      
+      addCommand(
+              "pwd",
+              (context, args) -> {
+                return this.directoryStack.peek().toAbsolutePath().toString();
+              });
 
       addCommand(
           "sp",
