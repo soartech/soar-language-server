@@ -45,6 +45,14 @@ public class Analysis {
   private static final Logger LOG = LoggerFactory.getLogger(Analysis.class);
 
   /**
+   * The message given to a SoarException when we fail to open a file. Since we override the source
+   * command, any exceptions related to reading a file end up here in this Java code instead of
+   * inside the Tcl interpreter, so we need to make sure we still throw an exception so the Tcl code
+   * executes as it would normally.
+   */
+  private static String MISSING_FILE = "MISSING_FILE";
+
+  /**
    * The document manager may be shared with other analyses which are running concurrently. It is
    * safe for concurrent access.
    */
@@ -187,18 +195,13 @@ public class Analysis {
               SoarFile sourcedFile = documents.get(uri);
               LOG.info("Retrieved file for {} :: {}", uri, sourcedFile);
               if (sourcedFile == null) {
-                Diagnostic diagnostic =
-                    new Diagnostic(
-                        file.rangeForNode(ctx.currentNode),
-                        "File not found",
-                        DiagnosticSeverity.Error,
-                        "soar");
-                diagnosticList.add(diagnostic);
+                throw new SoarException(MISSING_FILE);
               } else {
                 analyseFile(sourcedFile);
               }
             } catch (Exception e) {
               LOG.error("exception while tracing source", e);
+              throw e;
             } finally {
               this.directoryStack.pop();
             }
@@ -301,6 +304,17 @@ public class Analysis {
                         "soar");
                 diagnosticList.add(diagnostic);
               } catch (TclInterpreterException ex) {
+                // It's fine to use == for equality because this is the actual String object that
+                // was used to construct the exception.
+                if (ex.getMessage() == MISSING_FILE) {
+                  Diagnostic diagnostic =
+                      new Diagnostic(
+                          file.rangeForNode(ctx.currentNode),
+                          "File not found",
+                          DiagnosticSeverity.Error,
+                          "soar");
+                  diagnosticList.add(diagnostic);
+                }
               } catch (SoarException ex) {
                 LOG.error("Error while evaluating Soar command: {}", node.expanded, ex);
 
@@ -507,9 +521,9 @@ public class Analysis {
                   try {
                     result = tclInterp.getVar(var, TCL.GLOBAL_ONLY).toString();
                   } catch (TclException e) {
-                    result =
-                        ""; // if the var doesn't exist somehow, then return the empty string (seems
-                            // to happen for some internal vars)
+                    // If the var doesn't exist somehow, then return the empty string (seems
+                    // to happen for some internal vars).
+                    result = "";
                   }
                   return result;
                 }));

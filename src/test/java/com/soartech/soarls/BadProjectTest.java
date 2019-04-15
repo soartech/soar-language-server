@@ -28,7 +28,6 @@ public class BadProjectTest extends LanguageServerTestFixture {
    * wrapped in a Tcl exception handler. It is normal for it to fail, so we shouldn't report an
    * error.
    */
-  @org.junit.Ignore
   @Test
   public void catchSourceException() {
     List<Diagnostic> diagnostics = diagnosticsForFile("test.soar");
