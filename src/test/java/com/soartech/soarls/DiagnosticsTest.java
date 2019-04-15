@@ -3,7 +3,6 @@ package com.soartech.soarls;
 import static org.junit.Assert.*;
 
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.Position;
 import org.junit.Test;
 
 /**
@@ -35,13 +34,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
       if (diagnostic
           .getMessage()
           .contains("In production 'missing-arrow', expected --> in production")) {
-        Position start = diagnostic.getRange().getStart();
-        Position end = diagnostic.getRange().getEnd();
-
-        assertEquals(4, start.getLine());
-        assertEquals(4, start.getCharacter());
-        assertEquals(7, end.getLine());
-        assertEquals(0, end.getCharacter());
+        assertEquals(diagnostic.getRange(), range(4, 4, 7, 0));
         diagnosticFound = true;
         break;
       }
@@ -57,12 +50,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
           .getMessage()
           .equals(
               "Warning: On the LHS of production missing-state-keyword, identifier <s> is not connected to any goal or impasse.")) {
-        Position start = diagnostic.getRange().getStart();
-        Position end = diagnostic.getRange().getEnd();
-        assertEquals(9, start.getLine());
-        assertEquals(4, start.getCharacter());
-        assertEquals(13, end.getLine());
-        assertEquals(0, end.getCharacter());
+        assertEquals(diagnostic.getRange(), range(9, 4, 13, 0));
         diagnosticFound = true;
         break;
       }
@@ -77,12 +65,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
       if (diagnostic
           .getMessage()
           .contains("Error: production unbound-rhs-variable has a bad RHS--")) {
-        Position start = diagnostic.getRange().getStart();
-        Position end = diagnostic.getRange().getEnd();
-        assertEquals(15, start.getLine());
-        assertEquals(4, start.getCharacter());
-        assertEquals(19, end.getLine());
-        assertEquals(0, end.getCharacter());
+        assertEquals(diagnostic.getRange(), range(15, 4, 19, 0));
         diagnosticFound = true;
         break;
       }
@@ -97,13 +80,8 @@ public class DiagnosticsTest extends SingleFileTestFixture {
       if (diagnostic
           .getMessage()
           .contains("In production 'missing-caret', expected ^ followed by attribute")) {
-        Position start = diagnostic.getRange().getStart();
-        Position end = diagnostic.getRange().getEnd();
-        assertEquals(21, start.getLine());
-        assertEquals(4, start.getCharacter());
-        assertEquals(25, end.getLine());
-        assertEquals(0, end.getCharacter());
         diagnosticFound = true;
+        assertEquals(diagnostic.getRange(), range(21, 4, 25, 0));
         break;
       }
     }
