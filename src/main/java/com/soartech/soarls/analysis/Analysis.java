@@ -204,12 +204,12 @@ public class Analysis {
             this.directoryStack.pop();
             return "";
           });
-      
+
       addCommand(
-              "pwd",
-              (context, args) -> {
-                return this.directoryStack.peek().toAbsolutePath().toString();
-              });
+          "pwd",
+          (context, args) -> {
+            return this.directoryStack.peek().toAbsolutePath().toString();
+          });
 
       addCommand(
           "sp",
