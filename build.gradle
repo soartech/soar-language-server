@@ -24,6 +24,7 @@ dependencies {
 
     // This dependency is found on compile classpath of this component and consumers.
     implementation 'com.google.guava:guava:27.1-jre'
+    implementation 'org.apache.commons:commons-lang3:3.8.1'
 
     // Language server protocol types.
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.7.0'

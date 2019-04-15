@@ -9,6 +9,11 @@ import com.google.common.collect.Maps;
 import com.soartech.soarls.Documents;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
+
+import tcl.lang.Interp;
+import tcl.lang.TCL;
+import tcl.lang.TclException;
+
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URI;
@@ -20,6 +25,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
+
+import org.apache.commons.lang3.reflect.FieldUtils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.Location;
@@ -78,11 +85,21 @@ public class Analysis {
   private final Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
   private final Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals =
       new HashMap<>();
+  
+  private final Interp tclInterp;
 
   private Analysis(Documents documents, String entryPointUri) throws SoarException {
     this.documents = documents;
     this.entryPointUri = entryPointUri;
 
+    // for performance reasons we do certain interactions directly on jsoar's internal tcl interpreter
+    // this is not exposed, so we forcibly grab it
+    try {
+        tclInterp = (Interp) FieldUtils.readField(agent.getInterpreter(), "interp", true);
+    } catch (IllegalAccessException e) {
+        throw new RuntimeException("Failed to get tcl interp from Soar interpreter", e);
+    }
+    
     try {
       this.directoryStack.push(Paths.get(new URI(entryPointUri)).getParent());
     } catch (Exception e) {
@@ -482,7 +499,16 @@ public class Analysis {
    */
   ImmutableMap<String, String> getCurrentVariables() {
     String[] variableNames = evalCommand("info globals").split("\\s+");
+    
     return Arrays.stream(variableNames)
-        .collect(toImmutableMap(var -> var, var -> evalCommand("set " + var)));
+            .collect(toImmutableMap(var -> var, var -> {
+                String result;
+                try {
+                    result = tclInterp.getVar(var, TCL.GLOBAL_ONLY).toString();
+                } catch (TclException e) {
+                    result = ""; // if the var doesn't exist somehow, then return the empty string (seems to happen for some internal vars)
+                }
+                return result;
+            }));
   }
 }
