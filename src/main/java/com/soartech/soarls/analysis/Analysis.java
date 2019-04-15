@@ -139,7 +139,7 @@ public class Analysis {
       /** The node we are currently iterating over. */
       TclAstNode currentNode = null;
 
-      /** Tho most recent comment that was iterated over. */
+      /** The most recent comment that was iterated over. */
       TclAstNode mostRecentComment = null;
     }
     final Context ctx = new Context();
