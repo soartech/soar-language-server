@@ -149,7 +149,7 @@ public class Analysis {
     // that does not yet exist; for example, on the first pass,
     // the proc command will not have been added.
     Map<String, SoarCommand> originalCommands = new HashMap<>();
-    for (String cmd : Arrays.asList("source", "sp", "proc")) {
+    for (String cmd : Arrays.asList("source", "sp", "proc", "pushd", "popd")) {
       try {
         originalCommands.put(cmd, this.agent.getInterpreter().getCommand(cmd, null));
       } catch (SoarException e) {
