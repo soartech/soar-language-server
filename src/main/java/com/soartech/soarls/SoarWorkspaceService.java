@@ -2,6 +2,7 @@ package com.soartech.soarls;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonSyntaxException;
 import com.soartech.soarls.EntryPoints.EntryPoint;
 import java.io.IOException;
 import java.net.URI;
@@ -74,8 +75,8 @@ class SoarWorkspaceService implements WorkspaceService {
       Path agentEntryPoint = workspaceRootPath.resolve(activeEntryPoint.path);
       documentService.setEntryPoint(agentEntryPoint.toUri().toString());
 
-    } catch (IOException e) {
-      LOG.error("Error trying to read " + soarAgentsPath, e);
+    } catch (IOException | JsonSyntaxException e) {
+      LOG.error("Error trying to read {}", soarAgentsPath, e);
     }
   }
 
