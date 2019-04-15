@@ -1,5 +1,7 @@
 package com.soartech.soarls;
 
+import static java.util.stream.Collectors.toList;
+
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -10,6 +12,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.InitializeParams;
@@ -128,6 +131,24 @@ public class LanguageServerTestFixture implements LanguageClient {
   @Override
   public void telemetryEvent(Object object) {
     System.out.println(object.toString());
+  }
+
+  @Override
+  public CompletableFuture<List<Object>> configuration(ConfigurationParams params) {
+    List<Object> response =
+        params
+            .getItems()
+            .stream()
+            .map(
+                item -> {
+                  if (item.getSection().equals("debounceTime")) {
+                    return 0;
+                  } else {
+                    return null;
+                  }
+                })
+            .collect(toList());
+    return CompletableFuture.completedFuture(response);
   }
 
   // Helpers
