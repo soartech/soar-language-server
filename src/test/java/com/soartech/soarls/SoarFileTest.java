@@ -13,7 +13,7 @@ import org.junit.Test;
 public class SoarFileTest extends LanguageServerTestFixture {
   final SoarFile file;
 
-  static Position endPosition = new Position(15, 0);
+  static Position endPosition = new Position(20, 0);
 
   public SoarFileTest() throws Exception {
     super("file");
@@ -21,6 +21,8 @@ public class SoarFileTest extends LanguageServerTestFixture {
     Path path = workspaceRoot.resolve("test.soar");
     String content = new String(Files.readAllBytes(path));
     this.file = new SoarFile(path.toUri().toString(), content);
+
+    this.file.ast.printTree(System.out, this.file.contents.toCharArray(), 0);
   }
 
   @Test
@@ -197,5 +199,12 @@ public class SoarFileTest extends LanguageServerTestFixture {
     // The 'G' character in $NGS_YES
     TclAstNode node = file.tclNode(new Position(13, 60));
     assertEquals(node.getType(), TclAstNode.VARIABLE_NAME);
+  }
+
+  @Test
+  public void tclCommentInString() {
+    // Comment characters inside a string do not mean a real comment.
+    TclAstNode node = file.tclNode(new Position(19, 40));
+    assertNotEquals(node.getType(), TclAstNode.COMMENT);
   }
 }

@@ -253,8 +253,6 @@ public class TclParser {
         node.addChild(consumeVariable());
       } else if (Character.isWhitespace(c)) {
         consume();
-      } else if (c == '#') {
-        node.addChild(consumeComment());
       } else {
         node.addChild(consumeWord('"'));
       }

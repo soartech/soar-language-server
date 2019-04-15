@@ -13,3 +13,8 @@ sp "propose*init*ngs
 -->
     [ngs-create-attribute-by-operator <s> <s> initialized $NGS_YES]
 "
+
+sp "write*string-with-comment-characters
+    (state <s> ^foo bar)
+-->
+    (write (crlf) |### WARNING ### This should not be treated as a comment!|)"
