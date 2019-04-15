@@ -305,7 +305,7 @@ public class Analysis {
               case TclAstNode.COMMAND:
                 {
                   ImmutableMap<String, String> newVariables = getCurrentVariables();
-                  MapDifference difference = Maps.difference(currentVariables, newVariables);
+                  MapDifference<String, String> difference = Maps.difference(currentVariables, newVariables);
                   Map<String, String> onRight = difference.entriesOnlyOnRight();
                   Map<String, MapDifference.ValueDifference<String>> differing =
                       difference.entriesDiffering();
