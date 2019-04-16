@@ -28,8 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
@@ -425,33 +427,53 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
+
+    // Construct a signature including the first N arguments.
+    BiFunction<ProcedureDefinition, Integer, SignatureInformation> makeSignatureInfo =
+        (def, argsIncluded) -> {
+          String label =
+              def.name
+                  + " "
+                  + def.arguments
+                      .stream()
+                      .limit(argsIncluded)
+                      .map(arg -> arg.name)
+                      .collect(joining(" "));
+          List<ParameterInformation> parameters =
+              def.arguments
+                  .stream()
+                  .limit(argsIncluded)
+                  .map(arg -> new ParameterInformation(arg.name))
+                  .collect(toList());
+
+          return new SignatureInformation(label, "", parameters);
+        };
+
+    // Construct a signature for each valid number of arguments.
+    BiFunction<ProcedureCall, ProcedureDefinition, SignatureHelp> makeSignatureList =
+        (call, def) -> {
+          long requiredArgs =
+              def.arguments.stream().filter(arg -> !arg.defaultValue.isPresent()).count();
+          int totalArgs = def.arguments.size();
+          List<SignatureInformation> signatures =
+              IntStream.rangeClosed((int) requiredArgs, totalArgs)
+                  .mapToObj(argsIncluded -> makeSignatureInfo.apply(def, argsIncluded))
+                  .collect(toList());
+
+          int argumentsFilledIn = call.callSiteAst.getParent().getChildren().size() - 1;
+          int activeSignature = Math.min(argumentsFilledIn, totalArgs) - (int) requiredArgs;
+
+          return new SignatureHelp(signatures, activeSignature, 0);
+        };
+
     return getAnalysis(activeEntryPoint)
         .thenApply(analysis -> analysis.files.get(params.getTextDocument().getUri()))
         .thenApply(
-            analysis -> {
-              SoarFile file = analysis.file;
-              TclAstNode astNode = file.tclNode(params.getPosition());
-
-              List<SignatureInformation> signatures = new ArrayList<>();
-
-              ProcedureCall call = analysis.procedureCalls.get(astNode);
-              if (call != null) {
-                call.definition.ifPresent(
-                    def -> {
-                      String label = def.name + " " + Joiner.on(" ").join(def.arguments);
-                      List<ParameterInformation> arguments =
-                          def.arguments
-                              .stream()
-                              .map(arg -> new ParameterInformation(arg.name))
-                              .collect(toList());
-                      SignatureInformation info = new SignatureInformation(label, "", arguments);
-                      signatures.add(info);
-                    });
-              }
-
-              SignatureHelp help = new SignatureHelp(signatures, 0, 0);
-              return help;
-            });
+            analysis ->
+                analysis
+                    .procedureCall(analysis.file.tclNode(params.getPosition()))
+                    .flatMap(call -> call.definition.map(def -> makeSignatureList.apply(call, def)))
+                    .orElseGet(SignatureHelp::new));
   }
 
   /** Wire up a reference to the client, so that we can send diagnostics. */

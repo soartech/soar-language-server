@@ -35,11 +35,12 @@ public class SignatureHelpTest extends SingleFileTestFixture {
     assertParameter(info, 1, "attr");
     assertParameter(info, 2, "low_val");
     assertParameter(info, 3, "high_val");
+    assertEquals(info.getParameters().size(), 4);
   }
 
-  @org.junit.Ignore
   @Test
-  public void procOptionalArguments() throws Exception {
+  public void procOptionalArgumentsDefault() throws Exception {
+    // Call ngs-gte-lt without binding the value, so the last argument gets its default value.
     TextDocumentPositionParams params = textDocumentPosition(file, 15, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
@@ -49,7 +50,23 @@ public class SignatureHelpTest extends SingleFileTestFixture {
     assertParameter(info, 1, "attr");
     assertParameter(info, 2, "low_val");
     assertParameter(info, 3, "high_val");
+    assertEquals(info.getParameters().size(), 4);
+  }
+
+  @Test
+  public void procOptionalArgumentsFilledIn() throws Exception {
+    // Call ngs-gte-lt, binding the value.
+    TextDocumentPositionParams params = textDocumentPosition(file, 16, 7);
+    SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
+
+    SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
+    assertSignature(info, "ngs-gte-lt");
+    assertParameter(info, 0, "id");
+    assertParameter(info, 1, "attr");
+    assertParameter(info, 2, "low_val");
+    assertParameter(info, 3, "high_val");
     assertParameter(info, 4, "val_id");
+    assertEquals(info.getParameters().size(), 5);
   }
 
   @Test
