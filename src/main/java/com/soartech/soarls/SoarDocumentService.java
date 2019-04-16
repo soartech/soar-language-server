@@ -55,6 +55,8 @@ import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
+import org.eclipse.lsp4j.MessageParams;
+import org.eclipse.lsp4j.MessageType;
 import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
@@ -558,10 +560,14 @@ public class SoarDocumentService implements TextDocumentService {
     debouncer.submit(
         () -> {
           try {
+            client.showMessage(new MessageParams(MessageType.Info, "Starting analysis..."));
             ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
             reportDiagnostics(analysis);
+            client.showMessage(new MessageParams(MessageType.Info, "Completed analysis."));
             future.complete(analysis);
           } catch (Exception e) {
+            LOG.error("Analysing project", e);
+            client.showMessage(new MessageParams(MessageType.Error, "Analysis failed."));
             future.completeExceptionally(e);
           }
         });

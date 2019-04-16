@@ -6,6 +6,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,6 +60,9 @@ public class LanguageServerTestFixture implements LanguageClient {
 
   /** A record of all edits that have been applied to each file. */
   Map<String, List<TextEdit>> edits = new HashMap<>();
+
+  /** Messages that were sent from the server to the client. */
+  List<MessageParams> messages = new ArrayList<>();
 
   protected LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
     URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
@@ -146,6 +150,7 @@ public class LanguageServerTestFixture implements LanguageClient {
   @Override
   public void showMessage(MessageParams message) {
     System.out.println(message.toString());
+    this.messages.add(message);
   }
 
   @Override

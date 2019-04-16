@@ -4,6 +4,8 @@ import static org.junit.Assert.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.MessageParams;
+import org.eclipse.lsp4j.MessageType;
 import org.junit.Test;
 
 /**
@@ -16,6 +18,12 @@ public class ProjectTest extends LanguageServerTestFixture {
     super("project");
 
     waitForAnalysis("load.soar");
+  }
+
+  @Test
+  public void showsMessageOnAnalysisCompletion() {
+    assertEquals(messages.get(0), new MessageParams(MessageType.Info, "Starting analysis..."));
+    assertEquals(messages.get(1), new MessageParams(MessageType.Info, "Completed analysis."));
   }
 
   // Tests for load.soar
