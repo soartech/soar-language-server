@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'jacoco'
     id 'application'
+    id 'maven-publish'
     id 'com.github.dkorotych.gradle-maven-exec' version '2.1'
     id 'com.github.johnrengelman.shadow' version '4.0.4'
     id 'com.dorongold.task-tree' version '1.3.1'
@@ -58,3 +59,20 @@ googleJavaFormat {
 
 // Define the main class for the application
 mainClassName = 'com.soartech.soarls.App'
+
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+        }
+    }
+    repositories {
+        maven {
+            url = version.endsWith('SNAPSHOT') ? "$snapshot_url" : "$maven2_url"
+            credentials {
+                username System.getenv('NEXUS_USERNAME')
+                password System.getenv('NEXUS_PASSWORD')
+            }
+        }
+    }
+}
