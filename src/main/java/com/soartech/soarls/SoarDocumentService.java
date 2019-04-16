@@ -3,7 +3,6 @@ package com.soartech.soarls;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.soartech.soarls.analysis.Analysis;
@@ -349,7 +348,14 @@ public class SoarDocumentService implements TextDocumentService {
                     if (call == null) return null;
                     String value =
                         call.definition
-                            .map(def -> def.name + " " + Joiner.on(" ").join(def.arguments))
+                            .map(
+                                def ->
+                                    def.name
+                                        + " "
+                                        + def.arguments
+                                            .stream()
+                                            .map(arg -> arg.name)
+                                            .collect(joining(" ")))
                             .orElse(file.getNodeInternalText(node));
                     // We are clearly not storing the right information
                     // here. Computing the range should be much simpler.
