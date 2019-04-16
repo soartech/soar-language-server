@@ -252,7 +252,7 @@ public class Analysis {
             String name = args[1];
             Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
 
-            char[] argsBuffer = args[2].toCharArray();
+            char[] argsBuffer = ('"' + args[2] + '"').toCharArray();
             TclParser parser = new TclParser();
             parser.setInput(argsBuffer, 0, argsBuffer.length);
             TclAstNode procArgs = parser.parse();
@@ -270,6 +270,7 @@ public class Analysis {
                 };
             List<ProcedureDefinition.Argument> arguments =
                 Optional.ofNullable(procArgs.getChild(TclAstNode.COMMAND))
+                    .flatMap(node -> Optional.ofNullable(node.getChild(TclAstNode.QUOTED_WORD)))
                     .map(cmd -> cmd.getChildren().stream().map(makeArgument).collect(toList()))
                     .orElseGet(ArrayList::new);
 

@@ -16,6 +16,15 @@ proc ngs-create-attribute { id attr value } {
 
 # The actual implementation of ngs-bind is fairly complicated - enough
 # to warrant a multi-line comment.
-proc ngs-bind { id angs } {
+proc ngs-bind { id args } {
+    return ""
+}
+
+# This has arguments declared over multiple lines.
+proc ngs-match-goal { state_id
+                      goal_type
+                      goal_id
+                      {basetype ""}
+                      {goal_pool_id ""} } {
     return ""
 }
