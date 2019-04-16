@@ -442,7 +442,7 @@ public class SoarDocumentService implements TextDocumentService {
                       List<ParameterInformation> arguments =
                           def.arguments
                               .stream()
-                              .map(arg -> new ParameterInformation(arg))
+                              .map(arg -> new ParameterInformation(arg.name))
                               .collect(toList());
                       SignatureInformation info = new SignatureInformation(label, "", arguments);
                       signatures.add(info);

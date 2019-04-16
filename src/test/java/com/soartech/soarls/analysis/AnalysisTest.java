@@ -130,6 +130,16 @@ public class AnalysisTest extends LanguageServerTestFixture {
   }
 
   @Test
+  public void procedureDefinitionOptionalArguments() {
+    ProcedureDefinition def = analysis.procedureDefinitions.get("ngs-match-top-state");
+    assertEquals(def.arguments.size(), 2);
+    assertEquals(def.arguments.get(0).name, "id");
+    assertEquals(def.arguments.get(0).defaultValue, Optional.empty());
+    assertEquals(def.arguments.get(1).name, "bind");
+    assertEquals(def.arguments.get(1).defaultValue, Optional.of(""));
+  }
+
+  @Test
   public void collectProjectWideProcedureDefinitions() {
     assertNotNull(analysis.procedureDefinitions.get("ngs-match-top-state"));
     assertNotNull(analysis.procedureDefinitions.get("ngs-bind"));

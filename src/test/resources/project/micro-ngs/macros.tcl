@@ -4,7 +4,7 @@ set NGS_YES *YES*
 set NGS_NO  *NO*
 
 # This is the actual implementation
-proc ngs-match-top-state { id } {
+proc ngs-match-top-state { id { bind "" } } {
     return "(state $id ^superstate nil)"
 }
 

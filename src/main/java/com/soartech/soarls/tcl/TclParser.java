@@ -276,7 +276,7 @@ public class TclParser {
 
     char c = lookAhead(0);
     while (c != EOF) {
-      // Stop at close quote
+      // Stop at close brace
       if (c == '}') {
         consume();
         node.setEnd(getOffset());
@@ -291,8 +291,11 @@ public class TclParser {
           node.setEnd(getEndOfError());
           return node;
         }
-      } else {
+      } else if (Character.isWhitespace(c)) {
         consume();
+      } else {
+        TclAstNode child = consumeWord('}');
+        node.addChild(child);
       }
       c = lookAhead(0);
     }

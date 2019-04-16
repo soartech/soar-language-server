@@ -1,6 +1,7 @@
 package com.soartech.soarls.analysis;
 
 import static com.google.common.collect.ImmutableMap.toImmutableMap;
+import static java.util.stream.Collectors.toList;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableMap;
@@ -9,6 +10,7 @@ import com.google.common.collect.Maps;
 import com.soartech.soarls.Documents;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
+import com.soartech.soarls.tcl.TclParser;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URI;
@@ -19,7 +21,9 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Stack;
+import java.util.function.Function;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
@@ -247,7 +251,28 @@ public class Analysis {
           (context, args) -> {
             String name = args[1];
             Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
-            List<String> arguments = Arrays.asList(args[2].trim().split("\\s+"));
+
+            char[] argsBuffer = args[2].toCharArray();
+            TclParser parser = new TclParser();
+            parser.setInput(argsBuffer, 0, argsBuffer.length);
+            TclAstNode procArgs = parser.parse();
+            Function<TclAstNode, ProcedureDefinition.Argument> makeArgument =
+                node -> {
+                  List<TclAstNode> children = node.getChildren();
+                  boolean hasDefault = children.size() == 2;
+                  String argName =
+                      hasDefault
+                          ? children.get(0).getInternalText(argsBuffer)
+                          : node.getInternalText(argsBuffer);
+                  String defaultValue =
+                      hasDefault ? children.get(1).getInternalText(argsBuffer) : null;
+                  return new ProcedureDefinition.Argument(argName, defaultValue);
+                };
+            List<ProcedureDefinition.Argument> arguments =
+                Optional.ofNullable(procArgs.getChild(TclAstNode.COMMAND))
+                    .map(cmd -> cmd.getChildren().stream().map(makeArgument).collect(toList()))
+                    .orElseGet(ArrayList::new);
+
             TclAstNode commentAstNode = null;
             String commentText = null;
             if (ctx.mostRecentComment != null) {
