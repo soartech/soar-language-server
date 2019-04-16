@@ -179,7 +179,7 @@ public class SoarDocumentService implements TextDocumentService {
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              SoarFile file = documents.get(params.getTextDocument().getUri());
+              SoarFile file = analysis.files.get(params.getTextDocument().getUri()).file;
               TclAstNode node = file.tclNode(params.getPosition());
 
               Location location = null;
