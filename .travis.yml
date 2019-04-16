@@ -32,6 +32,7 @@ deploy:
     repo: soartech/soar-language-server
 - provider: script
   script: ./gradlew publish
+  skip_cleanup: true
   on:
     repo: soartech/soar-language-server
     branch: master
