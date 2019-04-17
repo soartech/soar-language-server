@@ -78,13 +78,22 @@ public class SignatureHelpTest extends SingleFileTestFixture {
   }
 
   @Test
-  public void cursorOnArguments() throws Exception {
-    // On the 'v' in 'value', the first argument.
+  public void cursorOnParameter() throws Exception {
+    // On the 'v' in 'value', the first parameter.
     TextDocumentPositionParams params = textDocumentPosition(file, 16, 20);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
     assertSignature(info, "ngs-gte-lt");
+  }
+
+  @Test
+  public void activeParameter() throws Exception {
+    // On the '1', the third parameter.
+    TextDocumentPositionParams params = textDocumentPosition(file, 16, 26);
+    SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
+
+    assertEquals(help.getActiveParameter(), new Integer(2));
   }
 
   void assertSignature(SignatureInformation info, String expected) {

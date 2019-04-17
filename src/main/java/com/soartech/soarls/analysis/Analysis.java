@@ -435,8 +435,7 @@ public class Analysis {
                     String name = file.getNodeInternalText(firstChild);
                     Location location = new Location(file.uri, file.rangeForNode(node));
                     ProcedureCall procedureCall =
-                        new ProcedureCall(
-                            location, firstChild, this.procedureDefinitions.get(name));
+                        new ProcedureCall(location, node, this.procedureDefinitions.get(name));
 
                     procedureCalls.put(node, procedureCall);
                     procedureCall.definition.ifPresent(

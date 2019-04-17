@@ -361,8 +361,7 @@ public class SoarDocumentService implements TextDocumentService {
                               call -> {
                                 String value =
                                     hoverText.apply(call).orElse(file.getNodeInternalText(node));
-                                List<TclAstNode> callChildren =
-                                    call.callSiteAst.getParent().getChildren();
+                                List<TclAstNode> callChildren = call.callSiteAst.getChildren();
                                 Range range =
                                     new Range(
                                         file.position(callChildren.get(0).getStart()),
@@ -462,8 +461,10 @@ public class SoarDocumentService implements TextDocumentService {
         };
 
     // Construct a signature for each valid number of arguments.
-    BiFunction<ProcedureCall, ProcedureDefinition, SignatureHelp> makeSignatureList =
-        (call, def) -> {
+    BiFunction<ProcedureCall, TclAstNode, Optional<SignatureHelp>> makeSignatureHelp =
+        (call, cursorNode) -> {
+          ProcedureDefinition def = call.definition.orElse(null);
+          if (def == null) return Optional.empty();
           long requiredArgs =
               def.arguments.stream().filter(arg -> !arg.defaultValue.isPresent()).count();
           int totalArgs = def.arguments.size();
@@ -472,20 +473,34 @@ public class SoarDocumentService implements TextDocumentService {
                   .mapToObj(argsIncluded -> makeSignatureInfo.apply(def, argsIncluded))
                   .collect(toList());
 
-          int argumentsFilledIn = call.callSiteAst.getParent().getChildren().size() - 1;
+          int argumentsFilledIn = call.callSiteAst.getChildren().size() - 1;
           int activeSignature = Math.min(argumentsFilledIn, totalArgs) - (int) requiredArgs;
 
-          return new SignatureHelp(signatures, activeSignature, 0);
+          Supplier<Optional<Integer>> getActiveParameter =
+              () -> {
+                List<TclAstNode> children = call.callSiteAst.getChildren();
+                for (int i = 1; i < children.size(); ++i) {
+                  if (children.get(i).containsChild(cursorNode)) {
+                    return Optional.of(i - 1);
+                  }
+                }
+                return Optional.empty();
+              };
+          Integer activeParameter = getActiveParameter.get().orElse(null);
+
+          return Optional.of(new SignatureHelp(signatures, activeSignature, activeParameter));
         };
 
     return getAnalysis(activeEntryPoint)
-        .thenApply(analysis -> analysis.files.get(params.getTextDocument().getUri()))
+        .thenApply(project -> project.files.get(params.getTextDocument().getUri()))
         .thenApply(
-            analysis ->
-                analysis
-                    .procedureCall(analysis.file.tclNode(params.getPosition()))
-                    .flatMap(call -> call.definition.map(def -> makeSignatureList.apply(call, def)))
-                    .orElseGet(SignatureHelp::new));
+            analysis -> {
+              TclAstNode cursorNode = analysis.file.tclNode(params.getPosition());
+              return analysis
+                  .procedureCall(cursorNode)
+                  .flatMap(call -> makeSignatureHelp.apply(call, cursorNode))
+                  .orElseGet(SignatureHelp::new);
+            });
   }
 
   /** Wire up a reference to the client, so that we can send diagnostics. */

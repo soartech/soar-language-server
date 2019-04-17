@@ -185,7 +185,10 @@ public class TclAstNode {
     return b.toString();
   }
 
-  /** Check whether the node contains the given child node. */
+  /**
+   * Check whether the node contains the given child node. This is relies on object equality, not
+   * just comparing ranges, so nodes in separate ASTs can never be children of one another.
+   */
   public boolean containsChild(TclAstNode child) {
     return this == child
         || this.getChildren()
