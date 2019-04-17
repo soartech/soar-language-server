@@ -62,6 +62,18 @@ public class HoverTest extends SingleFileTestFixture {
     assertEquals(contents.getValue(), "ngs-bind id args");
   }
 
+  /**
+   * Proc hovers should only be shown when the cursor is on the command word. Otherwise, we end up
+   * showing hover information almost all of the time.
+   */
+  @Test
+  public void doNotShowForProcArguments() throws Exception {
+    // The 'm' in 'matched'
+    TextDocumentPositionParams params = textDocumentPosition(file, 16, 35);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+    assertNull(hover);
+  }
+
   /** The hover range covers the entire invocation of the procedure, including its arguments. */
   @Test
   public void hoverProcRange() throws Exception {

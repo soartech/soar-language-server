@@ -357,6 +357,7 @@ public class SoarDocumentService implements TextDocumentService {
                   node ->
                       analysis
                           .procedureCall(node)
+                          .filter(call -> call.callSiteAst.getChildren().get(0) == node)
                           .map(
                               call -> {
                                 String value =
