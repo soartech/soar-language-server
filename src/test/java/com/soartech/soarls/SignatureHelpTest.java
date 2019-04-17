@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.SignatureHelp;
+import org.eclipse.lsp4j.SignatureHelpOptions;
 import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.junit.Test;
@@ -11,6 +12,13 @@ import org.junit.Test;
 public class SignatureHelpTest extends SingleFileTestFixture {
   public SignatureHelpTest() throws Exception {
     super("signature", "test.soar");
+  }
+
+  @Test
+  public void checkCapabilities() {
+    SignatureHelpOptions options = capabilities.getSignatureHelpProvider();
+    assertNotNull(options);
+    assertFalse(options.getTriggerCharacters().isEmpty());
   }
 
   @Test

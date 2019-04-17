@@ -56,7 +56,7 @@ public class Server implements LanguageServer, LanguageClientAware {
     // capabilities.setDocumentHighlightProvider(true);
     capabilities.setFoldingRangeProvider(true);
     capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
-    capabilities.setSignatureHelpProvider(new SignatureHelpOptions());
+    capabilities.setSignatureHelpProvider(new SignatureHelpOptions(Arrays.asList(" ")));
     capabilities.setHoverProvider(true);
     capabilities.setDefinitionProvider(true);
     capabilities.setCodeActionProvider(true);
