@@ -461,8 +461,8 @@ public class SoarDocumentService implements TextDocumentService {
         };
 
     // Construct a signature for each valid number of arguments.
-    BiFunction<ProcedureCall, TclAstNode, Optional<SignatureHelp>> makeSignatureHelp =
-        (call, cursorNode) -> {
+    BiFunction<ProcedureCall, Integer, Optional<SignatureHelp>> makeSignatureHelp =
+        (call, cursorOffset) -> {
           ProcedureDefinition def = call.definition.orElse(null);
           if (def == null) return Optional.empty();
           long requiredArgs =
@@ -476,17 +476,21 @@ public class SoarDocumentService implements TextDocumentService {
           int argumentsFilledIn = call.callSiteAst.getChildren().size() - 1;
           int activeSignature = Math.min(argumentsFilledIn, totalArgs) - (int) requiredArgs;
 
-          Supplier<Optional<Integer>> getActiveParameter =
+          Supplier<Integer> getActiveParameter =
               () -> {
                 List<TclAstNode> children = call.callSiteAst.getChildren();
                 for (int i = 1; i < children.size(); ++i) {
-                  if (children.get(i).containsChild(cursorNode)) {
-                    return Optional.of(i - 1);
+                  TclAstNode param = children.get(i);
+                  if (param.getStart() <= cursorOffset && cursorOffset <= param.getEnd()) {
+                    return i - 1;
                   }
                 }
-                return Optional.empty();
+                // Default to a number that is greater than the number of children; otherwise, it
+                // defaults to 0 and highlights the first parameter when the curser is in between
+                // other parameters.
+                return children.size();
               };
-          Integer activeParameter = getActiveParameter.get().orElse(null);
+          Integer activeParameter = getActiveParameter.get();
 
           return Optional.of(new SignatureHelp(signatures, activeSignature, activeParameter));
         };
@@ -496,9 +500,10 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             analysis -> {
               TclAstNode cursorNode = analysis.file.tclNode(params.getPosition());
+              int cursorOffset = analysis.file.offset(params.getPosition());
               return analysis
                   .procedureCall(cursorNode)
-                  .flatMap(call -> makeSignatureHelp.apply(call, cursorNode))
+                  .flatMap(call -> makeSignatureHelp.apply(call, cursorOffset))
                   .orElseGet(SignatureHelp::new);
             });
   }
