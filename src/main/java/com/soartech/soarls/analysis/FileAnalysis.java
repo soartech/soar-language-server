@@ -25,8 +25,8 @@ public class FileAnalysis {
 
   /**
    * All the Tcl procedure calls that were made in this file. The keys to this map are the AST
-   * command nodes. Nodes which are not commansd, such as comments and words, do not make sense
-   * here.
+   * command nodes (the nodes containing the call and all its arguments). Nodes which are not
+   * commands, such as comments and words, do not make sense here.
    */
   public final ImmutableMap<TclAstNode, ProcedureCall> procedureCalls;
 
@@ -60,9 +60,17 @@ public class FileAnalysis {
 
   // Helpers
 
-  /** Get the procedure call at the given node. */
+  /** Get the procedure call at the given node, by searching up the AST until a match is found. */
   public Optional<ProcedureCall> procedureCall(TclAstNode node) {
-    return Optional.ofNullable(procedureCalls.get(node));
+    while (node != null) {
+      ProcedureCall call = procedureCalls.get(node);
+      if (call != null) {
+        return Optional.of(call);
+      } else {
+        node = node.getParent();
+      }
+    }
+    return Optional.empty();
   }
 
   /** Get the variable retrieval at the given node. */

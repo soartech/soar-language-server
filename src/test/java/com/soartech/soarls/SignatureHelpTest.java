@@ -77,6 +77,16 @@ public class SignatureHelpTest extends SingleFileTestFixture {
     assert (help.getSignatures().isEmpty());
   }
 
+  @Test
+  public void cursorOnArguments() throws Exception {
+    // On the 'v' in 'value', the first argument.
+    TextDocumentPositionParams params = textDocumentPosition(file, 16, 20);
+    SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
+
+    SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
+    assertSignature(info, "ngs-gte-lt");
+  }
+
   void assertSignature(SignatureInformation info, String expected) {
     assertEquals(info.getLabel().split(" ")[0], expected);
   }

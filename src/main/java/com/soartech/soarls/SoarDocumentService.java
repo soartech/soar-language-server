@@ -342,30 +342,36 @@ public class SoarDocumentService implements TextDocumentService {
                     return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
                   };
 
+              Function<ProcedureCall, Optional<String>> hoverText =
+                  call ->
+                      call.definition.map(
+                          def ->
+                              def.name
+                                  + " "
+                                  + def.arguments
+                                      .stream()
+                                      .map(arg -> arg.name)
+                                      .collect(joining(" ")));
+
               Function<TclAstNode, Hover> hoverProcedureCall =
-                  node -> {
-                    ProcedureCall call = analysis.procedureCalls.get(node);
-                    if (call == null) return null;
-                    String value =
-                        call.definition
-                            .map(
-                                def ->
-                                    def.name
-                                        + " "
-                                        + def.arguments
-                                            .stream()
-                                            .map(arg -> arg.name)
-                                            .collect(joining(" ")))
-                            .orElse(file.getNodeInternalText(node));
-                    // We are clearly not storing the right information
-                    // here. Computing the range should be much simpler.
-                    List<TclAstNode> callChildren = call.callSiteAst.getParent().getChildren();
-                    Range range =
-                        new Range(
-                            file.position(callChildren.get(0).getStart()),
-                            file.position(callChildren.get(callChildren.size() - 1).getEnd()));
-                    return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-                  };
+                  node ->
+                      analysis
+                          .procedureCall(node)
+                          .map(
+                              call -> {
+                                String value =
+                                    hoverText.apply(call).orElse(file.getNodeInternalText(node));
+                                List<TclAstNode> callChildren =
+                                    call.callSiteAst.getParent().getChildren();
+                                Range range =
+                                    new Range(
+                                        file.position(callChildren.get(0).getStart()),
+                                        file.position(
+                                            callChildren.get(callChildren.size() - 1).getEnd()));
+                                return new Hover(
+                                    new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+                              })
+                          .orElse(null);
 
               Supplier<Hover> getHover =
                   () -> {

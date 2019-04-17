@@ -220,8 +220,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
   void assertCall(FileAnalysis analysis, int line, int character, String procedureName) {
     SoarFile file = file(analysis.uri);
     TclAstNode node = file.tclNode(new Position(line, character));
-    ProcedureCall call = analysis.procedureCalls.get(node);
-    assertNotNull(call);
+    ProcedureCall call = analysis.procedureCall(node).get();
     assertEquals(call.definition.get().name, procedureName);
   }
 

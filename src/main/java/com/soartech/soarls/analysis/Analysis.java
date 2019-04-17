@@ -438,7 +438,7 @@ public class Analysis {
                         new ProcedureCall(
                             location, firstChild, this.procedureDefinitions.get(name));
 
-                    procedureCalls.put(firstChild, procedureCall);
+                    procedureCalls.put(node, procedureCall);
                     procedureCall.definition.ifPresent(
                         def -> {
                           this.procedureCalls.get(def).add(procedureCall);
