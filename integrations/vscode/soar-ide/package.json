@@ -33,6 +33,15 @@
 	"extensions": [
 	  ".soar"
 	]
+      },
+      {
+        "id": "tcl",
+        "aliases": [
+          "Tcl"
+        ],
+	"extensions": [
+	  ".tcl"
+	]
       }
     ],
     "configuration": {
