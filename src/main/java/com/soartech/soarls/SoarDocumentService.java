@@ -267,11 +267,7 @@ public class SoarDocumentService implements TextDocumentService {
                       .stream()
                       .filter(s -> s.startsWith(prefix))
                       .map(CompletionItem::new)
-                      .map(
-                          item -> {
-                            item.setKind(itemKind);
-                            return item;
-                          })
+                      .peek(item -> item.setKind(itemKind))
                       .collect(toList());
 
               return Either.forLeft(completions);
@@ -511,7 +507,7 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /** Wire up a reference to the client, so that we can send diagnostics. */
-  public void connect(LanguageClient client) {
+  void connect(LanguageClient client) {
     this.client = client;
 
     // Query the client for configuration values. This is a
@@ -543,7 +539,7 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
-  public void setEntryPoint(String uri) {
+  void setEntryPoint(String uri) {
     this.activeEntryPoint = uri;
     scheduleAnalysis();
   }
