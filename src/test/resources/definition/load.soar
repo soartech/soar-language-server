@@ -2,6 +2,7 @@
 
 source micro-ngs.tcl
 source productions.soar
+source templates.soar
 
 # Attempting to load this file should cause an error.
 source missing-file.soar

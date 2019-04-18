@@ -1,0 +1,21 @@
+# Go to definition on a top-level comman should go to here
+proc generate-productions { attr value } {
+    sp "propose*create*$attr*$value
+        (state <s> ^superstate nil
+                  -^$attr)
+    -->
+        (<s> ^operator <o> + =)
+        (<o> ^name create-$attr)
+    "
+
+    sp "apply*create*$attr
+        (state <s> ^operator <o>)
+        (<o> ^name create-$attr)
+    -->
+        (<s> ^$attr $value)
+    "
+}
+
+generate-productions test-1 value-1
+generate-productions test-2 value-2
+generate-productions test-3 value-3

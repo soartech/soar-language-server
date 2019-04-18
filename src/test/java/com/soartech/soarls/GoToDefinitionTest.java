@@ -138,4 +138,13 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
   String resolve(String relativePath) {
     return workspaceRoot.resolve(relativePath).toUri().toString();
   }
+
+  @Test
+  public void definitionForTopLevelProc() throws Exception {
+    List<Location> locations = definitionsForPosition("templates.soar", 18, 0);
+
+    Location location = locations.get(0);
+    assertEquals(location.getUri(), resolve("templates.soar"));
+    assertEquals(location.getRange(), range(1, 0, 16, 1));
+  }
 }
