@@ -40,5 +40,5 @@ deploy:
   script: ./gradlew uploadArchives
   skip_cleanup: true
   on:
+    tags: true
     repo: soartech/soar-language-server
-    branch: master
