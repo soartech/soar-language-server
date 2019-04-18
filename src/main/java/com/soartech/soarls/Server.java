@@ -23,7 +23,7 @@ public class Server implements LanguageServer, LanguageClientAware {
   private final SoarDocumentService documentService = new SoarDocumentService();
   private final SoarWorkspaceService workspaceService = new SoarWorkspaceService(documentService);
 
-  Server() {
+  public Server() {
     // NOTE: I'm not sure where the proper place to set this is.
     System.setProperty("jsoar.agent.interpreter", "tcl");
   }
