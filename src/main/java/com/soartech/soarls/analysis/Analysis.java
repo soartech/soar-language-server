@@ -239,7 +239,7 @@ public class Analysis {
             Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
             Production production = new Production(args[1], location);
             productions.computeIfAbsent(ctx.currentNode, key -> new ArrayList<>()).add(production);
-            LOG.info("Added production {} to {}", production.name, file.uri);
+            LOG.trace("Added production {} to {}", production.name, file.uri);
 
             // Call the original implementation, which will throw an exception if the production is
             // invalid (caught below).
