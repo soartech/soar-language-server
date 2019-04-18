@@ -10,6 +10,10 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
+before_install:
+  - openssl aes-256-cbc -K $encrypted_2608174d164b_key -iv $encrypted_2608174d164b_iv -in .travis/secret.gpg.enc -out .travis/secret.gpg -d
+  - gpg --import .travis/secret.gpg
+
 install:
   # JSoar needs to be on the classpath in order for the shadow tasks
   # to successfully be configured - it's not enough to simply declare

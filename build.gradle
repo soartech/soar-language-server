@@ -75,6 +75,15 @@ artifacts {
     archives javadocJar, sourcesJar, shadowJar
 }
 
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.allTasks.any { it instanceof Sign }) {
+        allprojects {
+            ext."signing.gnupg.keyName" = System.getenv('GPG_KEY_ID')
+            ext."signing.gnupg.passphrase" = System.getenv('GPG_PASSPHRASE')
+        }
+    }
+}
+
 signing {
     useGpgCmd()
     sign configurations.archives
