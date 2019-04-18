@@ -123,8 +123,9 @@ public class Analysis {
 
   /** Perform a full analysis of a project starting from the given entry point. */
   public static ProjectAnalysis analyse(Documents documents, String entryPointUri) {
+    Analysis analysis = null;
     try {
-      Analysis analysis = new Analysis(documents, entryPointUri);
+      analysis = new Analysis(documents, entryPointUri);
       SoarFile file = documents.get(entryPointUri);
       analysis.analyseFile(file);
       LOG.info("Completed analysis {}", analysis);
@@ -132,6 +133,8 @@ public class Analysis {
     } catch (Exception e) {
       LOG.error("running analysis", e);
       return null;
+    } finally {
+      analysis.agent.dispose();
     }
   }
 
