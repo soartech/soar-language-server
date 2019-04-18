@@ -1,88 +1,88 @@
 {
-	"name": "soar-ide",
-	"displayName": "Soar IDE",
-	"description": "Language server client for use with the Soar Language Server",
-    "version": "0.0.1",
-    "publisher": "soartech",
-    "license": "BSD-3-Clause",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/soartech/soar-language-server.git"
-    },
-    "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/soar-ide/README.md",
-	"engines": {
-		"vscode": "^1.32.0"
-	},
-	"categories": [
-		"Programming Languages"
+  "name": "soar-ide",
+  "displayName": "Soar IDE",
+  "description": "Language server client for use with the Soar Language Server",
+  "version": "0.0.1",
+  "publisher": "soartech",
+  "license": "BSD-3-Clause",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/soartech/soar-language-server.git"
+  },
+  "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/soar-ide/README.md",
+  "engines": {
+    "vscode": "^1.32.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "soar"
+  ],
+  "activationEvents": [
+    "onLanguage:soar"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "soar",
+        "aliases": [
+          "Soar"
+        ],
+	"extensions": [
+	  ".soar"
+	]
+      }
     ],
-    "keywords": [
-        "soar"
-    ],
-	"activationEvents": [
-		"onLanguage:soar"
-	],
-	"main": "./out/extension.js",
-	"contributes": {
-		"languages": [
-			{
-                "id": "soar",
-                "aliases": [
-                    "Soar"
-                ],
-				"extensions": [
-					".soar"
-				]
-			}
-		],
-		"configuration": {
-			"title": "Soar",
-			"properties": {
-				"soar.maxNumberOfProblems": {
-					"scope": "resource",
-					"type": "number",
-					"default": 100,
-					"description": "Controls the maximum number of problems produced by the server."
-				},
-				"soar.trace.server": {
-					"scope": "window",
-					"type": "string",
-					"enum": [
-						"off",
-						"messages",
-						"verbose"
-					],
-					"default": "verbose",
-					"description": "Traces the communication between VS Code and the language server."
-                },
-                "soar.languageServer.enabled": {
-                    "type": "boolean",
-                    "default": true,
-                    "description": "Specifies whether the language server should be used. When enabled the extension will provide code completions and linting, otherwise just syntax highlighting. Might require a reload to apply."
-                },
-                "soar.languageServer.executablePath": {
-                    "type": "string",
-                    "default": "",
-                    "description": "Absolute path to the Soar Language Server executable"
-                }
-			}
-		}
+    "configuration": {
+      "title": "Soar",
+      "properties": {
+	"soar.maxNumberOfProblems": {
+	  "scope": "resource",
+	  "type": "number",
+	  "default": 100,
+	  "description": "Controls the maximum number of problems produced by the server."
 	},
-	"dependencies": {
-		"vscode-languageclient": "^5.2.1"
-	},
-	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
-		"watch": "tsc -watch -p ./",
-		"postinstall": "node ./node_modules/vscode/bin/install",
-		"test": "npm run compile && node ./node_modules/vscode/bin/test"
-	},
-	"devDependencies": {
-		"typescript": "^3.3.1",
-		"vscode": "^1.1.28",
-		"tslint": "^5.12.1",
-		"@types/node": "^10.12.21",
-		"@types/mocha": "^2.2.42"
-	}
+	"soar.trace.server": {
+	  "scope": "window",
+	  "type": "string",
+	  "enum": [
+	    "off",
+	    "messages",
+	    "verbose"
+	  ],
+	  "default": "verbose",
+	  "description": "Traces the communication between VS Code and the language server."
+        },
+        "soar.languageServer.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Specifies whether the language server should be used. When enabled the extension will provide code completions and linting, otherwise just syntax highlighting. Might require a reload to apply."
+        },
+        "soar.languageServer.executablePath": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path to the Soar Language Server executable"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "vscode-languageclient": "^5.2.1"
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "node ./node_modules/vscode/bin/install",
+    "test": "npm run compile && node ./node_modules/vscode/bin/test"
+  },
+  "devDependencies": {
+    "typescript": "^3.3.1",
+    "vscode": "^1.1.28",
+    "tslint": "^5.12.1",
+    "@types/node": "^10.12.21",
+    "@types/mocha": "^2.2.42"
+  }
 }
