@@ -78,6 +78,8 @@ artifacts {
 gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.allTasks.any { it instanceof Sign }) {
         allprojects {
+            // This is a workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=541012
+            ext."signing.gnupg.useLegacyGpg" = 'true'
             ext."signing.gnupg.keyName" = System.getenv('GPG_KEY_ID')
             ext."signing.gnupg.passphrase" = System.getenv('GPG_PASSPHRASE')
         }
