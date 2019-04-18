@@ -33,7 +33,7 @@ deploy:
     tags: true
     repo: soartech/soar-language-server
 - provider: script
-  script: ./gradlew publish
+  script: ./gradlew uploadArchives
   skip_cleanup: true
   on:
     repo: soartech/soar-language-server

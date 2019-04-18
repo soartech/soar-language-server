@@ -72,14 +72,15 @@ task sourcesJar(type: Jar) {
 }
 
 artifacts {
-    archives javadocJar, sourcesJar
+    archives javadocJar, sourcesJar, shadowJar
 }
 
 signing {
+    useGpgCmd()
     sign configurations.archives
 }
 
-uploadShadow {
+uploadArchives {
     repositories {
         mavenDeployer {
             repository(url: "$maven2_url") {
@@ -112,6 +113,7 @@ uploadShadow {
                     }
                 }
             }
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
         }
     }
 }
