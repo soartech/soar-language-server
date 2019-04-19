@@ -557,9 +557,13 @@ public class SoarDocumentService implements TextDocumentService {
     }
     debouncer.submit(
         () -> {
-          ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
-          reportDiagnostics(analysis);
-          future.complete(analysis);
+          try {
+            ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
+            reportDiagnostics(analysis);
+            future.complete(analysis);
+          } catch (Exception e) {
+            future.completeExceptionally(e);
+          }
         });
   }
 
