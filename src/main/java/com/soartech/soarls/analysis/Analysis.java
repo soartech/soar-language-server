@@ -391,7 +391,6 @@ public class Analysis {
                             name, location, ctx.currentNode, value, commentAstNode, commentText);
                     variableDefinitions.add(var);
                     this.variableDefinitions.put(var.name, var);
-                    this.variableRetrievals.put(var, new ArrayList<>());
                   }
 
                   for (Map.Entry<String, MapDifference.ValueDifference<String>> e :
@@ -415,7 +414,6 @@ public class Analysis {
                             name, location, ctx.currentNode, value, commentAstNode, commentText);
                     variableDefinitions.add(var);
                     this.variableDefinitions.put(var.name, var);
-                    this.variableRetrievals.put(var, new ArrayList<>());
                   }
 
                   currentVariables = newVariables;
@@ -460,7 +458,9 @@ public class Analysis {
                     variableRetrievals.put(node, retrieval);
                     retrieval.definition.ifPresent(
                         def -> {
-                          this.variableRetrievals.get(def).add(retrieval);
+                          this.variableRetrievals
+                              .computeIfAbsent(def, key -> new ArrayList<>())
+                              .add(retrieval);
                         });
                   }
                 }
