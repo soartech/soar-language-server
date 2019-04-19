@@ -37,7 +37,7 @@ deploy:
     tags: true
     repo: soartech/soar-language-server
 - provider: script
-  script: ./gradlew uploadArchives
+  script: ./gradlew uploadArchives && ./gradlew closeAndReleaseRepository
   skip_cleanup: true
   on:
     tags: true
