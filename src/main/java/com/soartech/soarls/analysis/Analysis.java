@@ -160,7 +160,6 @@ public class Analysis {
     Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
     Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
     List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
-    List<VariableDefinition> variableDefinitions = new ArrayList<>();
     List<String> filesSourced = new ArrayList<>();
     Map<TclAstNode, List<Production>> productions = new HashMap<>();
     List<Diagnostic> diagnosticList = new ArrayList<>();
@@ -389,7 +388,6 @@ public class Analysis {
                     VariableDefinition var =
                         new VariableDefinition(
                             name, location, ctx.currentNode, value, commentAstNode, commentText);
-                    variableDefinitions.add(var);
                     this.variableDefinitions.put(var.name, var);
                   }
 
@@ -412,7 +410,6 @@ public class Analysis {
                     VariableDefinition var =
                         new VariableDefinition(
                             name, location, ctx.currentNode, value, commentAstNode, commentText);
-                    variableDefinitions.add(var);
                     this.variableDefinitions.put(var.name, var);
                   }
 
@@ -474,7 +471,6 @@ public class Analysis {
               procedureCalls,
               variableRetrievals,
               procedureDefinitions,
-              variableDefinitions,
               filesSourced,
               productions,
               diagnosticList);

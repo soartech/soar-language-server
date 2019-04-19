@@ -417,8 +417,9 @@ public class SoarDocumentService implements TextDocumentService {
                   fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
               if (!varDef.isPresent()) {
                 varDef =
-                    fileAnalysis
-                        .variableDefinitions
+                    analysis
+                        .variableRetrievals
+                        .keySet()
                         .stream()
                         .filter(def -> def.ast.containsChild(astNode))
                         .findFirst();

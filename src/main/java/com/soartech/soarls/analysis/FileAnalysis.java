@@ -39,9 +39,6 @@ public class FileAnalysis {
   /** Tcl procedures that were defined while sourcing this file. */
   public final ImmutableList<ProcedureDefinition> procedureDefinitions;
 
-  /** Tcl variables that were defined while sourcing this file. */
-  public final ImmutableList<VariableDefinition> variableDefinitions;
-
   /**
    * The URIs of the files that were sourced by this one, in the order that they were sourced.
    *
@@ -89,7 +86,6 @@ public class FileAnalysis {
       Map<TclAstNode, ProcedureCall> procedureCalls,
       Map<TclAstNode, VariableRetrieval> variableRetrievals,
       List<ProcedureDefinition> procedureDefinitions,
-      List<VariableDefinition> variableDefinitions,
       List<String> filesSourced,
       Map<TclAstNode, List<Production>> productions,
       List<Diagnostic> diagnostics) {
@@ -98,7 +94,6 @@ public class FileAnalysis {
     this.procedureCalls = ImmutableMap.copyOf(procedureCalls);
     this.variableRetrievals = ImmutableMap.copyOf(variableRetrievals);
     this.procedureDefinitions = ImmutableList.copyOf(procedureDefinitions);
-    this.variableDefinitions = ImmutableList.copyOf(variableDefinitions);
     this.filesSourced = ImmutableList.copyOf(filesSourced);
     this.productions =
         productions
