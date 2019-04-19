@@ -38,8 +38,6 @@ public class TclAstNode {
   private TclAstNode previousChild = null;
   private TclParserError error;
 
-  public String expanded = null;
-
   public TclAstNode(int type, int start) {
     this.type = type;
     this.start = start;

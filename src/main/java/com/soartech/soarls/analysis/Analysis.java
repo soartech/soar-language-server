@@ -309,14 +309,14 @@ public class Analysis {
       // then add the procedure call to the file analysis
       file.traverseAstTree(
           node -> {
-            if (node.expanded == null) node.expanded = file.getNodeInternalText(node);
+            String nodeText = file.getNodeInternalText(node);
 
             if (node.getType() == TclAstNode.COMMENT) {
               ctx.mostRecentComment = node;
             } else if (node.getType() == TclAstNode.COMMAND) {
               ctx.currentNode = node;
               try {
-                agent.getInterpreter().eval(node.expanded);
+                agent.getInterpreter().eval(nodeText);
               } catch (SoarInterpreterException ex) {
                 LOG.error("interpreter exception {}", ex);
                 SourceLocation location = ex.getSourceLocation();
@@ -344,7 +344,7 @@ public class Analysis {
                   diagnosticList.add(diagnostic);
                 }
               } catch (SoarException ex) {
-                LOG.error("Error while evaluating Soar command: {}", node.expanded, ex);
+                LOG.error("Error while evaluating Soar command: {}", nodeText, ex);
 
                 // Hard code a location, but include the exception text
                 // Default exception will highlight first 8 characters of first line
