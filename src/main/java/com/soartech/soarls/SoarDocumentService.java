@@ -343,14 +343,17 @@ public class SoarDocumentService implements TextDocumentService {
 
               Function<ProcedureCall, Optional<String>> hoverText =
                   call ->
-                      call.definition.map(
-                          def ->
-                              def.name
-                                  + " "
-                                  + def.arguments
-                                      .stream()
-                                      .map(arg -> arg.name)
-                                      .collect(joining(" ")));
+                      call.definition
+                          .flatMap(def -> def.commentText)
+                          .map(
+                              comment ->
+                                  Arrays.stream(comment.split("\n"))
+                                      .map(line -> line.replaceAll("\\s*#\\s?", "")))
+                          .flatMap(
+                              lines ->
+                                  config.fullCommentHover
+                                      ? Optional.of(lines.collect(joining("\n")))
+                                      : lines.filter(line -> !line.isEmpty()).findFirst());
 
               Function<TclAstNode, Hover> hoverProcedureCall =
                   node ->

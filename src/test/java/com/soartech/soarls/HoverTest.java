@@ -28,7 +28,7 @@ public class HoverTest extends SingleFileTestFixture {
 
   @Test
   public void hoverVariableValue() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 16, 44);
+    TextDocumentPositionParams params = textDocumentPosition(file, 20, 44);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     MarkupContent contents = hover.getContents().getRight();
     assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
@@ -37,29 +37,52 @@ public class HoverTest extends SingleFileTestFixture {
 
   @Test
   public void hoverVariableRange() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 16, 44);
+    TextDocumentPositionParams params = textDocumentPosition(file, 20, 44);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    assertRange(hover, 16, 43, 16, 51);
+    assertRange(hover, 20, 43, 20, 51);
   }
 
-  @Test
-  public void hoverProcWithArguments() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
-    Hover hover = languageServer.getTextDocumentService().hover(params).get();
-
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
-    assertEquals(contents.getValue(), "ngs-bind id args");
-  }
-
-  /** For procedure calls, the hover text shows the signature. */
+  /** For procedure calls, the hover text shows the first line of the comment text. */
   @Test
   public void hoverProcDocs() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
+    // ngs-bind
+    TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     MarkupContent contents = hover.getContents().getRight();
     assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
-    assertEquals(contents.getValue(), "ngs-bind id args");
+    assertEquals(contents.getValue(), "This is a stub for NGS bind.");
+  }
+
+  /** This proc has a comment that has extra leading spaces. They should be stripped away. */
+  @Test
+  public void hoverProcDocsExtraSpaces() throws Exception {
+    // ngs-create-attribute
+    TextDocumentPositionParams params = textDocumentPosition(file, 20, 10);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+    assertEquals(contents.getValue(), "Create an attribute.");
+  }
+
+  /** If the client has sent the right configuration, then the full comment text should be shown. */
+  @Test
+  public void hoverProcFullComment() throws Exception {
+    config.fullCommentHover = true;
+    sendConfiguration();
+
+    // ngs-bind
+    TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+    assertEquals(
+        contents.getValue(),
+        "\n"
+            + "This is a stub for NGS bind.\n"
+            + "\n"
+            + "This extra detail in the comments should only be shown if the client\n"
+            + "was configured for it.");
   }
 
   /**
@@ -69,7 +92,7 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void doNotShowForProcArguments() throws Exception {
     // The 'm' in 'matched'
-    TextDocumentPositionParams params = textDocumentPosition(file, 16, 35);
+    TextDocumentPositionParams params = textDocumentPosition(file, 20, 35);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     assertNull(hover);
   }
@@ -77,9 +100,9 @@ public class HoverTest extends SingleFileTestFixture {
   /** The hover range covers the entire invocation of the procedure, including its arguments. */
   @Test
   public void hoverProcRange() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 14, 9);
+    TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    assertRange(hover, 14, 5, 14, 32);
+    assertRange(hover, 18, 5, 18, 32);
   }
 
   /** Test that the range matches the given parameters. */

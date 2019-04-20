@@ -4,10 +4,14 @@ set NGS_NO *NO*
 # Match the top state.
 proc ngs-match-top-state { id } {}
 
+#
 # This is a stub for NGS bind.
+#
+# This extra detail in the comments should only be shown if the client
+# was configured for it.
 proc ngs-bind { id args } {}
 
-# Create an attribute.
+    #Create an attribute.
 proc ngs-create-attribute { id attr value } {}
 
 sp "test

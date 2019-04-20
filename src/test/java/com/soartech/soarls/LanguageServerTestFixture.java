@@ -48,6 +48,12 @@ public class LanguageServerTestFixture implements LanguageClient {
   /** The capabilities that were returned from the server on initialization. */
   final ServerCapabilities capabilities;
 
+  /**
+   * The configuration that has been sent to the server. If a test wants to update it, modify it
+   * here and then call updateConfiguration().
+   */
+  Configuration config = new Configuration();
+
   /** The most recent diagnostics that were sent from the server for each file. */
   Map<String, PublishDiagnosticsParams> diagnostics = new HashMap<>();
 
@@ -68,14 +74,18 @@ public class LanguageServerTestFixture implements LanguageClient {
 
     languageServer.initialized(new InitializedParams());
 
-    Configuration config = new Configuration();
+    this.languageServer = languageServer;
+
     config.debounceTime = 0;
+    sendConfiguration();
+  }
+
+  /** Update the server's configuration. */
+  void sendConfiguration() {
     JsonObject settings = new JsonObject();
     settings.add("soar", new Gson().toJsonTree(config));
     DidChangeConfigurationParams params = new DidChangeConfigurationParams(settings);
     languageServer.getWorkspaceService().didChangeConfiguration(params);
-
-    this.languageServer = languageServer;
   }
 
   void waitForAnalysis(String relativePath) throws Exception {
