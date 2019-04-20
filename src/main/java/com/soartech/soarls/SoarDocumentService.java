@@ -24,14 +24,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
@@ -41,8 +37,6 @@ import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
-import org.eclipse.lsp4j.ConfigurationItem;
-import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.CreateFile;
 import org.eclipse.lsp4j.CreateFileOptions;
 import org.eclipse.lsp4j.Diagnostic;
@@ -112,6 +106,14 @@ public class SoarDocumentService implements TextDocumentService {
   private String activeEntryPoint = null;
 
   private LanguageClient client;
+
+  /**
+   * Configuration sent by the client in a workspace/didChangeConfiguration notification. It is
+   * received by the workspace service and then updated here. This object can be replaced at any
+   * time, so it should always be accessed via this class; never store a reference to it, as it may
+   * be out of date.
+   */
+  private Configuration config = new Configuration();
 
   /**
    * Retrieve the most recently completed analysis for the given entry point. If an analysis has
@@ -510,33 +512,6 @@ public class SoarDocumentService implements TextDocumentService {
   /** Wire up a reference to the client, so that we can send diagnostics. */
   void connect(LanguageClient client) {
     this.client = client;
-
-    // Query the client for configuration values. This is a
-    // quick-and-dirty way to customize the debounce time. It will
-    // probably need some refactoring soon.
-
-    try {
-      Function<String, ConfigurationItem> makeItem =
-          section -> {
-            ConfigurationItem item = new ConfigurationItem();
-            item.setSection(section);
-            return item;
-          };
-      List<ConfigurationItem> items = Stream.of("debounceTime").map(makeItem).collect(toList());
-
-      ConfigurationParams params = new ConfigurationParams(items);
-      client
-          .configuration(params)
-          .thenAccept(
-              responses -> {
-                if (responses.get(0) instanceof Integer) {
-                  debouncer.setDelay(Duration.ofMillis((int) responses.get(0)));
-                }
-              })
-          .get(1, TimeUnit.SECONDS);
-    } catch (ExecutionException | InterruptedException | TimeoutException e) {
-      LOG.error("Failed to get configuration", e);
-    }
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
@@ -545,11 +520,22 @@ public class SoarDocumentService implements TextDocumentService {
     scheduleAnalysis();
   }
 
+  void setConfiguration(Configuration config) {
+    this.config = config;
+    if (config.debounceTime != null) {
+      LOG.info("Updating debounce time");
+      debouncer.setDelay(Duration.ofMillis(config.debounceTime));
+      scheduleAnalysis();
+    }
+  }
+
   /**
    * Schedule an analysis run. It is safe to call this multiple times in quick succession, because
    * the requests are debounced.
    */
   private void scheduleAnalysis() {
+    if (this.activeEntryPoint == null) return;
+
     CompletableFuture<ProjectAnalysis> future =
         pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture<>());
 

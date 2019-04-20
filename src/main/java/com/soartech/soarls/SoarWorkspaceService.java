@@ -2,6 +2,7 @@ package com.soartech.soarls;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.soartech.soarls.EntryPoints.EntryPoint;
 import java.io.IOException;
@@ -81,7 +82,11 @@ class SoarWorkspaceService implements WorkspaceService {
   }
 
   @Override
-  public void didChangeConfiguration(DidChangeConfigurationParams params) {}
+  public void didChangeConfiguration(DidChangeConfigurationParams params) {
+    JsonObject settings = (JsonObject) params.getSettings();
+    Configuration config = new Gson().fromJson(settings.get("soar"), Configuration.class);
+    documentService.setConfiguration(config);
+  }
 
   @Override
   public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {}
