@@ -4,6 +4,7 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -16,9 +17,9 @@ import java.util.Map;
  * eliminates the possibility to share analysis data.
  */
 public class ProjectAnalysis {
-  public final String entryPointUri;
+  public final URI entryPointUri;
 
-  public final ImmutableMap<String, FileAnalysis> files;
+  public final ImmutableMap<URI, FileAnalysis> files;
 
   /**
    * A mapping from procedure names to where they were defined. If a procedure gets defined multiple
@@ -47,8 +48,8 @@ public class ProjectAnalysis {
    * counteparts.
    */
   ProjectAnalysis(
-      String entryPointUri,
-      Map<String, FileAnalysis> files,
+      URI entryPointUri,
+      Map<URI, FileAnalysis> files,
       Map<String, ProcedureDefinition> procedureDefinitions,
       Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls,
       Map<String, VariableDefinition> variableDefinitions,
@@ -67,5 +68,15 @@ public class ProjectAnalysis {
             .entrySet()
             .stream()
             .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
+  }
+
+  // Helpers
+
+  /**
+   * Get the file analysis associated with the given URI. This is a bit shorter than calling
+   * analysis.files.get(), and it also catches type errors in the key.
+   */
+  public FileAnalysis file(URI uri) {
+    return files.get(uri);
   }
 }

@@ -74,7 +74,7 @@ class SoarWorkspaceService implements WorkspaceService {
       // set the entry point
 
       Path agentEntryPoint = workspaceRootPath.resolve(activeEntryPoint.path);
-      documentService.setEntryPoint(agentEntryPoint.toUri().toString());
+      documentService.setEntryPoint(agentEntryPoint.toUri());
 
     } catch (IOException | JsonSyntaxException e) {
       LOG.error("Error trying to read {}", soarAgentsPath, e);
@@ -95,7 +95,9 @@ class SoarWorkspaceService implements WorkspaceService {
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
     Gson gson = new Gson();
     if (params.getCommand().equals("set-entry-point")) {
-      String uri = gson.fromJson((JsonElement) params.getArguments().get(0), String.class);
+      URI uri =
+          SoarDocumentService.uri(
+              gson.fromJson((JsonElement) params.getArguments().get(0), String.class));
       documentService.setEntryPoint(uri);
     }
     return CompletableFuture.completedFuture(null);

@@ -20,7 +20,7 @@ public class SoarFileTest extends LanguageServerTestFixture {
 
     Path path = workspaceRoot.resolve("test.soar");
     String content = new String(Files.readAllBytes(path));
-    this.file = new SoarFile(path.toUri().toString(), content);
+    this.file = new SoarFile(path.toUri(), content);
 
     this.file.ast.printTree(System.out, this.file.contents.toCharArray(), 0);
   }

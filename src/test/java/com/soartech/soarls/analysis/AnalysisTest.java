@@ -6,6 +6,7 @@ import com.soartech.soarls.LanguageServerTestFixture;
 import com.soartech.soarls.SoarDocumentService;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
 import org.eclipse.lsp4j.Position;
@@ -29,8 +30,8 @@ public class AnalysisTest extends LanguageServerTestFixture {
     this.analysis = documentService().getAnalysis(resolve("load.soar")).get();
   }
 
-  String resolve(String relativePath) {
-    return workspaceRoot.resolve(relativePath).toUri().toString();
+  URI resolve(String relativePath) {
+    return workspaceRoot.resolve(relativePath).toUri();
   }
 
   /**
@@ -46,7 +47,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
     return analysis.files.get(resolve(relativePath));
   }
 
-  SoarFile file(String uri) {
+  SoarFile file(URI uri) {
     return documentService().documents.get(uri);
   }
 
@@ -118,7 +119,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
   @Test
   public void procedureDefinitionAstNodes() {
     ProcedureDefinition def = analysis.procedureDefinitions.get("ngs-match-top-state");
-    assertEquals(def.location.getUri(), resolve("micro-ngs/macros.tcl"));
+    assertEquals(def.location.getUri(), resolve("micro-ngs/macros.tcl").toString());
     assertEquals(def.location.getRange(), range(6, 0, 8, 1));
   }
 
@@ -201,7 +202,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
     assertNotNull(production);
     assertEquals(production.name, name);
-    assertEquals(production.location.getUri(), file.uri);
+    assertEquals(production.location.getUri(), file.uri.toString());
     assertEquals(production.location.getRange(), range);
   }
 
@@ -212,7 +213,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
 
     assertNotNull(proc);
     assertEquals(proc.name, name);
-    assertEquals(proc.location.getUri(), file.uri);
+    assertEquals(proc.location.getUri(), file.uri.toString());
     assertEquals(proc.location.getRange(), range);
   }
 
@@ -244,6 +245,6 @@ public class AnalysisTest extends LanguageServerTestFixture {
     assertNotNull(def);
     assertEquals(def.name, name);
     assertEquals(def.value, value);
-    assertEquals(def.location.getUri(), resolve(relativePath));
+    assertEquals(def.location.getUri(), resolve(relativePath).toString());
   }
 }

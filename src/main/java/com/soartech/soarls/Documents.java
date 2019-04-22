@@ -27,16 +27,16 @@ public class Documents {
    * the client. If they are, then the state comes from the client; if they are not, then the state
    * comes from the filesystem.
    */
-  private final ConcurrentHashMap<String, SoarFile> documents = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<URI, SoarFile> documents = new ConcurrentHashMap<>();
 
   /**
    * The set of URIs that point to currently open documents. This is a subset of the keys of the
    * documents hash map.
    */
-  private final Set<String> openDocuments = new HashSet<>();
+  private final Set<URI> openDocuments = new HashSet<>();
 
   /** Retrieve the file with the given URI, reading it from the filesystem if necessary. */
-  public SoarFile get(String uri) {
+  public SoarFile get(URI uri) {
     return documents.computeIfAbsent(uri, Documents::readFile);
   }
 
@@ -45,32 +45,33 @@ public class Documents {
    * the client does not have them open, this set will only contain the URIs of the files which are
    * open in the client.
    */
-  public ImmutableSet<String> openUris() {
+  public ImmutableSet<URI> openUris() {
     return ImmutableSet.copyOf(openDocuments);
   }
 
   /** Add a document that was received via a textDocument/didOpen notification. */
   public SoarFile open(TextDocumentItem doc) {
-    SoarFile soarFile = new SoarFile(doc.getUri(), doc.getText());
+    URI uri = SoarDocumentService.uri(doc.getUri());
+    SoarFile soarFile = new SoarFile(uri, doc.getText());
     documents.put(soarFile.uri, soarFile);
     openDocuments.add(soarFile.uri);
     return soarFile;
   }
 
   /** Remove a URI from the set of currently open files. */
-  public void close(String uri) {
+  public void close(URI uri) {
     openDocuments.remove(uri);
   }
 
   /** Apply a sequence of changes that were received via a textDocument/didChange notification. */
   public void applyChanges(DidChangeTextDocumentParams params) {
-    String uri = params.getTextDocument().getUri();
+    URI uri = SoarDocumentService.uri(params.getTextDocument().getUri());
     documents.compute(uri, (k, file) -> file.withChanges(params.getContentChanges()));
   }
 
-  private static SoarFile readFile(String uri) {
+  private static SoarFile readFile(URI uri) {
     try {
-      Path path = Paths.get(new URI(uri));
+      Path path = Paths.get(uri);
       List<String> lines = Files.readAllLines(path);
       String contents = Joiner.on("\n").join(lines);
       return new SoarFile(uri, contents);

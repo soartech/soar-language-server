@@ -89,14 +89,18 @@ public class LanguageServerTestFixture implements LanguageClient {
   }
 
   void waitForAnalysis(String relativePath) throws Exception {
-    String uri = workspaceRoot.resolve(relativePath).toUri().toString();
+    URI uri = workspaceRoot.resolve(relativePath).toUri();
     System.out.println("Waiting for analysis from " + uri);
     ((SoarDocumentService) languageServer.getTextDocumentService()).getAnalysis(uri).get();
   }
 
+  /** Construct a text document identifier based on a relative path to the workspace root. */
   TextDocumentIdentifier fileId(String relativePath) {
+    // We pass the URI through the URL encoder to intentionally introduce percent-encoded chracters
+    // into the URI. This simulates the behaviour we see in some language clients on Windows.
     Path file = workspaceRoot.resolve(relativePath);
-    return new TextDocumentIdentifier(file.toUri().toString());
+    String uri = java.net.URLEncoder.encode(file.toUri().toString());
+    return new TextDocumentIdentifier(uri);
   }
 
   TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {

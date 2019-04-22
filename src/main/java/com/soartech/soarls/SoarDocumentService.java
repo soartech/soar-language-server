@@ -14,6 +14,8 @@ import com.soartech.soarls.analysis.VariableDefinition;
 import com.soartech.soarls.analysis.VariableRetrieval;
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.util.Debouncer;
+import java.net.URI;
+import java.net.URLDecoder;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -85,10 +87,10 @@ public class SoarDocumentService implements TextDocumentService {
    * sourced, declarations of Tcl procedures and variables, production declarations, and so on. The
    * analyseFile method is the entry point for how this information gets generated.
    */
-  private final ConcurrentHashMap<String, ProjectAnalysis> analyses = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<URI, ProjectAnalysis> analyses = new ConcurrentHashMap<>();
 
   /** Handles to diagnostics information that is currently being computed. */
-  private final ConcurrentHashMap<String, CompletableFuture<ProjectAnalysis>> pendingAnalyses =
+  private final ConcurrentHashMap<URI, CompletableFuture<ProjectAnalysis>> pendingAnalyses =
       new ConcurrentHashMap<>();
 
   /**
@@ -103,7 +105,7 @@ public class SoarDocumentService implements TextDocumentService {
    * diagnostics, we can send results for all possible entry points. In other cases, such as
    * go-to-definition, we need to compute results with respect to a single entry point.
    */
-  private String activeEntryPoint = null;
+  private URI activeEntryPoint = null;
 
   private LanguageClient client;
 
@@ -120,7 +122,7 @@ public class SoarDocumentService implements TextDocumentService {
    * already been completed then the future will resolve immediately; otherwise, you may assume that
    * the analysis is in progress and the future will resolve eventually.
    */
-  public CompletableFuture<ProjectAnalysis> getAnalysis(String uri) {
+  public CompletableFuture<ProjectAnalysis> getAnalysis(URI uri) {
     CompletableFuture<ProjectAnalysis> pending = pendingAnalyses.get(uri);
     if (pending != null) {
       if (pending.isDone()) {
@@ -152,7 +154,8 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public void didClose(DidCloseTextDocumentParams params) {
-    documents.close(params.getTextDocument().getUri());
+    URI uri = uri(params.getTextDocument().getUri());
+    documents.close(uri);
   }
 
   @Override
@@ -181,7 +184,8 @@ public class SoarDocumentService implements TextDocumentService {
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              SoarFile file = analysis.files.get(params.getTextDocument().getUri()).file;
+              URI uri = uri(params.getTextDocument().getUri());
+              SoarFile file = analysis.file(uri).file;
               TclAstNode node = file.tclNode(params.getPosition());
 
               Location location = null;
@@ -217,7 +221,8 @@ public class SoarDocumentService implements TextDocumentService {
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              SoarFile file = analysis.files.get(params.getTextDocument().getUri()).file;
+              URI uri = uri(params.getTextDocument().getUri());
+              SoarFile file = analysis.file(uri).file;
               String line = file.line(params.getPosition().getLine());
 
               int cursor = params.getPosition().getCharacter();
@@ -279,7 +284,8 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(
       TextDocumentPositionParams params) {
-    final SoarFile file = documents.get(params.getTextDocument().getUri());
+    URI uri = uri(params.getTextDocument().getUri());
+    final SoarFile file = documents.get(uri);
     final int offset = file.offset(params.getPosition());
 
     final List<DocumentHighlight> highlights =
@@ -298,7 +304,8 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<List<FoldingRange>> foldingRange(FoldingRangeRequestParams params) {
-    SoarFile file = documents.get(params.getTextDocument().getUri());
+    URI uri = uri(params.getTextDocument().getUri());
+    SoarFile file = documents.get(uri);
     List<FoldingRange> ranges =
         file.ast
             .getChildren()
@@ -328,7 +335,8 @@ public class SoarDocumentService implements TextDocumentService {
     return getAnalysis(activeEntryPoint)
         .thenApply(
             projectAnalysis -> {
-              FileAnalysis analysis = projectAnalysis.files.get(params.getTextDocument().getUri());
+              URI uri = uri(params.getTextDocument().getUri());
+              FileAnalysis analysis = projectAnalysis.file(uri);
               SoarFile file = analysis.file;
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
@@ -396,7 +404,8 @@ public class SoarDocumentService implements TextDocumentService {
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              FileAnalysis fileAnalysis = analysis.files.get(params.getTextDocument().getUri());
+              URI uri = uri(params.getTextDocument().getUri());
+              FileAnalysis fileAnalysis = analysis.file(uri);
               TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
 
               List<Location> references = new ArrayList<>();
@@ -499,8 +508,9 @@ public class SoarDocumentService implements TextDocumentService {
           return Optional.of(new SignatureHelp(signatures, activeSignature, activeParameter));
         };
 
+    URI uri = uri(params.getTextDocument().getUri());
     return getAnalysis(activeEntryPoint)
-        .thenApply(project -> project.files.get(params.getTextDocument().getUri()))
+        .thenApply(project -> project.file(uri))
         .thenApply(
             analysis -> {
               TclAstNode cursorNode = analysis.file.tclNode(params.getPosition());
@@ -518,7 +528,7 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
-  void setEntryPoint(String uri) {
+  void setEntryPoint(URI uri) {
     this.activeEntryPoint = uri;
     scheduleAnalysis();
   }
@@ -568,7 +578,7 @@ public class SoarDocumentService implements TextDocumentService {
       diagnosticList.addAll(fileAnalysis.file.getDiagnostics());
 
       PublishDiagnosticsParams diagnostics =
-          new PublishDiagnosticsParams(fileAnalysis.uri, diagnosticList);
+          new PublishDiagnosticsParams(fileAnalysis.uri.toString(), diagnosticList);
       client.publishDiagnostics(diagnostics);
     }
   }
@@ -588,7 +598,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   private Optional<Location> goToDefinitionVariable(
       ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
-    FileAnalysis fileAnalysis = projectAnalysis.files.get(file.uri);
+    FileAnalysis fileAnalysis = projectAnalysis.file(file.uri);
 
     LOG.trace("Looking up definition of variable at node {}", node);
     return fileAnalysis.variableRetrieval(node).flatMap(r -> r.definition).map(def -> def.location);
@@ -608,8 +618,7 @@ public class SoarDocumentService implements TextDocumentService {
 
     String expandedSoar =
         projectAnalysis
-            .files
-            .get(file.uri)
+            .file(file.uri)
             .productions
             .getOrDefault(commandNode, ImmutableList.of())
             .stream()
@@ -621,18 +630,18 @@ public class SoarDocumentService implements TextDocumentService {
     // when appending to the top of the file
     expandedSoar += "\n\n";
 
-    String new_uri = getBufferedUri(file.uri);
+    URI new_uri = getBufferedUri(file.uri);
     Position create_position = createFileWithContent(new_uri, expandedSoar);
 
-    return new Location(new_uri, new Range(create_position, create_position));
+    return new Location(new_uri.toString(), new Range(create_position, create_position));
   }
 
   /**
    * Create file with given contents If file already exists prepend contents to beginning of file
    */
-  private Position createFileWithContent(String file_uri, String content) {
+  private Position createFileWithContent(URI file_uri, String content) {
     // create new "buffer" file to show expanded soar code
-    CreateFile createFile = new CreateFile(file_uri, new CreateFileOptions(true, false));
+    CreateFile createFile = new CreateFile(file_uri.toString(), new CreateFileOptions(true, false));
     WorkspaceEdit workspaceEdit = new WorkspaceEdit();
     workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
     ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
@@ -646,7 +655,7 @@ public class SoarDocumentService implements TextDocumentService {
           List<TextEdit> edits = new ArrayList<>();
 
           edits.add(new TextEdit(new Range(start, start), content));
-          edit_map.put(file_uri, edits);
+          edit_map.put(file_uri.toString(), edits);
           WorkspaceEdit edit = new WorkspaceEdit(edit_map);
 
           client.applyEdit(new ApplyWorkspaceEditParams(edit));
@@ -659,8 +668,29 @@ public class SoarDocumentService implements TextDocumentService {
    * Given a file uri, returns buffer file uri Where filename is modified with a prepended ~
    * file:///C:/test/origin_file.soar -> file:///C:/test/~origin_file.soar
    */
-  private String getBufferedUri(String uri) {
+  private URI getBufferedUri(URI uri_) {
+    // TODO: The URI is being converted to a string and back as a
+    // consequence of replacing usages of String with the URI class. This
+    // keeps the original implementation of this function. There is
+    // probably a better way to do this that makes use of the URI or Path
+    // classes.
+    String uri = uri_.toString();
     int index = uri.lastIndexOf("/") + 1;
-    return uri.substring(0, index) + "~" + uri.substring(index);
+    return uri(uri.substring(0, index) + "~" + uri.substring(index));
+  }
+
+  // Helpers
+
+  /**
+   * Convert a String to a URI. Constructing a URI can throw a URISyntaxException. However, a well
+   * behaved LSP client should never send badly formed URIs, so it is more convenient to turn this
+   * into an unchecked exception. The lsp4j library will handle them gracefully anyway.
+   */
+  static URI uri(String uriString) {
+    try {
+      return new URI(URLDecoder.decode(uriString));
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 }

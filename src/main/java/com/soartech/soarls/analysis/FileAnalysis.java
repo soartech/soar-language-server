@@ -6,6 +6,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -18,7 +19,7 @@ import org.eclipse.lsp4j.Diagnostic;
  */
 public class FileAnalysis {
   /** The URI of the file that was analised. */
-  public final String uri;
+  public final URI uri;
 
   /** The state of the file that was analised. */
   public final SoarFile file;
@@ -44,7 +45,7 @@ public class FileAnalysis {
    *
    * <p>Note: sourcing a file may also count as a procedure call.
    */
-  public final ImmutableList<String> filesSourced;
+  public final ImmutableList<URI> filesSourced;
 
   /**
    * Productions that were defined while sourcing each command in the file. The map is indexed by
@@ -86,7 +87,7 @@ public class FileAnalysis {
       Map<TclAstNode, ProcedureCall> procedureCalls,
       Map<TclAstNode, VariableRetrieval> variableRetrievals,
       List<ProcedureDefinition> procedureDefinitions,
-      List<String> filesSourced,
+      List<URI> filesSourced,
       Map<TclAstNode, List<Production>> productions,
       List<Diagnostic> diagnostics) {
     this.uri = file.uri;

@@ -4,6 +4,7 @@ import static java.util.stream.Collectors.toList;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -22,7 +23,7 @@ import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
  * file, use the withChanges() method, which returns a new SoarFile.
  */
 public class SoarFile {
-  public final String uri;
+  public final URI uri;
 
   public final String contents;
 
@@ -36,7 +37,7 @@ public class SoarFile {
    */
   public final TclAstNode ast;
 
-  public SoarFile(String uri, String contents) {
+  public SoarFile(URI uri, String contents) {
     this.uri = uri;
     this.contents = fixLineEndings(contents);
 

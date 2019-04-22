@@ -87,8 +87,8 @@ public class Analysis {
   // the analysis, and then they are copied to their immutable
   // counterpart at the end.
 
-  private final String entryPointUri;
-  private final Map<String, FileAnalysis> files = new HashMap<>();
+  private final URI entryPointUri;
+  private final Map<URI, FileAnalysis> files = new HashMap<>();
   private final Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
   private final Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
   private final Map<String, VariableDefinition> variableDefinitions = new HashMap<>();
@@ -97,7 +97,7 @@ public class Analysis {
 
   private final Interp tclInterp;
 
-  private Analysis(Documents documents, String entryPointUri) throws SoarException {
+  private Analysis(Documents documents, URI entryPointUri) throws SoarException {
     this.documents = documents;
     this.entryPointUri = entryPointUri;
 
@@ -111,7 +111,7 @@ public class Analysis {
     }
 
     try {
-      this.directoryStack.push(Paths.get(new URI(entryPointUri)).getParent());
+      this.directoryStack.push(Paths.get(entryPointUri).getParent());
     } catch (Exception e) {
       LOG.error("failed to initialize directory stack", e);
     }
@@ -122,7 +122,7 @@ public class Analysis {
   }
 
   /** Perform a full analysis of a project starting from the given entry point. */
-  public static ProjectAnalysis analyse(Documents documents, String entryPointUri) {
+  public static ProjectAnalysis analyse(Documents documents, URI entryPointUri) {
     Analysis analysis = null;
     try {
       analysis = new Analysis(documents, entryPointUri);
@@ -160,7 +160,7 @@ public class Analysis {
     Map<TclAstNode, ProcedureCall> procedureCalls = new HashMap<>();
     Map<TclAstNode, VariableRetrieval> variableRetrievals = new HashMap<>();
     List<ProcedureDefinition> procedureDefinitions = new ArrayList<>();
-    List<String> filesSourced = new ArrayList<>();
+    List<URI> filesSourced = new ArrayList<>();
     Map<TclAstNode, List<Production>> productions = new HashMap<>();
     List<Diagnostic> diagnosticList = new ArrayList<>();
 
@@ -196,7 +196,7 @@ public class Analysis {
               Path newDirectory = pathToSource.getParent();
               this.directoryStack.push(newDirectory);
 
-              String uri = pathToSource.toUri().toString();
+              URI uri = pathToSource.toUri();
               filesSourced.add(uri);
               SoarFile sourcedFile = documents.get(uri);
               LOG.info("Retrieved file for {} :: {}", uri, sourcedFile);
@@ -238,7 +238,7 @@ public class Analysis {
       addCommand(
           "sp",
           (context, args) -> {
-            Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
+            Location location = location(file.uri, file.rangeForNode(ctx.currentNode));
             Production production = new Production(args[1], location);
             productions.computeIfAbsent(ctx.currentNode, key -> new ArrayList<>()).add(production);
             LOG.trace("Added production {} to {}", production.name, file.uri);
@@ -252,7 +252,7 @@ public class Analysis {
           "proc",
           (context, args) -> {
             String name = args[1];
-            Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
+            Location location = location(file.uri, file.rangeForNode(ctx.currentNode));
 
             char[] argsBuffer = ('"' + args[2] + '"').toCharArray();
             TclParser parser = new TclParser();
@@ -372,7 +372,7 @@ public class Analysis {
 
                   for (Map.Entry<String, String> e : onRight.entrySet()) {
                     String name = e.getKey();
-                    Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
+                    Location location = location(file.uri, file.rangeForNode(ctx.currentNode));
                     String value = e.getValue();
                     TclAstNode commentAstNode = null;
                     String commentText = null;
@@ -394,7 +394,7 @@ public class Analysis {
                   for (Map.Entry<String, MapDifference.ValueDifference<String>> e :
                       differing.entrySet()) {
                     String name = e.getKey();
-                    Location location = new Location(file.uri, file.rangeForNode(ctx.currentNode));
+                    Location location = location(file.uri, file.rangeForNode(ctx.currentNode));
                     String value = e.getValue().rightValue();
                     TclAstNode commentAstNode = null;
                     String commentText = null;
@@ -431,7 +431,7 @@ public class Analysis {
                   TclAstNode firstChild = node.getChild(TclAstNode.NORMAL_WORD);
                   if (firstChild != null) {
                     String name = file.getNodeInternalText(firstChild);
-                    Location location = new Location(file.uri, file.rangeForNode(node));
+                    Location location = location(file.uri, file.rangeForNode(node));
                     ProcedureCall procedureCall =
                         new ProcedureCall(location, node, this.procedureDefinitions.get(name));
 
@@ -448,7 +448,7 @@ public class Analysis {
                   TclAstNode nameNode = node.getChild(TclAstNode.VARIABLE_NAME);
                   if (nameNode != null) {
                     String name = file.getNodeInternalText(nameNode);
-                    Location location = new Location(file.uri, file.rangeForNode(node));
+                    Location location = location(file.uri, file.rangeForNode(node));
                     VariableDefinition definition = this.variableDefinitions.get(name);
                     VariableRetrieval retrieval = new VariableRetrieval(location, node, definition);
 
@@ -551,5 +551,12 @@ public class Analysis {
                   }
                   return result;
                 }));
+  }
+
+  // Helpers
+
+  /** Construct a new Location. */
+  Location location(URI uri, Range range) {
+    return new Location(uri.toString(), range);
   }
 }
