@@ -44,7 +44,10 @@ public class HoverTest extends SingleFileTestFixture {
 
   /** For procedure calls, the hover text shows the first line of the comment text. */
   @Test
-  public void hoverProcDocs() throws Exception {
+  public void hoverProcSingleLine() throws Exception {
+    config.fullCommentHover = false;
+    sendConfiguration();
+
     // ngs-bind
     TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();

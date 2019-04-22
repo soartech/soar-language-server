@@ -9,5 +9,5 @@ class Configuration {
   public Integer debounceTime = 1000;
 
   /** Whether hover tooltips should show full comment text or just the first line. */
-  public Boolean fullCommentHover = false;
+  public Boolean fullCommentHover = true;
 }
