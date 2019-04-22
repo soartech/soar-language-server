@@ -18,7 +18,6 @@ target/
 
 # Ignore IntelliJ Plugin output
 integrations/intellij/soar-ide/out
-integrations/vscode/soar-ide/node_modules/
 
 # Ignore Eclipse IDE files
 .classpath
