@@ -140,12 +140,7 @@ public class SoarFile {
   String line(int lineNumber) {
     int start = offset(new Position(lineNumber, 0));
     int end = offset(new Position(lineNumber + 1, 0));
-    // This avoids choking on the last line of the file.
-    if (end < 0) {
-      return contents.substring(start);
-    } else {
-      return contents.substring(start, end);
-    }
+    return contents.substring(start, end);
   }
 
   /** Get the 0-based offset at the given position. */
@@ -183,25 +178,6 @@ public class SoarFile {
     contents = contents.replace("\r\n", "\n");
     contents = contents.replace("\r", "\n");
     return contents;
-  }
-
-  TclAstNode findRootBranchNode(TclAstNode node) {
-    for (TclAstNode child : this.ast.getChildren()) {
-      if (branchContainsNode(child, node)) {
-        return child;
-      }
-    }
-    return null;
-  }
-
-  private boolean branchContainsNode(TclAstNode treeNode, TclAstNode searchNode) {
-    if (treeNode == searchNode) return true;
-
-    for (TclAstNode child : treeNode.getChildren()) {
-      if (branchContainsNode(child, searchNode)) return true;
-    }
-
-    return false;
   }
 
   // returns a Position of the last character on a given line
