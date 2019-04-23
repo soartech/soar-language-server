@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.Position;
 
 /**
  * Complete analysis information for a single file.
@@ -80,6 +81,21 @@ public class FileAnalysis {
       node = node.getParent();
     }
     return Optional.ofNullable(variableRetrievals.get(node));
+  }
+
+  public Production production(Position position) {
+    return findProduction(position);
+  }
+
+  private Production findProduction(Position position) {
+    for (ImmutableList<Production> productions : productions.values()) {
+      for (Production prod : productions) {
+        if (file.isInRange(position, prod.location.getRange())) {
+          return prod;
+        }
+      }
+    }
+    return null;
   }
 
   public FileAnalysis(

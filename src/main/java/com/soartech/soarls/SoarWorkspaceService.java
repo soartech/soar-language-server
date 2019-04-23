@@ -46,6 +46,7 @@ class SoarWorkspaceService implements WorkspaceService {
   public void processEntryPoints() {
     LOG.info("Processing entry points: workspace URI: " + workspaceRootUri);
     Path workspaceRootPath = Paths.get(URI.create(workspaceRootUri));
+    documentService.setWorkspaceRootPath(workspaceRootPath);
 
     Path soarAgentsPath = workspaceRootPath.resolve(SOAR_AGENTS_FILE);
 

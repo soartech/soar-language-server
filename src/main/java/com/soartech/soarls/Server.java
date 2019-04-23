@@ -3,6 +3,7 @@ package com.soartech.soarls;
 import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.CompletionOptions;
+import org.eclipse.lsp4j.DocumentLinkOptions;
 import org.eclipse.lsp4j.ExecuteCommandOptions;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
@@ -62,6 +63,7 @@ public class Server implements LanguageServer, LanguageClientAware {
     capabilities.setCodeActionProvider(true);
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions());
     capabilities.setReferencesProvider(true);
+    capabilities.setDocumentLinkProvider(new DocumentLinkOptions());
 
     return CompletableFuture.completedFuture(new InitializeResult(capabilities));
   }

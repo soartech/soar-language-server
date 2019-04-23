@@ -174,6 +174,20 @@ public class SoarFile {
     return new Position(line, character);
   }
 
+  public boolean isInRange(Position position, Range range) {
+    return isInRange(offset(position), range);
+  }
+
+  public boolean isInRange(int offset, Range range) {
+    int start_offset = offset(range.getStart());
+    int end_offset = offset(range.getEnd());
+
+    if (offset < start_offset) return false;
+    if (offset > end_offset) return false;
+
+    return true;
+  }
+
   private String fixLineEndings(String contents) {
     contents = contents.replace("\r\n", "\n");
     contents = contents.replace("\r", "\n");

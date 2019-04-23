@@ -9,6 +9,7 @@ import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
 import com.soartech.soarls.analysis.ProcedureDefinition;
+import com.soartech.soarls.analysis.Production;
 import com.soartech.soarls.analysis.ProjectAnalysis;
 import com.soartech.soarls.analysis.VariableDefinition;
 import com.soartech.soarls.analysis.VariableRetrieval;
@@ -16,6 +17,8 @@ import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.util.Debouncer;
 import java.net.URI;
 import java.net.URLDecoder;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,6 +50,8 @@ import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentHighlight;
+import org.eclipse.lsp4j.DocumentLink;
+import org.eclipse.lsp4j.DocumentLinkParams;
 import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
@@ -106,6 +111,12 @@ public class SoarDocumentService implements TextDocumentService {
    * go-to-definition, we need to compute results with respect to a single entry point.
    */
   private URI activeEntryPoint = null;
+
+  // The path of the currently active workspace.
+  private Path workspaceRootPath = null;
+
+  // The path to the buffer file for expanded soar code for the current workspace
+  private URI bufferFileURI = null;
 
   private LanguageClient client;
 
@@ -340,6 +351,12 @@ public class SoarDocumentService implements TextDocumentService {
               SoarFile file = analysis.file;
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
+              // If hovering over a production, populate bufferFile with expanded code
+              Production currentProduction = analysis.production(params.getPosition());
+              if (currentProduction != null) {
+                createFileWithContent(bufferFileURI, "sp {" + currentProduction.body + "}\n");
+              }
+
               Function<TclAstNode, Hover> hoverVariable =
                   node -> {
                     VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
@@ -527,6 +544,12 @@ public class SoarDocumentService implements TextDocumentService {
     this.client = client;
   }
 
+  void setWorkspaceRootPath(Path workspaceRootPath) {
+    this.workspaceRootPath = workspaceRootPath;
+    this.bufferFileURI =
+        Paths.get(workspaceRootPath.toAbsolutePath().toString(), "buffer.soar").toUri();
+  }
+
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
   void setEntryPoint(URI uri) {
     this.activeEntryPoint = uri;
@@ -662,6 +685,40 @@ public class SoarDocumentService implements TextDocumentService {
         });
 
     return start;
+  }
+
+  @Override
+  public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
+    URI uri = uri(params.getTextDocument().getUri());
+    SoarFile file = documents.get(uri);
+
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            analysis -> {
+              FileAnalysis fileAnalysis = analysis.file(uri);
+              List<DocumentLink> links = new ArrayList<>();
+
+              for (Map.Entry<TclAstNode, ImmutableList<Production>> entry :
+                  fileAnalysis.productions.entrySet()) {
+                TclAstNode node = entry.getKey();
+                TclAstNode firstNormalWord = node.getChild(TclAstNode.NORMAL_WORD);
+                for (Production production : entry.getValue()) {
+                  Range highlightRange = production.location.getRange();
+                  if (firstNormalWord != null) highlightRange = file.rangeForNode(firstNormalWord);
+
+                  DocumentLink link = new DocumentLink(highlightRange);
+                  link.setTarget(bufferFileURI.toString());
+                  links.add(link);
+                }
+              }
+
+              // create the buffer file if we have a link to go to
+              if (links.size() > 0) {
+                createFileWithContent(bufferFileURI, "");
+              }
+
+              return links;
+            });
   }
 
   /**
