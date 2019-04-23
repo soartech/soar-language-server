@@ -1,6 +1,6 @@
 {
-  "name": "soar-ide",
-  "displayName": "Soar IDE",
+  "name": "soar-language-support",
+  "displayName": "Soar Language Support",
   "description": "Language server client for use with the Soar Language Server",
   "version": "0.0.1",
   "publisher": "soartech",
@@ -9,7 +9,7 @@
     "type": "git",
     "url": "https://github.com/soartech/soar-language-server.git"
   },
-  "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/soar-ide/README.md",
+  "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/README.md",
   "engines": {
     "vscode": "^1.32.0"
   },
@@ -20,7 +20,8 @@
     "soar"
   ],
   "activationEvents": [
-    "onLanguage:soar"
+    "onLanguage:soar",
+    "onLanguage:tcl"
   ],
   "main": "./out/extension.js",
   "contributes": {
