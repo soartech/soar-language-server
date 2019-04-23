@@ -3,12 +3,14 @@ version: "{branch} {build}"
 install:
   - git submodule -q update --init
   - gradlew.bat compileJSoar
+  - cd integrations/vscode && npm install && cd ../../
 
 build_script:
   - gradlew.bat classes
 
 test_script:
   - gradlew.bat check
+  - cd integrations/vscode && npm run compile && cd ../../
 
 cache:
   - C:\Users\appveyor\.gradle
