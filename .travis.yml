@@ -23,7 +23,7 @@ install:
 
 script:
   - ./gradlew check
-  - (cd integrations/vscode && npm test)
+  - (cd integrations/vscode && npm run compile)
 
 before_deploy:
   - ./gradlew assemble
