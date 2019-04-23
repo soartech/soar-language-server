@@ -49,6 +49,11 @@ class SoarWorkspaceService implements WorkspaceService {
 
     Path soarAgentsPath = workspaceRootPath.resolve(SOAR_AGENTS_FILE);
 
+    if(!Files.exists(soarAgentsPath)) {
+        LOG.info("Not found: {} -- using default entry point", soarAgentsPath);
+        return;
+    }
+        
     try {
       // read the SOAR_AGENTS_FILE into an EntryPoints object
       String soarAgentsJson = new String(Files.readAllBytes(soarAgentsPath));
