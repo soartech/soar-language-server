@@ -1,17 +1,21 @@
 package com.soartech.soarls;
 
 import org.junit.Test;
+import static org.junit.Assert.*;
 
-public class ParsingTest extends LanguageServerTestFixture {
+import org.junit.Ignore;
+
+public class ParsingTest extends SingleFileTestFixture {
 
   public ParsingTest() throws Exception {
-    super("parsing");
+    super("parsing", "test.soar");
 
-    open("test.soar");
+    waitForAnalysis("test.soar");
   }
 
+  @Ignore
   @Test(timeout = 100)
   public void test() {
-    // nothing specifically to do, just want to ensure that we don't get stuck in an infinite loop
+      assertEquals(0, this.diagnosticsForFile("test.soar").size());
   }
 }

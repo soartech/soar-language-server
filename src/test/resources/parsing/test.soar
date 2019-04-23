@@ -8,3 +8,11 @@ sp "propose*init*ngs
     (<s> ^foo bar2) # non-tcl action
     [ngs-log $defaultLoggerName $NGS_INFO "this is a message; <s>"]
 "
+
+set line "this is a { brace"
+set line2 {this is a " quote}
+set line3 "this is an \" escaped quote"
+set line4 "this is an \} escaped brace"
+set end [expr [string last {"} $line]
+
+echo $end
