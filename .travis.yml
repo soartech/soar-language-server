@@ -19,11 +19,9 @@ install:
   # to successfully be configured - it's not enough to simply declare
   # it as a task dependency.
   - ./gradlew compileJSoar
-  - (cd integrations/vscode && npm install)
 
 script:
   - ./gradlew check
-  - (cd integrations/vscode && npm test)
 
 before_deploy:
   - ./gradlew assemble
