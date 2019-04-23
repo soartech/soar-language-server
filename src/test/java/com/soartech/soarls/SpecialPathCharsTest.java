@@ -1,9 +1,9 @@
 package com.soartech.soarls;
 
-import org.junit.Test;
 import static org.junit.Assert.*;
 
 import org.junit.Ignore;
+import org.junit.Test;
 
 public class SpecialPathCharsTest extends SingleFileTestFixture {
 
@@ -16,6 +16,6 @@ public class SpecialPathCharsTest extends SingleFileTestFixture {
   @Ignore
   @Test
   public void test() {
-      assertEquals(0, this.diagnosticsForFile("test.soar").size());
+    assertEquals(0, this.diagnosticsForFile("test.soar").size());
   }
 }
