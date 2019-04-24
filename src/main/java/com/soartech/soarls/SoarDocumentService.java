@@ -18,7 +18,6 @@ import com.soartech.soarls.util.Debouncer;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,9 +114,6 @@ public class SoarDocumentService implements TextDocumentService {
   // The path of the currently active workspace.
   private Path workspaceRootPath = null;
 
-  // The path to the buffer file for expanded soar code for the current workspace
-  private URI bufferFileURI = null;
-
   private LanguageClient client;
 
   /**
@@ -148,6 +144,11 @@ public class SoarDocumentService implements TextDocumentService {
 
     ProjectAnalysis analysis = analyses.get(uri);
     return analysis == null ? pending : CompletableFuture.completedFuture(analysis);
+  }
+
+  /** Get the URI of the file to use for Tcl expansions. */
+  private URI tclExpansionUri() {
+    return workspaceRootPath.resolve(config.tclExpansionFile).toUri();
   }
 
   @Override
@@ -366,7 +367,7 @@ public class SoarDocumentService implements TextDocumentService {
               // If hovering over a production, populate bufferFile with expanded code
               Production currentProduction = analysis.production(params.getPosition());
               if (currentProduction != null) {
-                createFileWithContent(bufferFileURI, "sp {" + currentProduction.body + "}\n");
+                createFileWithContent(tclExpansionUri(), "sp {" + currentProduction.body + "}\n");
               }
 
               Function<TclAstNode, Hover> hoverVariable =
@@ -558,8 +559,6 @@ public class SoarDocumentService implements TextDocumentService {
 
   void setWorkspaceRootPath(Path workspaceRootPath) {
     this.workspaceRootPath = workspaceRootPath;
-    this.bufferFileURI =
-        Paths.get(workspaceRootPath.toAbsolutePath().toString(), "buffer.soar").toUri();
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
@@ -719,14 +718,14 @@ public class SoarDocumentService implements TextDocumentService {
                   if (firstNormalWord != null) highlightRange = file.rangeForNode(firstNormalWord);
 
                   DocumentLink link = new DocumentLink(highlightRange);
-                  link.setTarget(bufferFileURI.toString());
+                  link.setTarget(tclExpansionUri().toString());
                   links.add(link);
                 }
               }
 
               // create the buffer file if we have a link to go to
               if (links.size() > 0) {
-                createFileWithContent(bufferFileURI, "");
+                createFileWithContent(tclExpansionUri(), "");
               }
 
               return links;

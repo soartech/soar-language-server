@@ -10,4 +10,10 @@ class Configuration {
 
   /** Whether hover tooltips should show full comment text or just the first line. */
   public Boolean fullCommentHover = true;
+
+  /**
+   * The name of the file to use for Tcl expansions, relative to the workspace root. This file will
+   * be frequently modified by the server.
+   */
+  public String tclExpansionFile = "~tcl-expansion.soar";
 }
