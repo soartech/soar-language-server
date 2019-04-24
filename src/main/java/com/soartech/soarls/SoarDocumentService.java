@@ -1,5 +1,6 @@
 package com.soartech.soarls;
 
+import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -207,35 +208,42 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             analysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              SoarFile file = analysis.file(uri).file;
-              TclAstNode node = file.tclNode(params.getPosition());
+              List<Location> locations =
+                  analysis
+                      .file(uri)
+                      .map(file -> file.file)
+                      .map(
+                          file -> {
+                            TclAstNode node = file.tclNode(params.getPosition());
 
-              Location location = null;
-              if (node.getType() == TclAstNode.NORMAL_WORD) {
-                TclAstNode parent = node.getParent();
+                            if (node.getType() == TclAstNode.NORMAL_WORD) {
+                              TclAstNode parent = node.getParent();
 
-                // if parent is QUOTED_WORD then currently on an SP command -> expand the code in
-                // buffer
-                // if parent is COMMAND_WORD then go to procedure definition if found.
-                if (parent.getType() == TclAstNode.QUOTED_WORD) {
-                  // this is currently commented out as we do not want a buffer created for each
-                  // file
-                  // location = goToDefinitionExpansion(analysis, file, parent);
-                } else if (parent.getType() == TclAstNode.COMMAND_WORD
-                    || parent.getType() == TclAstNode.COMMAND) {
-                  location = goToDefinitionProcedure(analysis, file, node);
-                }
-              } else if (node.getType() == TclAstNode.VARIABLE
-                  || node.getType() == TclAstNode.VARIABLE_NAME) {
-                location = goToDefinitionVariable(analysis, file, node).orElse(null);
-              }
+                              // if parent is QUOTED_WORD then currently on an SP command -> expand
+                              // the code in
+                              // buffer
+                              // if parent is COMMAND_WORD then go to procedure definition if found.
+                              if (parent.getType() == TclAstNode.QUOTED_WORD) {
+                                // this is currently commented out as we do not want a buffer
+                                // created for each
+                                // file
+                                // return goToDefinitionExpansion(analysis, file, parent);
+                              } else if (parent.getType() == TclAstNode.COMMAND_WORD
+                                  || parent.getType() == TclAstNode.COMMAND) {
+                                return goToDefinitionProcedure(analysis, file, node);
+                              }
+                            } else if (node.getType() == TclAstNode.VARIABLE
+                                || node.getType() == TclAstNode.VARIABLE_NAME) {
+                              return goToDefinitionVariable(analysis, file, node).orElse(null);
+                            }
 
-              List<Location> goToLocation = new ArrayList<>();
-              if (location != null) {
-                goToLocation.add(location);
-              }
+                            return null;
+                          })
+                      .flatMap(location -> Optional.ofNullable(location))
+                      .map(location -> singletonList(location))
+                      .orElseGet(ArrayList::new);
 
-              return Either.forLeft(goToLocation);
+              return Either.forLeft(locations);
             });
   }
 
@@ -246,7 +254,7 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             analysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              SoarFile file = analysis.file(uri).file;
+              SoarFile file = analysis.file(uri).orElse(null).file;
               String line = file.line(params.getPosition().getLine());
 
               int cursor = params.getPosition().getCharacter();
@@ -360,7 +368,7 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             projectAnalysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              FileAnalysis analysis = projectAnalysis.file(uri);
+              FileAnalysis analysis = projectAnalysis.file(uri).orElse(null);
               SoarFile file = analysis.file;
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
@@ -435,7 +443,7 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             analysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              FileAnalysis fileAnalysis = analysis.file(uri);
+              FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
               TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
 
               List<Location> references = new ArrayList<>();
@@ -540,7 +548,7 @@ public class SoarDocumentService implements TextDocumentService {
 
     URI uri = uri(params.getTextDocument().getUri());
     return getAnalysis(activeEntryPoint)
-        .thenApply(project -> project.file(uri))
+        .thenApply(project -> project.file(uri).orElse(null))
         .thenApply(
             analysis -> {
               TclAstNode cursorNode = analysis.file.tclNode(params.getPosition());
@@ -632,7 +640,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   private Optional<Location> goToDefinitionVariable(
       ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
-    FileAnalysis fileAnalysis = projectAnalysis.file(file.uri);
+    FileAnalysis fileAnalysis = projectAnalysis.file(file.uri).orElse(null);
 
     LOG.trace("Looking up definition of variable at node {}", node);
     return fileAnalysis.variableRetrieval(node).flatMap(r -> r.definition).map(def -> def.location);
@@ -653,6 +661,7 @@ public class SoarDocumentService implements TextDocumentService {
     String expandedSoar =
         projectAnalysis
             .file(file.uri)
+            .orElse(null)
             .productions
             .getOrDefault(commandNode, ImmutableList.of())
             .stream()
@@ -706,7 +715,7 @@ public class SoarDocumentService implements TextDocumentService {
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              FileAnalysis fileAnalysis = analysis.file(uri);
+              FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
               List<DocumentLink> links = new ArrayList<>();
 
               for (Map.Entry<TclAstNode, ImmutableList<Production>> entry :

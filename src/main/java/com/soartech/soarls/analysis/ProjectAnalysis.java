@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableMap;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * The results of analysing a Soar project starting from a particular entry point.
@@ -76,7 +77,7 @@ public class ProjectAnalysis {
    * Get the file analysis associated with the given URI. This is a bit shorter than calling
    * analysis.files.get(), and it also catches type errors in the key.
    */
-  public FileAnalysis file(URI uri) {
-    return files.get(uri);
+  public Optional<FileAnalysis> file(URI uri) {
+    return Optional.ofNullable(files.get(uri));
   }
 }
