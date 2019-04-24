@@ -749,24 +749,21 @@ public class SoarDocumentService implements TextDocumentService {
   public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
     URI uri = uri(params.getTextDocument().getUri());
 
+    Function<FileAnalysis, List<DocumentLink>> collectLinks =
+        fileAnalysis -> {
+          SoarFile file = fileAnalysis.file;
+          return fileAnalysis
+              .productions
+              .keySet()
+              .stream()
+              .map(key -> key.getChild(TclAstNode.NORMAL_WORD))
+              .map(node -> new DocumentLink(file.rangeForNode(node)))
+              .peek(link -> link.setTarget(tclExpansionUri().toString()))
+              .collect(toList());
+        };
+
     return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis ->
-                analysis
-                    .file(uri)
-                    .map(
-                        fileAnalysis -> {
-                          SoarFile file = fileAnalysis.file;
-                          return fileAnalysis
-                              .productions
-                              .keySet()
-                              .stream()
-                              .map(key -> key.getChild(TclAstNode.NORMAL_WORD))
-                              .map(node -> new DocumentLink(file.rangeForNode(node)))
-                              .peek(link -> link.setTarget(tclExpansionUri().toString()))
-                              .collect(toList());
-                        })
-                    .orElse(null));
+        .thenApply(analysis -> analysis.file(uri).map(collectLinks).orElse(null));
   }
 
   /**
