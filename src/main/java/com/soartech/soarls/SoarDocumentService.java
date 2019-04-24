@@ -171,9 +171,19 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
-    String uri = params.getTextDocument().getUri();
+    URI uri = uri(params.getTextDocument().getUri());
     documents.applyChanges(params);
-    scheduleAnalysis();
+
+    // If the file that changed was never sourced, then there is no
+    // need to re-analyse the project. This mainly prevents the Tcl
+    // expansion buffer from triggering a continuous loop of analyses.
+    boolean changeAffectsAnalysis =
+        Optional.ofNullable(getAnalysis(activeEntryPoint).getNow(null))
+            .map(analysis -> analysis.files.containsKey(uri))
+            .orElse(false);
+    if (changeAffectsAnalysis) {
+      scheduleAnalysis();
+    }
   }
 
   @Override
