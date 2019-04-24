@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.eclipse.lsp4j.Diagnostic;
-import org.eclipse.lsp4j.Position;
 
 /**
  * Complete analysis information for a single file.
@@ -83,19 +82,20 @@ public class FileAnalysis {
     return Optional.ofNullable(variableRetrievals.get(node));
   }
 
-  public Production production(Position position) {
-    return findProduction(position);
-  }
-
-  private Production findProduction(Position position) {
-    for (ImmutableList<Production> productions : productions.values()) {
-      for (Production prod : productions) {
-        if (file.isInRange(position, prod.location.getRange())) {
-          return prod;
-        }
+  /**
+   * Get all the productions that were defined at the given AST node, by searching up the AST until
+   * a match is found.
+   */
+  public ImmutableList<Production> productions(TclAstNode node) {
+    while (node.getType() != TclAstNode.ROOT) {
+      ImmutableList<Production> productions = this.productions.get(node);
+      if (productions != null) {
+        return productions;
+      } else {
+        node = node.getParent();
       }
     }
-    return null;
+    return ImmutableList.of();
   }
 
   public FileAnalysis(

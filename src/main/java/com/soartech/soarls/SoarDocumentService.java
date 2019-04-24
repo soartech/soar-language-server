@@ -10,7 +10,6 @@ import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
 import com.soartech.soarls.analysis.ProcedureDefinition;
-import com.soartech.soarls.analysis.Production;
 import com.soartech.soarls.analysis.ProjectAnalysis;
 import com.soartech.soarls.analysis.VariableDefinition;
 import com.soartech.soarls.analysis.VariableRetrieval;
@@ -373,10 +372,13 @@ public class SoarDocumentService implements TextDocumentService {
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
               // If hovering over a production, populate bufferFile with expanded code
-              Production currentProduction = analysis.production(params.getPosition());
-              if (currentProduction != null) {
-                createFileWithContent(tclExpansionUri(), "sp {" + currentProduction.body + "}\n");
-              }
+              String expandedCode =
+                  analysis
+                      .productions(hoveredNode)
+                      .stream()
+                      .map(production -> "sp {" + production.body + "}\n")
+                      .collect(joining("\n"));
+              createFileWithContent(tclExpansionUri(), expandedCode);
 
               Function<TclAstNode, Hover> hoverVariable =
                   node -> {
