@@ -710,35 +710,25 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
     URI uri = uri(params.getTextDocument().getUri());
-    SoarFile file = documents.get(uri);
 
     return getAnalysis(activeEntryPoint)
         .thenApply(
-            analysis -> {
-              FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
-              List<DocumentLink> links = new ArrayList<>();
-
-              for (Map.Entry<TclAstNode, ImmutableList<Production>> entry :
-                  fileAnalysis.productions.entrySet()) {
-                TclAstNode node = entry.getKey();
-                TclAstNode firstNormalWord = node.getChild(TclAstNode.NORMAL_WORD);
-                for (Production production : entry.getValue()) {
-                  Range highlightRange = production.location.getRange();
-                  if (firstNormalWord != null) highlightRange = file.rangeForNode(firstNormalWord);
-
-                  DocumentLink link = new DocumentLink(highlightRange);
-                  link.setTarget(tclExpansionUri().toString());
-                  links.add(link);
-                }
-              }
-
-              // create the buffer file if we have a link to go to
-              if (links.size() > 0) {
-                createFileWithContent(tclExpansionUri(), "");
-              }
-
-              return links;
-            });
+            analysis ->
+                analysis
+                    .file(uri)
+                    .map(
+                        fileAnalysis -> {
+                          SoarFile file = fileAnalysis.file;
+                          return fileAnalysis
+                              .productions
+                              .keySet()
+                              .stream()
+                              .map(key -> key.getChild(TclAstNode.NORMAL_WORD))
+                              .map(node -> new DocumentLink(file.rangeForNode(node)))
+                              .peek(link -> link.setTarget(tclExpansionUri().toString()))
+                              .collect(toList());
+                        })
+                    .orElse(null));
   }
 
   /**
