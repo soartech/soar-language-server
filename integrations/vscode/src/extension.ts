@@ -1,3 +1,4 @@
+import * as path from 'path';
 import { workspace, ExtensionContext } from 'vscode';
 import {
 	LanguageClient,
@@ -13,8 +14,11 @@ export function activate(context: ExtensionContext) {
         return;
     }
 
+    // Use the executable that the user has configured, or default to
+    // the one that is packaged with the plugin.
     const serverCommand = workspace.getConfiguration('soar')
-        .get<string>('languageServer.executablePath') || 'soar-language-server';
+        .get<string>('languageServer.executablePath')
+        || path.resolve(context.extensionPath, 'soar-language-server', 'bin', correctScriptName('soar-language-server'));
 
     let debugOptions = {};
 
