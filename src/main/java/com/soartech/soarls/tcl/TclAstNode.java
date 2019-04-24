@@ -35,7 +35,6 @@ public class TclAstNode {
   private int length;
   private TclAstNode parent = null;
   private List<TclAstNode> children;
-  private TclAstNode previousChild = null;
   private TclParserError error;
 
   public TclAstNode(int type, int start) {
@@ -56,18 +55,9 @@ public class TclAstNode {
 
   public void addChild(TclAstNode node) {
     List<TclAstNode> kids = getChildren();
-    if (!kids.isEmpty()) {
-      node.previousChild = kids.get(kids.size() - 1);
-    } else {
-      node.previousChild = null;
-    }
 
     node.parent = this;
     kids.add(node);
-  }
-
-  public TclAstNode getPrevious() {
-    return previousChild;
   }
 
   public int getLength() {
