@@ -82,22 +82,6 @@ public class FileAnalysis {
     return Optional.ofNullable(variableRetrievals.get(node));
   }
 
-  /**
-   * Get all the productions that were defined at the given AST node, by searching up the AST until
-   * a match is found.
-   */
-  public ImmutableList<Production> productions(TclAstNode node) {
-    while (node.getType() != TclAstNode.ROOT) {
-      ImmutableList<Production> productions = this.productions.get(node);
-      if (productions != null) {
-        return productions;
-      } else {
-        node = node.getParent();
-      }
-    }
-    return ImmutableList.of();
-  }
-
   public FileAnalysis(
       SoarFile file,
       Map<TclAstNode, ProcedureCall> procedureCalls,
