@@ -27,7 +27,7 @@ script:
 
 before_deploy:
   - ./gradlew assemble
-  - ./gradlew shadowDistTar shadowDistZip
+  - ./gradlew shadowDistTar shadowDistZip installShadowDist
   - (cd integrations/vscode && npx vsce package)
 deploy:
 - provider: releases
