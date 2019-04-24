@@ -5,7 +5,6 @@ import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.Lists;
 import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
@@ -189,15 +188,45 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
-    String uri = params.getTextDocument().getUri();
+    URI uri = uri(params.getTextDocument().getUri());
 
-    List<Either<Command, CodeAction>> actions = new ArrayList<>();
-    if (!params.getTextDocument().getUri().equals(activeEntryPoint)) {
-      actions.add(
-          Either.forLeft(
-              new Command("set project entry point", "set-entry-point", Lists.newArrayList(uri))));
-    }
-    return CompletableFuture.completedFuture(actions);
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            analysis -> {
+              // We use this request as a hook to update the
+              // expanded Tcl buffer, because it is the best way we
+              // have to determine where the cursor is and what is
+              // selected.
+              analysis
+                  .file(uri)
+                  .map(
+                      fileAnalysis -> {
+                        int startOffset = fileAnalysis.file.offset(params.getRange().getStart());
+                        int endOffset = fileAnalysis.file.offset(params.getRange().getEnd());
+                        String expandedCode =
+                            fileAnalysis
+                                .productions
+                                .entrySet()
+                                .stream()
+                                .filter(entry -> entry.getKey().getStart() <= endOffset)
+                                .filter(entry -> entry.getKey().getEnd() >= startOffset)
+                                .sorted((a, b) -> a.getKey().getStart() - b.getKey().getStart())
+                                .flatMap(entry -> entry.getValue().stream())
+                                .map(production -> "sp {" + production.body + "}\n")
+                                .collect(joining("\n"));
+                        createFileWithContent(tclExpansionUri(), expandedCode);
+                        return null;
+                      });
+
+              List<Either<Command, CodeAction>> actions = new ArrayList<>();
+              // if (!params.getTextDocument().getUri().equals(activeEntryPoint)) {
+              //   actions.add(
+              //       Either.forLeft(
+              //           new Command("set project entry point", "set-entry-point",
+              // Lists.newArrayList(uri))));
+              // }
+              return actions;
+            });
   }
 
   @Override
@@ -370,15 +399,6 @@ public class SoarDocumentService implements TextDocumentService {
               FileAnalysis analysis = projectAnalysis.file(uri).orElse(null);
               SoarFile file = analysis.file;
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
-
-              // If hovering over a production, populate bufferFile with expanded code
-              String expandedCode =
-                  analysis
-                      .productions(hoveredNode)
-                      .stream()
-                      .map(production -> "sp {" + production.body + "}\n")
-                      .collect(joining("\n"));
-              createFileWithContent(tclExpansionUri(), expandedCode);
 
               Function<TclAstNode, Hover> hoverVariable =
                   node -> {
