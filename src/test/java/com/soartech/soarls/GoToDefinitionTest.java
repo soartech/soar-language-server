@@ -37,7 +37,12 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
         .collect(toList());
   }
 
+  /**
+   * This test is ignored because we are no longer hijacking go to definition as a means of showing
+   * Tcl expansions.
+   */
   @Test
+  @org.junit.Ignore
   public void tclExpansion() throws Exception {
     List<Location> contents = definitionsForPosition("productions.soar", 11, 13);
 

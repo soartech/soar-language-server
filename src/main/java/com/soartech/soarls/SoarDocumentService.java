@@ -207,8 +207,9 @@ public class SoarDocumentService implements TextDocumentService {
                 // buffer
                 // if parent is COMMAND_WORD then go to procedure definition if found.
                 if (parent.getType() == TclAstNode.QUOTED_WORD) {
-                  // this is currently commented out as we do not want a buffer created for each file
-                  //location = goToDefinitionExpansion(analysis, file, parent);
+                  // this is currently commented out as we do not want a buffer created for each
+                  // file
+                  // location = goToDefinitionExpansion(analysis, file, parent);
                 } else if (parent.getType() == TclAstNode.COMMAND_WORD
                     || parent.getType() == TclAstNode.COMMAND) {
                   location = goToDefinitionProcedure(analysis, file, node);
