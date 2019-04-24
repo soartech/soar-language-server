@@ -1,6 +1,7 @@
 package com.soartech.soarls;
 
 import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -150,6 +151,23 @@ public class SoarDocumentService implements TextDocumentService {
     return workspaceRootPath.resolve(config.tclExpansionFile).toUri();
   }
 
+  /** Retrieve the Tcl expansion file, creating it if necessary. */
+  private CompletableFuture<SoarFile> tclExpansionFile() {
+    return Optional.ofNullable(documents.get(tclExpansionUri()))
+        .map(f -> CompletableFuture.completedFuture(f))
+        .orElseGet(
+            () -> {
+              CreateFile createFile =
+                  new CreateFile(tclExpansionUri().toString(), new CreateFileOptions(false, true));
+              WorkspaceEdit edit = new WorkspaceEdit(Arrays.asList(Either.forRight(createFile)));
+              ApplyWorkspaceEditParams params =
+                  new ApplyWorkspaceEditParams(edit, "create expansion file");
+              return client
+                  .applyEdit(params)
+                  .thenApply(response -> documents.get(tclExpansionUri()));
+            });
+  }
+
   @Override
   public void didOpen(DidOpenTextDocumentParams params) {
     TextDocumentItem doc = params.getTextDocument();
@@ -186,47 +204,45 @@ public class SoarDocumentService implements TextDocumentService {
     }
   }
 
+  /**
+   * We use this request as a hook to update the expanded Tcl buffer, because it is the best way we
+   * have to determine the location of the cursor as well as the range in the document that is
+   * selected.
+   */
   @Override
   public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
     URI uri = uri(params.getTextDocument().getUri());
 
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis -> {
-              // We use this request as a hook to update the
-              // expanded Tcl buffer, because it is the best way we
-              // have to determine where the cursor is and what is
-              // selected.
-              analysis
-                  .file(uri)
-                  .map(
-                      fileAnalysis -> {
-                        int startOffset = fileAnalysis.file.offset(params.getRange().getStart());
-                        int endOffset = fileAnalysis.file.offset(params.getRange().getEnd());
-                        String expandedCode =
-                            fileAnalysis
-                                .productions
-                                .entrySet()
-                                .stream()
-                                .filter(entry -> entry.getKey().getStart() <= endOffset)
-                                .filter(entry -> entry.getKey().getEnd() >= startOffset)
-                                .sorted((a, b) -> a.getKey().getStart() - b.getKey().getStart())
-                                .flatMap(entry -> entry.getValue().stream())
-                                .map(production -> "sp {" + production.body + "}\n")
-                                .collect(joining("\n"));
-                        createFileWithContent(tclExpansionUri(), expandedCode);
-                        return null;
-                      });
+    Function<FileAnalysis, String> concatSelectedProductions =
+        fileAnalysis -> {
+          int startOffset = fileAnalysis.file.offset(params.getRange().getStart());
+          int endOffset = fileAnalysis.file.offset(params.getRange().getEnd());
+          return fileAnalysis
+              .productions
+              .entrySet()
+              .stream()
+              .filter(entry -> entry.getKey().getStart() <= endOffset)
+              .filter(entry -> entry.getKey().getEnd() >= startOffset)
+              .sorted((a, b) -> a.getKey().getStart() - b.getKey().getStart())
+              .flatMap(entry -> entry.getValue().stream())
+              .map(production -> "sp {" + production.body + "}\n")
+              .collect(joining("\n"));
+        };
 
-              List<Either<Command, CodeAction>> actions = new ArrayList<>();
-              // if (!params.getTextDocument().getUri().equals(activeEntryPoint)) {
-              //   actions.add(
-              //       Either.forLeft(
-              //           new Command("set project entry point", "set-entry-point",
-              // Lists.newArrayList(uri))));
-              // }
-              return actions;
-            });
+    BiFunction<String, SoarFile, CompletableFuture<ApplyWorkspaceEditResponse>> editFile =
+        (contents, file) ->
+            client.applyEdit(
+                new ApplyWorkspaceEditParams(
+                    new WorkspaceEdit(
+                        singletonMap(
+                            file.uri.toString(),
+                            Arrays.asList(new TextEdit(file.rangeForNode(file.ast), contents))))));
+
+    return getAnalysis(activeEntryPoint)
+        .thenApply(analysis -> analysis.file(uri).map(concatSelectedProductions).orElse(""))
+        .thenCombineAsync(tclExpansionFile(), editFile)
+        .thenComposeAsync(edits -> edits)
+        .thenApply(response -> null);
   }
 
   @Override
