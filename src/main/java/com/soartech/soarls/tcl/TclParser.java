@@ -254,7 +254,7 @@ public class TclParser {
       } else if (Character.isWhitespace(c)) {
         consume();
       } else {
-        node.addChild(consumeWord('"'));
+        node.addChild(consumeNormalWord('"'));
       }
       c = lookAhead(0);
     }
@@ -294,7 +294,12 @@ public class TclParser {
       } else if (Character.isWhitespace(c)) {
         consume();
       } else {
-        TclAstNode child = consumeWord('}');
+        TclAstNode child = new TclAstNode(TclAstNode.NORMAL_WORD, getOffset());
+        while (c != EOF && c != '}' && !Character.isWhitespace(c)) {
+          consume();
+          c = lookAhead(0);
+        }
+        child.setEnd(getOffset());
         node.addChild(child);
       }
       c = lookAhead(0);

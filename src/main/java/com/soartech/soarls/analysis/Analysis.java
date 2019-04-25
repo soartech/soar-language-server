@@ -254,7 +254,15 @@ public class Analysis {
             String name = args[1];
             Location location = location(file.uri, file.rangeForNode(ctx.currentNode));
 
-            char[] argsBuffer = ('"' + args[2] + '"').toCharArray();
+            // Parsing arguments got a little bit tricky. We parse the argument list into an AST,
+            // which makes it look like a command, although it isn't. We look for the expected shape
+            // of required and optional arguments. There are likely some edge cases that aren't
+            // covered, but this should capture most common patterns.
+            //
+            // Also note that we can't simply query the interpreter using 'info args', because that
+            // does not return any information about optional arguments.
+
+            char[] argsBuffer = args[2].replaceAll("\n", " ").toCharArray();
             TclParser parser = new TclParser();
             parser.setInput(argsBuffer, 0, argsBuffer.length);
             TclAstNode procArgs = parser.parse();
@@ -272,7 +280,6 @@ public class Analysis {
                 };
             List<ProcedureDefinition.Argument> arguments =
                 Optional.ofNullable(procArgs.getChild(TclAstNode.COMMAND))
-                    .flatMap(node -> Optional.ofNullable(node.getChild(TclAstNode.QUOTED_WORD)))
                     .map(cmd -> cmd.getChildren().stream().map(makeArgument).collect(toList()))
                     .orElseGet(ArrayList::new);
 

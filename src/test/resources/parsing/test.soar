@@ -13,6 +13,6 @@ set line "this is a { brace"
 set line2 {this is a " quote}
 set line3 "this is an \" escaped quote"
 set line4 "this is an \} escaped brace"
-set end [expr [string last {"} $line]
+set end [expr [string last {"} $line]]
 
 echo $end

@@ -13,7 +13,7 @@ import org.junit.Test;
 public class SoarFileTest extends LanguageServerTestFixture {
   final SoarFile file;
 
-  static Position endPosition = new Position(20, 0);
+  static Position endPosition = new Position(24, 0);
 
   public SoarFileTest() throws Exception {
     super("file");
@@ -109,7 +109,7 @@ public class SoarFileTest extends LanguageServerTestFixture {
   @Test
   public void tclParseSucceeded() {
     assertNotNull(file.ast);
-    assertNull(file.ast.getError());
+    assertTrue(file.diagnostics.isEmpty());
   }
 
   @Test

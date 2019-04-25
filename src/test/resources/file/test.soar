@@ -18,3 +18,7 @@ sp "write*string-with-comment-characters
     (state <s> ^foo bar)
 -->
     (write (crlf) |### WARNING ### This should not be treated as a comment!|)"
+
+proc ngs-process-string-for-writelog { text } {
+    set result [string map {[ \\[} $result]
+}
