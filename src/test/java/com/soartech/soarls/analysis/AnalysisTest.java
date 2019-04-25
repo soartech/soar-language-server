@@ -123,10 +123,16 @@ public class AnalysisTest extends LanguageServerTestFixture {
     assertEquals(def.location.getRange(), range(6, 0, 8, 1));
   }
 
+  /**
+   * Procedures are associated with the previous comment node, even if there is whitespace between
+   * them. See https://github.com/soartech/soar-language-server/issues/26 for discussion.
+   */
   @Test
   public void procedureDefinitionComments() {
     assertProcComment("ngs-match-top-state", Optional.of("# This is the actual implementation"));
-    assertProcComment("ngs-create-attribute", Optional.empty());
+    assertProcComment(
+        "ngs-create-attribute",
+        Optional.of("# This is associated with the next proc, despite the newline."));
     assertProcComment("ngs-bind", Optional.of("# The actual implementation of ngs-bind"));
   }
 

@@ -61,7 +61,11 @@ public class HoverTest extends SingleFileTestFixture {
     assertEquals(contents.getValue(), "beta");
   }
 
-  /** For procedure calls, the hover text shows the first line of the comment text. */
+  /**
+   * For procedure calls, the hover text shows the first line of the comment text if the client has
+   * configured it this way. Also note that we show the comment despite there being a blank line
+   * between the comment and the procedure definition.
+   */
   @Test
   public void hoverProcSingleLine() throws Exception {
     config.fullCommentHover = false;
@@ -86,7 +90,7 @@ public class HoverTest extends SingleFileTestFixture {
     assertEquals(contents.getValue(), "Create an attribute.");
   }
 
-  /** If the client has sent the right configuration, then the full comment text should be shown. */
+  /** The default configuration is to show the full comment text should be shown. */
   @Test
   public void hoverProcFullComment() throws Exception {
     config.fullCommentHover = true;
@@ -105,6 +109,34 @@ public class HoverTest extends SingleFileTestFixture {
             + "\n"
             + "This extra detail in the comments should only be shown if the client\n"
             + "was configured for it.");
+  }
+
+  /**
+   * This procedure does not have a comment above it; there have not yet been any comments at this
+   * point in the file.
+   */
+  @Test
+  public void hovorProcNoComment() throws Exception {
+    // ngs-match-top-state
+    TextDocumentPositionParams params = textDocumentPosition(file, 17, 9);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getValue(), "ngs-match-top-state");
+  }
+
+  /**
+   * This procedure does not have a comment above it; there have been previous comments, but they
+   * were associated with other items.
+   */
+  @Test
+  public void hoverProcNoCommentAtEnd() throws Exception {
+    // ngs-has-no-comment
+    TextDocumentPositionParams params = textDocumentPosition(file, 40, 9);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getValue(), "ngs-has-no-comment");
   }
 
   /**

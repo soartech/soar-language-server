@@ -8,7 +8,7 @@ proc ngs-match-top-state { id { bind "" } } {
     return "(state $id ^superstate nil)"
 }
 
-# This is not associated with the next proc because of the newline.
+# This is associated with the next proc, despite the newline.
 
 proc ngs-create-attribute { id attr value } {
     return "($id ^$attr $value)"

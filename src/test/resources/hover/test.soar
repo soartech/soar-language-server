@@ -1,7 +1,6 @@
 set NGS_YES *YES*
 set NGS_NO *NO*
 
-# Match the top state.
 proc ngs-match-top-state { id } {}
 
 #
@@ -9,6 +8,7 @@ proc ngs-match-top-state { id } {}
 #
 # This extra detail in the comments should only be shown if the client
 # was configured for it.
+
 proc ngs-bind { id args } {}
 
     #Create an attribute.
@@ -32,3 +32,11 @@ generate-productions prefix-$BETA
 # We need to ensure that we show the value at the time it was read,
 # not from the tcl interpreter after it's done running.
 set NGS_YES "this was redefined"
+
+proc ngs-has-no-comment {} {}
+
+sp "test*no-comment
+    [ngs-match-top-state <s>]
+-->
+    [ngs-has-no-comment]
+"

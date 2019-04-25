@@ -279,15 +279,8 @@ public class Analysis {
             TclAstNode commentAstNode = null;
             String commentText = null;
             if (ctx.mostRecentComment != null) {
-              // Note that because of the newline,
-              // comments end at the beginning of the
-              // following line.
-              int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-              int procStartLine = file.position(ctx.currentNode.getStart()).getLine();
-              if (commentEndLine == procStartLine) {
-                commentAstNode = ctx.mostRecentComment;
-                commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-              }
+              commentAstNode = ctx.mostRecentComment;
+              commentText = ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
             }
             ProcedureDefinition proc =
                 new ProcedureDefinition(
@@ -311,10 +304,14 @@ public class Analysis {
           node -> {
             String nodeText = file.getNodeInternalText(node);
 
-            if (node.getType() == TclAstNode.COMMENT) {
-              ctx.mostRecentComment = node;
-            } else if (node.getType() == TclAstNode.COMMAND) {
-              ctx.currentNode = node;
+            // Hold on to the previous node if it was a comment.
+            if (ctx.currentNode != null) {
+              ctx.mostRecentComment =
+                  ctx.currentNode.getType() == TclAstNode.COMMENT ? ctx.currentNode : null;
+            }
+            ctx.currentNode = node;
+
+            if (node.getType() == TclAstNode.COMMAND) {
               try {
                 agent.getInterpreter().eval(nodeText);
               } catch (SoarInterpreterException ex) {
@@ -377,13 +374,9 @@ public class Analysis {
                     TclAstNode commentAstNode = null;
                     String commentText = null;
                     if (ctx.mostRecentComment != null) {
-                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-                      int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                      if (commentEndLine == varStartLine) {
-                        commentAstNode = ctx.mostRecentComment;
-                        commentText =
-                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-                      }
+                      commentAstNode = ctx.mostRecentComment;
+                      commentText =
+                          ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
                     }
                     VariableDefinition var =
                         new VariableDefinition(
@@ -399,13 +392,9 @@ public class Analysis {
                     TclAstNode commentAstNode = null;
                     String commentText = null;
                     if (ctx.mostRecentComment != null) {
-                      int commentEndLine = file.position(ctx.mostRecentComment.getEnd()).getLine();
-                      int varStartLine = file.position(ctx.currentNode.getStart()).getLine();
-                      if (commentEndLine == varStartLine) {
-                        commentAstNode = ctx.mostRecentComment;
-                        commentText =
-                            ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
-                      }
+                      commentAstNode = ctx.mostRecentComment;
+                      commentText =
+                          ctx.mostRecentComment.getInternalText(file.contents.toCharArray());
                     }
                     VariableDefinition var =
                         new VariableDefinition(
