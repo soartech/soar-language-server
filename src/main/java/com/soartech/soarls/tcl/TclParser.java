@@ -222,6 +222,8 @@ public class TclParser {
         return node;
       } else if (c == '\\') {
         consumeEscapedCharacter();
+      } else if (c == '[') {
+        node.addChild(consumeCommandWord());
       } else if (c == '$') {
         node.addChild(consumeVariable());
       } else {
