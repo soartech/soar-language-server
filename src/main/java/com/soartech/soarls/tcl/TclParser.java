@@ -223,7 +223,7 @@ public class TclParser {
       } else if (c == '\\') {
         consumeEscapedCharacter();
       } else if (c == '$') {
-        consumeVariable();
+        node.addChild(consumeVariable());
       } else {
         consume();
       }

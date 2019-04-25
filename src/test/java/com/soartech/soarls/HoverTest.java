@@ -42,6 +42,25 @@ public class HoverTest extends SingleFileTestFixture {
     assertRange(hover, 20, 43, 20, 51);
   }
 
+  @Test
+  public void hoverVariableTopLevelCommand() throws Exception {
+    // The 'L' in '$ALPHA'
+    TextDocumentPositionParams params = textDocumentPosition(file, 28, 23);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getValue(), "alpha");
+  }
+
+  /** This checks variables of the form `prefix-$variable`. */
+  @Test
+  public void hoverVariableConcatenatedWithWord() throws Exception {
+    // The 'E' in 'prefix-$BETA'
+    TextDocumentPositionParams params = textDocumentPosition(file, 29, 30);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getValue(), "beta");
+  }
+
   /** For procedure calls, the hover text shows the first line of the comment text. */
   @Test
   public void hoverProcSingleLine() throws Exception {
