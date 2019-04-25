@@ -296,7 +296,13 @@ public class TclParser {
       } else {
         TclAstNode child = new TclAstNode(TclAstNode.NORMAL_WORD, getOffset());
         while (c != EOF && c != '}' && !Character.isWhitespace(c)) {
-          consume();
+          if (c == '\\') {
+            consumeEscapedCharacter();
+          } else if (c == '{') {
+            consumeBracedWord();
+          } else {
+            consume();
+          }
           c = lookAhead(0);
         }
         child.setEnd(getOffset());
