@@ -3,6 +3,7 @@ package com.soartech.soarls;
 import static org.junit.Assert.*;
 
 import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.Range;
 import org.junit.Test;
 
 /**
@@ -24,7 +25,7 @@ public class DiagnosticsTest extends SingleFileTestFixture {
   @Test
   public void diagnosticsReported() {
     assertNotNull(this.getFileDiagnostics());
-    assertEquals(6, this.getFileDiagnostics().size());
+    assertEquals(11, this.getFileDiagnostics().size());
   }
 
   @Test
@@ -108,5 +109,20 @@ public class DiagnosticsTest extends SingleFileTestFixture {
     assertEquals(
         sourcedDiagnostic.getMessage(),
         "In production 'missing-quote', expected ( to begin condition element\n\n(Ignoring production missing-quote)");
+  }
+
+  @Test
+  public void invalidCommands() {
+    assertInvalidCommand("(state", range(28, 3, 28, 29));
+    assertInvalidCommand("-->", range(29, 0, 29, 3));
+    assertInvalidCommand("(<s>", range(30, 3, 30, 20));
+    assertInvalidCommand("undefined-proc", range(33, 0, 33, 24));
+  }
+
+  /** Assert that there is an invalid command at the given range. */
+  void assertInvalidCommand(String name, Range range) {
+    Diagnostic diagnostic =
+        getFileDiagnostics().stream().filter(d -> d.getRange().equals(range)).findAny().get();
+    assertEquals(diagnostic.getMessage(), "invalid command name \"" + name + "\"");
   }
 }

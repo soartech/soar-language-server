@@ -346,6 +346,14 @@ public class Analysis {
                           DiagnosticSeverity.Error,
                           "soar");
                   diagnosticList.add(diagnostic);
+                } else {
+                  Diagnostic diagnostic =
+                      new Diagnostic(
+                          file.rangeForNode(ctx.currentNode),
+                          ex.getMessage(),
+                          DiagnosticSeverity.Error,
+                          "soar");
+                  diagnosticList.add(diagnostic);
                 }
               } catch (SoarException ex) {
                 LOG.error("Error while evaluating Soar command: {}", nodeText, ex);

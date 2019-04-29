@@ -30,3 +30,5 @@ sp missing-quote
 -->
    (<s> ^attr value)
 "
+
+undefined-proc arg1 arg2

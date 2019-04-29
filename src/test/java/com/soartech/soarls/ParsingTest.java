@@ -12,8 +12,10 @@ public class ParsingTest extends SingleFileTestFixture {
     waitForAnalysis("test.soar");
   }
 
-  @Test(timeout = 100)
+  /** Retrieve just the diagnostics from parsing the file. This does not include static analysis. */
+  @Test
   public void test() {
-    assertEquals(0, this.diagnosticsForFile("test.soar").size());
+    SoarFile file = retrieveFile("test.soar");
+    assertEquals(0, file.diagnostics.size());
   }
 }
