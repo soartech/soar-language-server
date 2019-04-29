@@ -1,5 +1,7 @@
 package com.soartech.soarls;
 
+import static java.util.stream.Collectors.toList;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.net.URI;
@@ -14,6 +16,7 @@ import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
+import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializedParams;
@@ -24,10 +27,12 @@ import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -140,6 +145,25 @@ public class LanguageServerTestFixture implements LanguageClient {
     System.out.println(params.toString());
     this.edits = params.getEdit().getChanges();
 
+    // Tell the server that we applied these edits. This is assuming that all edits are TextEdits;
+    // we aren't handling creating/renaming/deleting files here.
+    for (Map.Entry<String, List<TextEdit>> entry : params.getEdit().getChanges().entrySet()) {
+      String uri = entry.getKey();
+      List<TextEdit> edits = entry.getValue();
+      List<TextDocumentContentChangeEvent> contentChanges =
+          edits
+              .stream()
+              .map(
+                  textEdit ->
+                      new TextDocumentContentChangeEvent(
+                          textEdit.getRange(), -1, textEdit.getNewText()))
+              .collect(toList());
+      DidChangeTextDocumentParams didChangeParams =
+          new DidChangeTextDocumentParams(
+              new VersionedTextDocumentIdentifier(uri, -1), contentChanges);
+      languageServer.getTextDocumentService().didChange(didChangeParams);
+    }
+
     return CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true));
   }
 
@@ -163,5 +187,15 @@ public class LanguageServerTestFixture implements LanguageClient {
 
   protected static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
     return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
+  }
+
+  /**
+   * Retrieve the file for the given path. Note that SoarFile is immutable. If you are inspecting
+   * changes to a file, retrieve the file before and/or after the change; you will receive two
+   * different objects.
+   */
+  protected SoarFile retrieveFile(String relativePath) {
+    URI uri = workspaceRoot.resolve(relativePath).toUri();
+    return ((SoarDocumentService) languageServer.getTextDocumentService()).documents.get(uri);
   }
 }
