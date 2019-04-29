@@ -311,7 +311,7 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             analysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              SoarFile file = analysis.file(uri).orElse(null).file;
+              SoarFile file = documents.get(uri);
               String line = file.line(params.getPosition().getLine());
 
               int cursor = params.getPosition().getCharacter();

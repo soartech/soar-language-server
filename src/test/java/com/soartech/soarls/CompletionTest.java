@@ -2,20 +2,51 @@ package com.soartech.soarls;
 
 import static org.junit.Assert.*;
 
+import java.util.Arrays;
 import java.util.List;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionParams;
+import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
 import org.junit.Test;
 
+/**
+ * Completions, more so than most requests, must be as responsive as possible. Also, completions are
+ * generally requested immediately after a modification to a document. Therefore, we explicitly
+ * apply document changes just some of these tests, and we intentionally configure the server such
+ * that it will not have enough time to re-analyse the codebase.
+ */
 public class CompletionTest extends SingleFileTestFixture {
   public CompletionTest() throws Exception {
     super("completion", "test.soar");
+
+    // Allow analysis to finish, and reconfigure so that a fresh
+    // analysis will not complete between modifications being applied
+    // and completions being requested.
+    waitForAnalysis("test.soar");
+    config.debounceTime = 100;
+    sendConfiguration();
+  }
+
+  /** Insert a string at the given line and column. */
+  void insertText(String contents, int line, int column) {
+    String uri = resolve("test.soar");
+    List<TextDocumentContentChangeEvent> contentChanges =
+        Arrays.asList(
+            new TextDocumentContentChangeEvent(range(line, column, line, column), 0, contents));
+    DidChangeTextDocumentParams params =
+        new DidChangeTextDocumentParams(
+            new VersionedTextDocumentIdentifier(uri, -1), contentChanges);
+    languageServer.getTextDocumentService().didChange(params);
   }
 
   @Test
   public void tclVariable() throws Exception {
+    insertText("$", 12, 58);
+
     CompletionParams params = new CompletionParams(fileId(file), new Position(12, 59));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
@@ -45,10 +76,13 @@ public class CompletionTest extends SingleFileTestFixture {
 
   @Test
   public void variableItemKind() throws Exception {
+    insertText("$", 12, 58);
+
     CompletionParams params = new CompletionParams(fileId(file), new Position(12, 59));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
+    assertFalse(completions.isEmpty());
     for (CompletionItem completion : completions) {
       assertEquals(completion.getKind(), CompletionItemKind.Constant);
     }
@@ -103,5 +137,9 @@ public class CompletionTest extends SingleFileTestFixture {
     if (present) {
       fail("contains " + expected + " but shouldn't");
     }
+  }
+
+  String resolve(String relativePath) {
+    return workspaceRoot.resolve(relativePath).toUri().toString();
   }
 }

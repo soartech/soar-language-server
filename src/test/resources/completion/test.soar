@@ -10,4 +10,4 @@ sp "propose*initialize
     [ngs-nex <s> initialized]
 -->
     [ngs-b
-    [ngs-create-attribute-by-operator <s> <s> initialized $
+    [ngs-create-attribute-by-operator <s> <s> initialized 
