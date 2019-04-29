@@ -165,7 +165,7 @@ public class TclAstNode {
     }
   }
 
-  /** @return a list containing the node being called, and all of its children recursively **/
+  /** @return a list containing the node being called, and all of its children recursively * */
   public List<TclAstNode> flatten() {
     List<TclAstNode> output = new ArrayList<>();
     output.add(this);
@@ -183,8 +183,7 @@ public class TclAstNode {
       for (TclAstNode child : children) {
         output.addAll(child.leafNodes());
       }
-    }
-    else {
+    } else {
       output.add(this);
     }
     return output;

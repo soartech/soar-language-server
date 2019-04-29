@@ -1,17 +1,13 @@
 package com.soartech.soarls;
 
-import com.soartech.soarls.tcl.TclAstNode;
-import com.sun.corba.se.spi.orbutil.threadpool.Work;
-import org.eclipse.lsp4j.*;
-import org.junit.Test;
-import scala.Int;
+import static org.junit.Assert.*;
 
-import java.net.URI;
+import com.soartech.soarls.tcl.TclAstNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
-import static org.junit.Assert.*;
+import org.eclipse.lsp4j.*;
+import org.junit.Test;
 
 /** Tests for finding references to tcl procedures and variables. */
 public class RenameTest extends LanguageServerTestFixture {
@@ -26,7 +22,8 @@ public class RenameTest extends LanguageServerTestFixture {
   }
 
   private TclAstNode getVariableNode(TclAstNode rootNode) {
-    if (rootNode.getType() == TclAstNode.VARIABLE || rootNode.getType() == TclAstNode.VARIABLE_NAME) {
+    if (rootNode.getType() == TclAstNode.VARIABLE
+        || rootNode.getType() == TclAstNode.VARIABLE_NAME) {
       return rootNode;
     }
     if (rootNode.getChildren() != null) {
@@ -40,7 +37,8 @@ public class RenameTest extends LanguageServerTestFixture {
     return null;
   }
 
-  private WorkspaceEdit rename(String relativePath, int line, int character, String newName) throws ExecutionException, InterruptedException {
+  private WorkspaceEdit rename(String relativePath, int line, int character, String newName)
+      throws ExecutionException, InterruptedException {
     RenameParams params = new RenameParams();
     params.setTextDocument(fileId(relativePath));
     params.setNewName(newName);
