@@ -468,7 +468,7 @@ public class SoarDocumentService implements TextDocumentService {
                                         file.position(
                                             callChildren.get(callChildren.size() - 1).getEnd()));
                                 return new Hover(
-                                    new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+                                    new MarkupContent(MarkupKind.MARKDOWN, value), range);
                               })
                           .orElse(null);
 

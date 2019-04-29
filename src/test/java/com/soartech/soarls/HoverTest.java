@@ -75,7 +75,7 @@ public class HoverTest extends SingleFileTestFixture {
     TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+    assertEquals(contents.getKind(), MarkupKind.MARKDOWN);
     assertEquals(contents.getValue(), "This is a stub for NGS bind.");
   }
 
@@ -86,7 +86,7 @@ public class HoverTest extends SingleFileTestFixture {
     TextDocumentPositionParams params = textDocumentPosition(file, 20, 10);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+    assertEquals(contents.getKind(), MarkupKind.MARKDOWN);
     assertEquals(contents.getValue(), "Create an attribute.");
   }
 
@@ -101,7 +101,7 @@ public class HoverTest extends SingleFileTestFixture {
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
     MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+    assertEquals(contents.getKind(), MarkupKind.MARKDOWN);
     assertEquals(
         contents.getValue(),
         "\n"
