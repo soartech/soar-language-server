@@ -15,6 +15,8 @@ import com.soartech.soarls.analysis.VariableDefinition;
 import com.soartech.soarls.analysis.VariableRetrieval;
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.util.Debouncer;
+
+import java.io.FileNotFoundException;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.file.Path;
@@ -28,10 +30,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+
+import javafx.geometry.Pos;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
@@ -64,6 +69,7 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
+import org.eclipse.lsp4j.RenameParams;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentItem;
@@ -289,6 +295,33 @@ public class SoarDocumentService implements TextDocumentService {
 
               return Either.forLeft(locations);
             });
+  }
+
+  @Override
+  public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
+      return getAnalysis(activeEntryPoint)
+          .thenApply(
+              analysis -> {
+                  // Get variable definition from position
+                  URI uri = uri(params.getTextDocument().getUri());
+                  FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
+                  SoarFile file = fileAnalysis.file;
+                  TclAstNode node = file.tclNode(params.getPosition());
+                  VariableDefinition definition = fileAnalysis.variableRetrieval(node).orElse(null).definition.orElse(null);
+
+                  HashMap<String, List<TextEdit>> textEdits = new HashMap<>();
+
+//                  textEdits.putIfAbsent(definition.location.getUri(), new ArrayList<>());
+//                  textEdits.get(definition.location.getUri()).add(new TextEdit(definition.location.getRange(), params.getNewName()));
+
+                  for (VariableRetrieval retrieval : analysis.variableRetrievals.get(definition)) {
+                      Range range = retrieval.readSiteLocation.getRange();
+                      String retrievalUri = retrieval.readSiteLocation.getUri();
+                      textEdits.putIfAbsent(retrievalUri, new ArrayList<>());
+                      textEdits.get(retrievalUri).add(new TextEdit(range, params.getNewName()));
+                  }
+                  return new WorkspaceEdit(textEdits);
+              });
   }
 
   @Override
