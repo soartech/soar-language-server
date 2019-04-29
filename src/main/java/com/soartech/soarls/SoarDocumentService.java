@@ -213,6 +213,7 @@ public class SoarDocumentService implements TextDocumentService {
   public CompletableFuture<List<Either<Command, CodeAction>>> codeAction(CodeActionParams params) {
     URI uri = uri(params.getTextDocument().getUri());
 
+    // Collect the expanded bodies of all productions that overlap the selected range.
     Function<FileAnalysis, String> concatSelectedProductions =
         fileAnalysis -> {
           int startOffset = fileAnalysis.file.offset(params.getRange().getStart());
@@ -229,19 +230,31 @@ public class SoarDocumentService implements TextDocumentService {
               .collect(joining("\n"));
         };
 
-    BiFunction<String, SoarFile, CompletableFuture<ApplyWorkspaceEditResponse>> editFile =
-        (contents, file) ->
-            client.applyEdit(
-                new ApplyWorkspaceEditParams(
-                    new WorkspaceEdit(
-                        singletonMap(
-                            file.uri.toString(),
-                            Arrays.asList(new TextEdit(file.rangeForNode(file.ast), contents))))));
+    // Given some contents, construct an action to replace the contents of the tcl expansion file.
+    Function<String, CompletableFuture<ApplyWorkspaceEditResponse>> editFile =
+        contents ->
+            tclExpansionFile()
+                .thenCompose(
+                    file ->
+                        client.applyEdit(
+                            new ApplyWorkspaceEditParams(
+                                new WorkspaceEdit(
+                                    singletonMap(
+                                        file.uri.toString(),
+                                        Arrays.asList(
+                                            new TextEdit(
+                                                file.rangeForNode(file.ast), contents)))))));
 
+    // Try to retrieve expanded production bodies and modify the expansion file; if this fails,
+    // that's okay. Then, we return our actual results.
     return getAnalysis(activeEntryPoint)
-        .thenApply(analysis -> analysis.file(uri).map(concatSelectedProductions).orElse(""))
-        .thenCombineAsync(tclExpansionFile(), editFile)
-        .thenComposeAsync(edits -> edits)
+        .thenComposeAsync(
+            analysis ->
+                analysis
+                    .file(uri)
+                    .map(concatSelectedProductions)
+                    .map(editFile)
+                    .orElse(CompletableFuture.completedFuture(null)))
         .thenApply(response -> null);
   }
 
