@@ -165,6 +165,31 @@ public class TclAstNode {
     }
   }
 
+  /** @return a list containing the node being called, and all of its children recursively **/
+  public List<TclAstNode> flatten() {
+    List<TclAstNode> output = new ArrayList<>();
+    output.add(this);
+    if (children != null) {
+      for (TclAstNode child : children) {
+        output.addAll(child.flatten());
+      }
+    }
+    return output;
+  }
+
+  public List<TclAstNode> leafNodes() {
+    List<TclAstNode> output = new ArrayList<>();
+    if (children != null && children.size() != 0) {
+      for (TclAstNode child : children) {
+        output.addAll(child.leafNodes());
+      }
+    }
+    else {
+      output.add(this);
+    }
+    return output;
+  }
+
   @Override
   public String toString() {
     StringBuffer b = new StringBuffer();

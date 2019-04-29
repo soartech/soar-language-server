@@ -1,3 +1,5 @@
+source secondFile.soar
+
 # Even though the soarAgents.json file is badly formed, this file
 # should still work.
 

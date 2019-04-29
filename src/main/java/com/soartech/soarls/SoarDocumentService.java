@@ -302,24 +302,37 @@ public class SoarDocumentService implements TextDocumentService {
       return getAnalysis(activeEntryPoint)
           .thenApply(
               analysis -> {
-                  // Get variable definition from position
-                  URI uri = uri(params.getTextDocument().getUri());
-                  FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
-                  SoarFile file = fileAnalysis.file;
+                  // Get original name for lookups
+                  URI thisFileUri = uri(params.getTextDocument().getUri());
+                  FileAnalysis thisFileAnalysis = analysis.file(thisFileUri).orElse(null);
+                  SoarFile file = thisFileAnalysis.file;
                   TclAstNode node = file.tclNode(params.getPosition());
-                  VariableDefinition definition = fileAnalysis.variableRetrieval(node).orElse(null).definition.orElse(null);
+                  String oldName = file.contents.substring(node.getStart(), node.getEnd());
 
+                  // Final set of edits
                   HashMap<String, List<TextEdit>> textEdits = new HashMap<>();
 
-//                  textEdits.putIfAbsent(definition.location.getUri(), new ArrayList<>());
-//                  textEdits.get(definition.location.getUri()).add(new TextEdit(definition.location.getRange(), params.getNewName()));
-
-                  for (VariableRetrieval retrieval : analysis.variableRetrievals.get(definition)) {
-                      Range range = retrieval.readSiteLocation.getRange();
-                      String retrievalUri = retrieval.readSiteLocation.getUri();
-                      textEdits.putIfAbsent(retrievalUri, new ArrayList<>());
-                      textEdits.get(retrievalUri).add(new TextEdit(range, params.getNewName()));
+                  // Assume variables can be accessed between files, so enumerate over them
+                  for (FileAnalysis otherFileAnalysis : analysis.files.values()) {
+                      SoarFile otherFile = otherFileAnalysis.file;
+                      String otherFileUriString = otherFile.uri.toString();
+                      TclAstNode root = otherFile.ast;
+                      String contents = otherFile.contents;
+                      // only attempt to rename leaf nodes like NORMAL_WORD or VARIABLE_NAME
+                      for (TclAstNode childNode : root.leafNodes()) {
+                          int start = childNode.getStart();
+                          int end = childNode.getEnd();
+                          if (contents.substring(start, end).equals(oldName)) {
+                              Range range = new Range(
+                                  otherFile.position(start),
+                                  otherFile.position(end)
+                              );
+                              textEdits.putIfAbsent(otherFileUriString, new ArrayList<>());
+                              textEdits.get(otherFileUriString).add(new TextEdit(range, params.getNewName()));
+                          }
+                      }
                   }
+
                   return new WorkspaceEdit(textEdits);
               });
   }
