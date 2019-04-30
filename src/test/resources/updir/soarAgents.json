@@ -1,0 +1,9 @@
+{
+	"entryPoints": [
+		{
+			"path": "dir1/load.soar",
+			"name": "updir"
+		}
+	],
+	"active": "updir"
+}
