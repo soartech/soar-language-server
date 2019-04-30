@@ -35,9 +35,6 @@ Protocol](https://langserver.org/).
   possible.
 * **Rename**: Tcl variables can be renamed, and the known instances
   are all updated.
-* **Commenting selected text**: The current line or selected block can
-  be commented/uncommented via Ctrl+/. This may vary depending on IDE
-  and OS.
 * **Autocomplete**: A list of Tcl procs will be shown when typing
   top-level commands or `[`. A list of Tcl variables is shown after
   typing a `$`.
