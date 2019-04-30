@@ -1,24 +1,22 @@
 package com.soartech.soarls;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import com.soartech.soarls.EntryPoints.EntryPoint;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
-
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.services.WorkspaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
-import com.soartech.soarls.EntryPoints.EntryPoint;
 
 class SoarWorkspaceService implements WorkspaceService {
 
@@ -111,12 +109,13 @@ class SoarWorkspaceService implements WorkspaceService {
       return documentService
           .getAnalysis()
           .thenAccept(
-              analysis -> documentService.printAnalysisTree(analysis, System.err, analysis.entryPointUri, "    "))
+              analysis ->
+                  documentService.printAnalysisTree(
+                      analysis, System.err, analysis.entryPointUri, "    "))
           .thenApply(result -> result);
     } else {
       LOG.warn("Unsupported command: {}", params.getCommand());
     }
     return CompletableFuture.completedFuture(null);
   }
-
 }
