@@ -200,7 +200,7 @@ public class Analysis {
           (context, args) -> {
             try {
               Path currentDirectory = this.directoryStack.peek();
-              Path pathToSource = currentDirectory.resolve(args[1]);
+              Path pathToSource = currentDirectory.resolve(args[1]).normalize();
               Path newDirectory = pathToSource.getParent();
               this.directoryStack.push(newDirectory);
 
