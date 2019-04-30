@@ -775,8 +775,12 @@ public class SoarDocumentService implements TextDocumentService {
               .collect(toList());
         };
 
-    return getAnalysis(activeEntryPoint)
-        .thenApply(analysis -> analysis.file(uri).map(collectLinks).orElse(null));
+    if (config.hyperlinkExpansionFile) {
+      return getAnalysis(activeEntryPoint)
+          .thenApply(analysis -> analysis.file(uri).map(collectLinks).orElse(null));
+    } else {
+      return CompletableFuture.completedFuture(new ArrayList<>());
+    }
   }
 
   /**

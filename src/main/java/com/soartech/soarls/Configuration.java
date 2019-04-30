@@ -16,4 +16,11 @@ class Configuration {
    * be frequently modified by the server.
    */
   public String tclExpansionFile = "~tcl-expansion.soar";
+
+  /**
+   * If true, then commands which result in the creation of productions will be hyperlinked to the
+   * Tcl expansion file. This is disabled by default because the act of updating the expansion file
+   * causes most clients to open it automatically.
+   */
+  public Boolean hyperlinkExpansionFile = false;
 }
