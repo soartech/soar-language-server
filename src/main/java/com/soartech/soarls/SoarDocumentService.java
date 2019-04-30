@@ -17,7 +17,6 @@ import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.util.Debouncer;
 import java.io.PrintStream;
 import java.net.URI;
-import java.net.URLDecoder;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -817,7 +816,7 @@ public class SoarDocumentService implements TextDocumentService {
    */
   static URI uri(String uriString) {
     try {
-      return new URI(URLDecoder.decode(uriString));
+      return new URI(uriString);
     } catch (Exception e) {
       throw new RuntimeException(e);
     }

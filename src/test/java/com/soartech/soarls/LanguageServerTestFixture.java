@@ -101,10 +101,7 @@ public class LanguageServerTestFixture implements LanguageClient {
 
   /** Construct a text document identifier based on a relative path to the workspace root. */
   TextDocumentIdentifier fileId(String relativePath) {
-    // We pass the URI through the URL encoder to intentionally introduce percent-encoded chracters
-    // into the URI. This simulates the behaviour we see in some language clients on Windows.
-    Path file = workspaceRoot.resolve(relativePath);
-    String uri = java.net.URLEncoder.encode(file.toUri().toString());
+    String uri = workspaceRoot.resolve(relativePath).toUri().toString();
     return new TextDocumentIdentifier(uri);
   }
 
