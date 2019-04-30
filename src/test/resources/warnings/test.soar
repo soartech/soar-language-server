@@ -1,0 +1,20 @@
+# This file contains things for which JSoar prints errors to the
+# console, but which we are going to consider to be warnings.
+
+sp "force-learn
+    (state <s> ^superstate <ss>)
+-->
+    (force-learn)
+"
+
+sp "elaborate*original
+    (state <s> ^superstate nil>)
+-->
+    (<s> ^top-state *YES*)
+"
+
+sp "elaborate*duplicate
+    (state <s> ^superstate nil>)
+-->
+    (<s> ^top-state *YES*)
+"

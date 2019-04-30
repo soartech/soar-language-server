@@ -56,6 +56,10 @@ public class Analysis {
    */
   private static String MISSING_FILE = "MISSING_FILE";
 
+  private static String DUPLICATE_PRODUCTION_REGEX = "Ignoring .+ because it is a duplicate of .+";
+
+  private static String NO_RHS_FUNCTION_REGEX = "No RHS function named .+";
+
   /**
    * The document manager may be shared with other analyses which are running concurrently. It is
    * safe for concurrent access.
@@ -337,7 +341,7 @@ public class Analysis {
                         new Range(start, end),
                         "Failed to source production in this file: " + ex,
                         DiagnosticSeverity.Error,
-                        "soar");
+                        "SoarInterpreterException");
                 diagnosticList.add(diagnostic);
               } catch (TclInterpreterException ex) {
                 // It's fine to use == for equality because this is the actual String object that
@@ -348,7 +352,7 @@ public class Analysis {
                           file.rangeForNode(ctx.currentNode),
                           "File not found",
                           DiagnosticSeverity.Error,
-                          "soar");
+                          "TclInterpreterException");
                   diagnosticList.add(diagnostic);
                 } else {
                   Diagnostic diagnostic =
@@ -356,7 +360,7 @@ public class Analysis {
                           file.rangeForNode(ctx.currentNode),
                           ex.getMessage(),
                           DiagnosticSeverity.Error,
-                          "soar");
+                          "TclInterpreterException");
                   diagnosticList.add(diagnostic);
                 }
               } catch (SoarException ex) {
@@ -369,7 +373,7 @@ public class Analysis {
                         new Range(new Position(0, 0), new Position(0, 8)),
                         "PLACEHOLDER: Failed to source production in this file: " + ex,
                         DiagnosticSeverity.Error,
-                        "soar");
+                        "SoarException");
                 diagnosticList.add(diagnostic);
               }
             }
@@ -428,9 +432,15 @@ public class Analysis {
                   for (SoftTclInterpreterException e :
                       agent.getInterpreter().getExceptionsManager().getExceptions()) {
                     Range range = file.rangeForNode(ctx.currentNode);
+                    String message = e.getMessage().trim();
+                    DiagnosticSeverity severity = DiagnosticSeverity.Error;
+                    LOG.info("Diagnostic message: {}", message);
+                    if (message.matches(DUPLICATE_PRODUCTION_REGEX)
+                        || message.matches(NO_RHS_FUNCTION_REGEX)) {
+                      severity = DiagnosticSeverity.Warning;
+                    }
                     diagnosticList.add(
-                        new Diagnostic(
-                            range, e.getMessage().trim(), DiagnosticSeverity.Error, "soar"));
+                        new Diagnostic(range, message, severity, "SoftTclInterpreterException"));
                   }
                   agent.getInterpreter().getExceptionsManager().clearExceptions();
                 }
