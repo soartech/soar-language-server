@@ -446,6 +446,8 @@ public class SoarDocumentService implements TextDocumentService {
                     return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
                   };
 
+              String prefix = config.renderHoverVerbatim ? "    " : "";
+
               Function<ProcedureCall, Optional<String>> hoverText =
                   call ->
                       call.definition
@@ -453,7 +455,8 @@ public class SoarDocumentService implements TextDocumentService {
                           .map(
                               comment ->
                                   Arrays.stream(comment.split("\n"))
-                                      .map(line -> line.replaceAll("\\s*#\\s?", "")))
+                                      .map(line -> line.replaceAll("\\s*#\\s?", ""))
+                                      .map(line -> prefix + line))
                           .flatMap(
                               lines ->
                                   config.fullCommentHover

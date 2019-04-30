@@ -17,6 +17,8 @@ import org.junit.Test;
 public class HoverTest extends SingleFileTestFixture {
   public HoverTest() throws Exception {
     super("hover", "test.soar");
+    config.renderHoverVerbatim = false;
+    sendConfiguration();
   }
 
   @Test

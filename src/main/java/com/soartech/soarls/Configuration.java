@@ -23,4 +23,10 @@ class Configuration {
    * causes most clients to open it automatically.
    */
   public Boolean hyperlinkExpansionFile = false;
+
+  /**
+   * If true, then hover text will be prepended with four leading spaces such that a markdown
+   * renderer will render thet text verbatim.
+   */
+  public Boolean renderHoverVerbatim = true;
 }
