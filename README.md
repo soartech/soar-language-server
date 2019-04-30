@@ -47,6 +47,28 @@ Protocol](https://langserver.org/).
 > [VSCode](https://marketplace.visualstudio.com/items?itemName=bdegrend.soar)
 > and [Sublime](https://packagecontrol.io/packages/Soar%20Tools).
 
+## Installing
+
+The Soar Language Server can be used with any editor or IDE that
+supports the Language Server Protocol. Prebuilt executables can be
+found on the [releases page].
+
+* **VSCode**: Install the [Soar Language Support](mps.github.io/)
+  plugin from the Visual Studio Marketplace.
+* **Sublime**: Download the server from the [releases page] and follow
+  the instructions in [integrations/sublime](./integrations/sublime).
+* **Emacs**: Download the server from the [releases page] and use the
+  plugin found at [integrations/emacs](./integrations/emacs).
+* **Intellij**: Download the server from the [releases page] and
+  install the plugin fonud in
+  [integrations/intellj](./integrations/intellij).
+
+Any other editor that supports the Language Server Protocol will work
+too. Some only require some configuration, while others need a small
+plugin. Contributions are welcome!
+
+[releases page]: https://github.com/soartech/soar-language-server/releases
+
 ## Project Setup
 In order for the Soar LSP to know how to load your agent, you need to
 create a `soarAgents.json` file at the root of your workspace. This
@@ -82,12 +104,6 @@ name of one of the entries in the `entryPoint` list.
 
 If you modify this file, you may have to restart the LSP server (e.g.,
 re-open your workspace or restart your IDE).
-
-# Running
-
-Download the latest build of the server from the [releases
-page](./releases), then find instructions for your editor in the
-[integrations](./integrations) pages.
 
 # Building
 
@@ -125,8 +141,3 @@ Before pushing changes, please run the Google Java formatter:
 ```bash
 $ ./gradlew googleJavaFormat
 ```
-
-# Clients
-
-We don't yet have any officially supported plugins. Work in progress
-plugins can be found in the [integrations](./integrations) directory.
