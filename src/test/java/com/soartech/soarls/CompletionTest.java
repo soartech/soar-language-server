@@ -59,7 +59,7 @@ public class CompletionTest extends SingleFileTestFixture {
   }
 
   @Test
-  public void tclProdedure() throws Exception {
+  public void tclProcedure() throws Exception {
     CompletionParams params = new CompletionParams(fileId(file), new Position(11, 10));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
