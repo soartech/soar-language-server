@@ -5,16 +5,7 @@ import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import com.google.common.collect.ImmutableList;
-import com.soartech.soarls.analysis.Analysis;
-import com.soartech.soarls.analysis.FileAnalysis;
-import com.soartech.soarls.analysis.ProcedureCall;
-import com.soartech.soarls.analysis.ProcedureDefinition;
-import com.soartech.soarls.analysis.ProjectAnalysis;
-import com.soartech.soarls.analysis.VariableDefinition;
-import com.soartech.soarls.analysis.VariableRetrieval;
-import com.soartech.soarls.tcl.TclAstNode;
-import com.soartech.soarls.util.Debouncer;
+import java.io.PrintStream;
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.file.Path;
@@ -32,6 +23,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
+
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
@@ -75,6 +67,17 @@ import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.TextDocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.collect.ImmutableList;
+import com.soartech.soarls.analysis.Analysis;
+import com.soartech.soarls.analysis.FileAnalysis;
+import com.soartech.soarls.analysis.ProcedureCall;
+import com.soartech.soarls.analysis.ProcedureDefinition;
+import com.soartech.soarls.analysis.ProjectAnalysis;
+import com.soartech.soarls.analysis.VariableDefinition;
+import com.soartech.soarls.analysis.VariableRetrieval;
+import com.soartech.soarls.tcl.TclAstNode;
+import com.soartech.soarls.util.Debouncer;
 
 public class SoarDocumentService implements TextDocumentService {
   private static final Logger LOG = LoggerFactory.getLogger(SoarDocumentService.class);
@@ -818,4 +821,20 @@ public class SoarDocumentService implements TextDocumentService {
       throw new RuntimeException(e);
     }
   }
+  
+  void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, String prefix) {
+      String linePrefix = prefix.substring(0, prefix.length() - 4) + "|-- ";
+      stream.print(linePrefix + workspaceRootPath.toUri().relativize(uri));
+      FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
+      if (fileAnalysis == null) {
+        stream.println(" MISSING");
+      } else {
+        stream.println();
+        for (int i = 0; i != fileAnalysis.filesSourced.size(); ++i) {
+          boolean isLast = i == fileAnalysis.filesSourced.size() - 1;
+          URI sourcedUri = fileAnalysis.filesSourced.get(i);
+          printAnalysisTree(analysis, stream, sourcedUri, prefix + (isLast ? "    " : "|   "));
+        }
+      }
+    }
 }

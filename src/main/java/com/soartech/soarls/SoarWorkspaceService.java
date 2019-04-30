@@ -1,25 +1,24 @@
 package com.soartech.soarls;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
-import com.soartech.soarls.EntryPoints.EntryPoint;
-import com.soartech.soarls.analysis.FileAnalysis;
-import com.soartech.soarls.analysis.ProjectAnalysis;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.concurrent.CompletableFuture;
+
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.services.WorkspaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonSyntaxException;
+import com.soartech.soarls.EntryPoints.EntryPoint;
 
 class SoarWorkspaceService implements WorkspaceService {
 
@@ -112,7 +111,7 @@ class SoarWorkspaceService implements WorkspaceService {
       return documentService
           .getAnalysis()
           .thenAccept(
-              analysis -> printAnalysisTree(analysis, System.err, analysis.entryPointUri, "    "))
+              analysis -> documentService.printAnalysisTree(analysis, System.err, analysis.entryPointUri, "    "))
           .thenApply(result -> result);
     } else {
       LOG.warn("Unsupported command: {}", params.getCommand());
@@ -120,19 +119,4 @@ class SoarWorkspaceService implements WorkspaceService {
     return CompletableFuture.completedFuture(null);
   }
 
-  void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, String prefix) {
-    String linePrefix = prefix.substring(0, prefix.length() - 4) + "|-- ";
-    stream.print(linePrefix + URI.create(workspaceRootUri).relativize(uri));
-    FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
-    if (fileAnalysis == null) {
-      stream.println(" MISSING");
-    } else {
-      stream.println();
-      for (int i = 0; i != fileAnalysis.filesSourced.size(); ++i) {
-        boolean isLast = i == fileAnalysis.filesSourced.size() - 1;
-        URI sourcedUri = fileAnalysis.filesSourced.get(i);
-        printAnalysisTree(analysis, stream, sourcedUri, prefix + (isLast ? "    " : "|   "));
-      }
-    }
-  }
 }
