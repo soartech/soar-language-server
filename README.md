@@ -40,11 +40,12 @@ Protocol](https://langserver.org/).
   typing a `$`.
 * **Code Folding**: Comments, rules, and Tcl procs can be folded.
 
-**A note on syntax highlighting**: This is not actually a built-in
-feature (it is not directly supported by LSP), but some IDEs already
-have plugins that provide Soar syntax highlighting. The VSCode plugin
-automatically includes the other existing VSCode plugin for
-you. Otherwise, you should use another existing plugin.
+> **A note on syntax highlighting**: This is not actually a built-in
+> feature (it is not directly supported by LSP), but some IDEs already
+> have plugins that provide Soar syntax highlighting. Search your
+> plugin repository for existing plugins, such these plugins for
+> [VSCode](https://marketplace.visualstudio.com/items?itemName=bdegrend.soar)
+> and [Sublime](https://packagecontrol.io/packages/Soar%20Tools).
 
 ## Project Setup
 In order for the Soar LSP to know how to load your agent, you need to
