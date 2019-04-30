@@ -156,7 +156,7 @@ public class HoverTest extends SingleFileTestFixture {
   public void hoverProcRange() throws Exception {
     TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    assertRange(hover, 18, 5, 18, 32);
+    assertRange(hover, 18, 5, 18, 13);
   }
 
   /** Test that the range matches the given parameters. */
