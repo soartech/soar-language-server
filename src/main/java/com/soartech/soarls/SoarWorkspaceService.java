@@ -112,24 +112,26 @@ class SoarWorkspaceService implements WorkspaceService {
       return documentService
           .getAnalysis()
           .thenAccept(
-              analysis -> printAnalysisTree(analysis, System.err, analysis.entryPointUri, 0))
+              analysis -> printAnalysisTree(analysis, System.err, analysis.entryPointUri, "    "))
           .thenApply(result -> result);
+    } else {
+      LOG.warn("Unsupported command: {}", params.getCommand());
     }
     return CompletableFuture.completedFuture(null);
   }
 
-  void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, int depth) {
-    for (int i = 0; i != depth; ++i) {
-      stream.print("    ");
-    }
-    stream.print(URI.create(workspaceRootUri).relativize(uri));
+  void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, String prefix) {
+    String linePrefix = prefix.substring(0, prefix.length() - 4) + "|-- ";
+    stream.print(linePrefix + URI.create(workspaceRootUri).relativize(uri));
     FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
     if (fileAnalysis == null) {
       stream.println(" MISSING");
     } else {
       stream.println();
-      for (URI sourcedUri : fileAnalysis.filesSourced) {
-        printAnalysisTree(analysis, stream, sourcedUri, depth + 1);
+      for (int i = 0; i != fileAnalysis.filesSourced.size(); ++i) {
+        boolean isLast = i == fileAnalysis.filesSourced.size() - 1;
+        URI sourcedUri = fileAnalysis.filesSourced.get(i);
+        printAnalysisTree(analysis, stream, sourcedUri, prefix + (isLast ? "    " : "|   "));
       }
     }
   }
