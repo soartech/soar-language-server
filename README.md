@@ -105,7 +105,7 @@ name of one of the entries in the `entryPoint` list.
 If you modify this file, you may have to restart the LSP server (e.g.,
 re-open your workspace or restart your IDE).
 
-# Building
+# Developing
 
 First, clone this repository:
 
