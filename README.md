@@ -30,10 +30,8 @@ Protocol](https://langserver.org/).
   will show the comments immediately preceding its definition.
 * **Error and Warning Reporting**: All code is actually executed in an
   internal JSoar instance. If this produces any errors or warnings,
-  these are captured and displayed within the IDE. Currently the
-  location is not very precise (e.g., it will highlight an entire
-  rule, not the part of the rule causing a problem). The IDE attempts
-  to continue past errors so that the analysis is as complete as
+  these are captured and displayed within the IDE. The IDE attempts to
+  continue past errors so that the analysis is as complete as
   possible.
 * **Rename**: Tcl variables can be renamed, and the known instances
   are all updated.
