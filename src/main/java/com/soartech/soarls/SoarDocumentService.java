@@ -124,6 +124,11 @@ public class SoarDocumentService implements TextDocumentService {
    */
   private Configuration config = new Configuration();
 
+  /** Retrieve the most recently completed analysis for the active entry point. */
+  public CompletableFuture<ProjectAnalysis> getAnalysis() {
+    return getAnalysis(activeEntryPoint);
+  }
+
   /**
    * Retrieve the most recently completed analysis for the given entry point. If an analysis has
    * already been completed then the future will resolve immediately; otherwise, you may assume that
@@ -255,7 +260,9 @@ public class SoarDocumentService implements TextDocumentService {
                     .map(concatSelectedProductions)
                     .map(editFile)
                     .orElse(CompletableFuture.completedFuture(null)))
-        .thenApply(response -> null);
+        .thenApply(
+            response ->
+                Arrays.asList(Either.forLeft(new Command("Log source tree", "log-source-tree"))));
   }
 
   @Override

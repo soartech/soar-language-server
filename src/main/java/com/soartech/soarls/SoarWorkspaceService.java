@@ -5,7 +5,10 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import com.soartech.soarls.EntryPoints.EntryPoint;
+import com.soartech.soarls.analysis.FileAnalysis;
+import com.soartech.soarls.analysis.ProjectAnalysis;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -105,7 +108,29 @@ class SoarWorkspaceService implements WorkspaceService {
           SoarDocumentService.uri(
               gson.fromJson((JsonElement) params.getArguments().get(0), String.class));
       documentService.setEntryPoint(uri);
+    } else if (params.getCommand().equals("log-source-tree")) {
+      return documentService
+          .getAnalysis()
+          .thenAccept(
+              analysis -> printAnalysisTree(analysis, System.err, analysis.entryPointUri, 0))
+          .thenApply(result -> result);
     }
     return CompletableFuture.completedFuture(null);
+  }
+
+  void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, int depth) {
+    for (int i = 0; i != depth; ++i) {
+      stream.print("    ");
+    }
+    stream.print(URI.create(workspaceRootUri).relativize(uri));
+    FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
+    if (fileAnalysis == null) {
+      stream.println(" MISSING");
+    } else {
+      stream.println();
+      for (URI sourcedUri : fileAnalysis.filesSourced) {
+        printAnalysisTree(analysis, stream, sourcedUri, depth + 1);
+      }
+    }
   }
 }
