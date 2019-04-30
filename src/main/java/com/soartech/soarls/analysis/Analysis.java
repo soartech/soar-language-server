@@ -183,6 +183,9 @@ public class Analysis {
       try {
         originalCommands.put(cmd, this.agent.getInterpreter().getCommand(cmd, null));
       } catch (SoarException e) {
+          // ignoring this exception -- it is expected the first time through that the command may not exist
+          // (e.g., because proc has been renamed to proc_internal), but there's not a good way to check
+          // if a command exists without trying to get it, which throws an exception if it doesn't
       }
     }
 
