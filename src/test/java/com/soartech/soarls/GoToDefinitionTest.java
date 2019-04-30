@@ -7,7 +7,6 @@ import java.util.List;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.eclipse.lsp4j.TextEdit;
 import org.junit.Test;
 
 /**
@@ -35,51 +34,6 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
         .getLeft()
         .stream()
         .collect(toList());
-  }
-
-  /**
-   * This test is ignored because we are no longer hijacking go to definition as a means of showing
-   * Tcl expansions.
-   */
-  @Test
-  @org.junit.Ignore
-  public void tclExpansion() throws Exception {
-    List<Location> contents = definitionsForPosition("productions.soar", 11, 13);
-
-    Location location = contents.get(0);
-    assertNotNull(location);
-
-    assertEquals(resolve("~productions.soar"), location.getUri());
-
-    Position start = location.getRange().getStart();
-    assertEquals(0, start.getLine());
-    assertEquals(0, start.getCharacter());
-
-    Position end = location.getRange().getEnd();
-    assertEquals(0, end.getLine());
-    assertEquals(0, end.getCharacter());
-
-    TextEdit edit = edits.get(location.getUri()).get(0);
-    assertNotNull(edit);
-
-    // Check that edit contains correct text at correct Range (start & end)
-    Position edit_start = edit.getRange().getStart();
-    assertEquals(0, edit_start.getLine());
-    assertEquals(0, edit_start.getCharacter());
-
-    Position edit_end = location.getRange().getEnd();
-    assertEquals(0, edit_end.getLine());
-    assertEquals(0, edit_end.getCharacter());
-
-    // check that edit contains correct expanded tcl/ngs
-    assertEquals(
-        "sp {proc-not-defined\n"
-            + "    (state <s> ^superstate nil)\n"
-            + "    \n"
-            + "-->\n"
-            + "    (<s> ^object-exists *YES*)\n"
-            + "}",
-        edit.getNewText().trim());
   }
 
   @Test
