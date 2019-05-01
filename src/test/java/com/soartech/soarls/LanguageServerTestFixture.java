@@ -5,8 +5,8 @@ import static java.util.stream.Collectors.toList;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
@@ -46,7 +46,7 @@ import org.eclipse.lsp4j.services.LanguageServer;
  * <p>This is largely borrowed from the Kotlin language server.
  */
 public class LanguageServerTestFixture implements LanguageClient {
-  protected final Path workspaceRoot;
+  protected final URI workspaceRoot;
 
   protected final LanguageServer languageServer;
 
@@ -66,15 +66,18 @@ public class LanguageServerTestFixture implements LanguageClient {
   Map<String, List<TextEdit>> edits = new HashMap<>();
 
   protected LanguageServerTestFixture(String relativeWorkspaceRoot) throws Exception {
-    URI anchorUri = this.getClass().getResource("/Anchor.txt").toURI();
-    workspaceRoot = Paths.get(anchorUri).getParent().resolve(relativeWorkspaceRoot);
+    URL anchorUrl = this.getClass().getResource("/Anchor.txt");
+    workspaceRoot =
+        anchorUrl
+            .toURI()
+            .resolve(relativeWorkspaceRoot.replaceAll(" ", "%20").replaceAll("([^/])$", "$1/"));
     System.out.println("Creating test fixture with workspace root " + workspaceRoot);
 
     Server languageServer = new Server();
     languageServer.connect(this);
 
     InitializeParams init = new InitializeParams();
-    init.setRootUri(workspaceRoot.toUri().toString());
+    init.setRootUri(workspaceRoot.toString());
     capabilities = languageServer.initialize(init).get().getCapabilities();
 
     languageServer.initialized(new InitializedParams());
@@ -94,14 +97,14 @@ public class LanguageServerTestFixture implements LanguageClient {
   }
 
   void waitForAnalysis(String relativePath) throws Exception {
-    URI uri = workspaceRoot.resolve(relativePath).toUri();
+    URI uri = workspaceRoot.resolve(relativePath);
     System.out.println("Waiting for analysis from " + uri);
     ((SoarDocumentService) languageServer.getTextDocumentService()).getAnalysis(uri).get();
   }
 
   /** Construct a text document identifier based on a relative path to the workspace root. */
   TextDocumentIdentifier fileId(String relativePath) {
-    String uri = workspaceRoot.resolve(relativePath).toUri().toString();
+    String uri = workspaceRoot.resolve(relativePath).toString();
     return new TextDocumentIdentifier(uri);
   }
 
@@ -112,16 +115,16 @@ public class LanguageServerTestFixture implements LanguageClient {
   }
 
   protected void open(String relativePath) throws Exception {
-    Path path = workspaceRoot.resolve(relativePath);
-    String content = new String(Files.readAllBytes(path));
-    TextDocumentItem document = new TextDocumentItem(path.toUri().toString(), "Soar", 0, content);
+    URI uri = workspaceRoot.resolve(relativePath);
+    String content = new String(Files.readAllBytes(Paths.get(uri)));
+    TextDocumentItem document = new TextDocumentItem(uri.toString(), "Soar", 0, content);
 
     languageServer.getTextDocumentService().didOpen(new DidOpenTextDocumentParams(document));
   }
 
   List<Diagnostic> diagnosticsForFile(String relativePath) {
-    Path path = workspaceRoot.resolve(relativePath);
-    return diagnostics.get(path.toUri().toString()).getDiagnostics();
+    URI uri = workspaceRoot.resolve(relativePath);
+    return diagnostics.get(uri.toString()).getDiagnostics();
   }
 
   // Implement LanguageClient
@@ -192,7 +195,7 @@ public class LanguageServerTestFixture implements LanguageClient {
    * different objects.
    */
   protected SoarFile retrieveFile(String relativePath) {
-    URI uri = workspaceRoot.resolve(relativePath).toUri();
+    URI uri = workspaceRoot.resolve(relativePath);
     return ((SoarDocumentService) languageServer.getTextDocumentService()).documents.get(uri);
   }
 }

@@ -15,7 +15,7 @@ public class TclExpansionTest extends LanguageServerTestFixture {
   public TclExpansionTest() throws Exception {
     super("project");
 
-    URI uri = workspaceRoot.resolve("~tcl-expansion.soar").toUri();
+    URI uri = workspaceRoot.resolve("~tcl-expansion.soar");
     DidOpenTextDocumentParams params =
         new DidOpenTextDocumentParams(new TextDocumentItem(uri.toString(), "soar", 0, ""));
     languageServer.getTextDocumentService().didOpen(params);

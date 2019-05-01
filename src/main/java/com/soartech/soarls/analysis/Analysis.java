@@ -14,8 +14,6 @@ import com.soartech.soarls.tcl.TclParser;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 import java.net.URI;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -66,7 +64,7 @@ public class Analysis {
    */
   private final Documents documents;
 
-  private Stack<Path> directoryStack = new Stack<>();
+  private Stack<URI> directoryStack = new Stack<>();
 
   /**
    * The agent that will be used during this analysis. Whereas a normal Soar agent would just call
@@ -115,7 +113,7 @@ public class Analysis {
     }
 
     try {
-      this.directoryStack.push(Paths.get(entryPointUri).getParent());
+      this.directoryStack.push(entryPointUri.resolve(""));
     } catch (Exception e) {
       LOG.error("failed to initialize directory stack", e);
     }
@@ -199,12 +197,10 @@ public class Analysis {
           "source",
           (context, args) -> {
             try {
-              Path currentDirectory = this.directoryStack.peek();
-              Path pathToSource = currentDirectory.resolve(args[1]).normalize();
-              Path newDirectory = pathToSource.getParent();
+              URI uri = this.directoryStack.peek().resolve(args[1]);
+              URI newDirectory = uri.resolve("");
               this.directoryStack.push(newDirectory);
 
-              URI uri = pathToSource.toUri();
               filesSourced.add(uri);
               SoarFile sourcedFile = documents.get(uri);
               LOG.info("Retrieved file for {} :: {}", uri, sourcedFile);
@@ -225,7 +221,8 @@ public class Analysis {
       addCommand(
           "pushd",
           (context, args) -> {
-            Path newDirectory = this.directoryStack.peek().resolve(args[1]);
+            URI newDirectory =
+                this.directoryStack.peek().resolve(args[1].replaceAll("([^/])$", "$1/"));
             this.directoryStack.push(newDirectory);
             return "";
           });
@@ -240,7 +237,7 @@ public class Analysis {
       addCommand(
           "pwd",
           (context, args) -> {
-            return this.directoryStack.peek().toAbsolutePath().toString();
+            return this.directoryStack.peek().toString();
           });
 
       addCommand(
