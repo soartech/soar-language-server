@@ -25,16 +25,16 @@ class SoarWorkspaceService implements WorkspaceService {
   private static final String SOAR_AGENTS_FILE = "soarAgents.json";
 
   private final SoarDocumentService documentService;
-  private String workspaceRootUri;
+  private Path workspaceRootPath;
   private EntryPoints soarAgentEntryPoints;
 
   SoarWorkspaceService(SoarDocumentService documentService) {
     this.documentService = documentService;
   }
 
-  public void setWorkspaceRoot(String workspaceRootUri) {
-    LOG.info("Setting workspace URI: " + workspaceRootUri);
-    this.workspaceRootUri = workspaceRootUri;
+  public void setWorkspaceRoot(String workspaceRootPath) {
+    LOG.info("Setting workspace root: " + workspaceRootPath);
+    this.workspaceRootPath = Paths.get(URI.create(workspaceRootPath));
 
     processEntryPoints();
   }
@@ -44,8 +44,7 @@ class SoarWorkspaceService implements WorkspaceService {
    * entry point currently triggers other processing that requires a valid client connection.
    */
   public void processEntryPoints() {
-    LOG.info("Processing entry points: workspace URI: " + workspaceRootUri);
-    Path workspaceRootPath = Paths.get(URI.create(workspaceRootUri));
+    LOG.info("Processing entry points: workspace path: " + workspaceRootPath);
     documentService.setWorkspaceRootPath(workspaceRootPath);
 
     Path soarAgentsPath = workspaceRootPath.resolve(SOAR_AGENTS_FILE);
