@@ -25,16 +25,16 @@ class SoarWorkspaceService implements WorkspaceService {
   private static final String SOAR_AGENTS_FILE = "soarAgents.json";
 
   private final SoarDocumentService documentService;
-  private Path workspaceRootPath;
+  private URI workspaceRootUri;
   private EntryPoints soarAgentEntryPoints;
 
   SoarWorkspaceService(SoarDocumentService documentService) {
     this.documentService = documentService;
   }
 
-  public void setWorkspaceRoot(String workspaceRootPath) {
-    LOG.info("Setting workspace root: " + workspaceRootPath);
-    this.workspaceRootPath = Paths.get(URI.create(workspaceRootPath));
+  public void setWorkspaceRoot(String workspaceRootUri) {
+    LOG.info("Setting workspace root: {}", workspaceRootUri);
+    this.workspaceRootUri = URI.create(workspaceRootUri);
 
     processEntryPoints();
   }
@@ -44,10 +44,10 @@ class SoarWorkspaceService implements WorkspaceService {
    * entry point currently triggers other processing that requires a valid client connection.
    */
   public void processEntryPoints() {
-    LOG.info("Processing entry points: workspace path: " + workspaceRootPath);
-    documentService.setWorkspaceRootPath(workspaceRootPath);
+    LOG.info("Processing entry points: workspace path: " + workspaceRootUri);
+    documentService.setWorkspaceRootUri(workspaceRootUri);
 
-    Path soarAgentsPath = workspaceRootPath.resolve(SOAR_AGENTS_FILE);
+    Path soarAgentsPath = Paths.get(workspaceRootUri).resolve(SOAR_AGENTS_FILE);
 
     if (!Files.exists(soarAgentsPath)) {
       LOG.info("Not found: {} -- using default entry point", soarAgentsPath);
@@ -78,8 +78,8 @@ class SoarWorkspaceService implements WorkspaceService {
 
       // set the entry point
 
-      Path agentEntryPoint = workspaceRootPath.resolve(activeEntryPoint.path);
-      documentService.setEntryPoint(agentEntryPoint.toUri());
+      URI agentEntryPoint = workspaceRootUri.resolve(activeEntryPoint.path);
+      documentService.setEntryPoint(agentEntryPoint);
 
     } catch (IOException | JsonSyntaxException e) {
       LOG.error("Error trying to read {}", soarAgentsPath, e);

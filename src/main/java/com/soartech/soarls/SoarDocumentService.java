@@ -17,7 +17,6 @@ import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.util.Debouncer;
 import java.io.PrintStream;
 import java.net.URI;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -112,7 +111,7 @@ public class SoarDocumentService implements TextDocumentService {
   private URI activeEntryPoint = null;
 
   // The path of the currently active workspace.
-  private Path workspaceRootPath = null;
+  private URI workspaceRootUri = null;
 
   private LanguageClient client;
 
@@ -153,7 +152,11 @@ public class SoarDocumentService implements TextDocumentService {
 
   /** Get the URI of the file to use for Tcl expansions. */
   private URI tclExpansionUri() {
-    return workspaceRootPath.resolve(config.tclExpansionFile).toUri();
+    LOG.info("workspaceRootUri :: {}", workspaceRootUri);
+    URI uri = URI.create(workspaceRootUri.toString() + config.tclExpansionFile);
+    // URI uri = workspaceRootUri.resolve(config.tclExpansionFile);
+    LOG.info("tclExpansionUri :: {}", uri);
+    return uri;
   }
 
   /** Retrieve the Tcl expansion file, creating it if necessary. */
@@ -177,6 +180,7 @@ public class SoarDocumentService implements TextDocumentService {
   public void didOpen(DidOpenTextDocumentParams params) {
     TextDocumentItem doc = params.getTextDocument();
     SoarFile soarFile = documents.open(doc);
+    LOG.info("didOpen {}", soarFile.uri);
 
     if (activeEntryPoint == null) {
       this.setEntryPoint(soarFile.uri);
@@ -195,6 +199,7 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
     URI uri = uri(params.getTextDocument().getUri());
+    LOG.info("didChange {}", uri);
     documents.applyChanges(params);
 
     // If the file that changed was never sourced, then there is no
@@ -432,6 +437,7 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             projectAnalysis -> {
               URI uri = uri(params.getTextDocument().getUri());
+              LOG.info("hover for {}", uri);
               FileAnalysis analysis = projectAnalysis.file(uri).orElse(null);
               SoarFile file = analysis.file;
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
@@ -625,8 +631,11 @@ public class SoarDocumentService implements TextDocumentService {
     this.client = client;
   }
 
-  void setWorkspaceRootPath(Path workspaceRootPath) {
-    this.workspaceRootPath = workspaceRootPath;
+  void setWorkspaceRootUri(URI workspaceRootUri) {
+    // LOG.info("setWorkspaceRootPath :: {}", workspaceRootPath);
+    // this.workspaceRootUri = workspaceRootPath.toUri();
+    this.workspaceRootUri = workspaceRootUri;
+    LOG.info("workspaceRootUri :: {}", workspaceRootUri);
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
@@ -770,6 +779,7 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
     URI uri = uri(params.getTextDocument().getUri());
+    LOG.info("documentLink {}", uri);
 
     Function<FileAnalysis, List<DocumentLink>> collectLinks =
         fileAnalysis -> {
@@ -816,7 +826,7 @@ public class SoarDocumentService implements TextDocumentService {
    */
   static URI uri(String uriString) {
     try {
-      return new URI(uriString);
+      return new URI(uriString).normalize();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -824,7 +834,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, String prefix) {
     String linePrefix = prefix.substring(0, prefix.length() - 4) + "|-- ";
-    stream.print(linePrefix + workspaceRootPath.toUri().relativize(uri));
+    stream.print(linePrefix + workspaceRootUri.relativize(uri));
     FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
     if (fileAnalysis == null) {
       stream.println(" MISSING");
