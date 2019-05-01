@@ -92,14 +92,14 @@ public class SoarFile {
     return this.withChanges(Arrays.asList(change));
   }
 
-  public void traverseAstTree(Consumer<TclAstNode> implementation) {
-    traverseAstTreeHelper(implementation, this.ast);
+  public void traverseAst(Consumer<TclAstNode> implementation) {
+    traverseAstHelper(implementation, this.ast);
   }
 
-  private void traverseAstTreeHelper(Consumer<TclAstNode> implementation, TclAstNode currentNode) {
+  private void traverseAstHelper(Consumer<TclAstNode> implementation, TclAstNode currentNode) {
     implementation.accept(currentNode);
     for (TclAstNode child : currentNode.getChildren()) {
-      traverseAstTreeHelper(implementation, child);
+      traverseAstHelper(implementation, child);
     }
   }
 

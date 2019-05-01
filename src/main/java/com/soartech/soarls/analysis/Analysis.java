@@ -315,7 +315,7 @@ public class Analysis {
       // Traverse file ast tree
       // for each COMMAND node found, if the node contains a NORMAL_WORD child
       // then add the procedure call to the file analysis
-      file.traverseAstTree(
+      file.traverseAst(
           node -> {
             String nodeText = file.getNodeInternalText(node);
 
@@ -501,7 +501,7 @@ public class Analysis {
     }
   }
 
-  private String printAstTree(SoarFile file) {
+  private String printAst(SoarFile file) {
     final ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try (PrintStream ps = new PrintStream(baos, true)) {
       file.ast.printTree(ps, file.contents.toCharArray(), 4);
