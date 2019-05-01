@@ -51,7 +51,7 @@ public class Server implements LanguageServer, LanguageClientAware {
   public CompletableFuture<InitializeResult> initialize(InitializeParams params) {
     LOG.info("Initializing server");
     // We ensure there is a trailing slash so the root URI gets treated as a directory.
-    this.workspaceService.setWorkspaceRoot(params.getRootUri().replaceAll("/*$", "/"));
+    this.workspaceService.setWorkspaceRoot(params.getRootUri().replaceAll("([^/])$", "$1/"));
 
     ServerCapabilities capabilities = new ServerCapabilities();
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
