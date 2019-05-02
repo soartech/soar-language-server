@@ -247,7 +247,6 @@ public class Analysis {
             // the URI
 
             URI uri = this.directoryStack.peek();
-            LOG.info("URI: " + uri);
             String result;
             if (uri.getScheme().equals("file")) {
               result = Paths.get(uri).toAbsolutePath().toString();
