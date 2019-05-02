@@ -54,7 +54,7 @@ public class Analysis {
    * inside the Tcl interpreter, so we need to make sure we still throw an exception so the Tcl code
    * executes as it would normally.
    */
-  private static String MISSING_FILE = "MISSING_FILE";
+  private static String MISSING_FILE = "File not found";
 
   private static String DUPLICATE_PRODUCTION_REGEX = "Ignoring .+ because it is a duplicate of .+";
 
@@ -363,25 +363,13 @@ public class Analysis {
                         "SoarInterpreterException");
                 diagnosticList.add(diagnostic);
               } catch (TclInterpreterException ex) {
-                // It's fine to use == for equality because this is the actual String object that
-                // was used to construct the exception.
-                if (ex.getMessage() == MISSING_FILE) {
-                  Diagnostic diagnostic =
-                      new Diagnostic(
-                          file.rangeForNode(ctx.currentNode),
-                          "File not found",
-                          DiagnosticSeverity.Error,
-                          "TclInterpreterException");
-                  diagnosticList.add(diagnostic);
-                } else {
-                  Diagnostic diagnostic =
-                      new Diagnostic(
-                          file.rangeForNode(ctx.currentNode),
-                          ex.getMessage(),
-                          DiagnosticSeverity.Error,
-                          "TclInterpreterException");
-                  diagnosticList.add(diagnostic);
-                }
+                Diagnostic diagnostic =
+                    new Diagnostic(
+                        file.rangeForNode(ctx.currentNode),
+                        ex.getMessage(),
+                        DiagnosticSeverity.Error,
+                        "TclInterpreterException");
+                diagnosticList.add(diagnostic);
               } catch (SoarException ex) {
                 LOG.error("Error while evaluating Soar command: {}", nodeText, ex);
 
