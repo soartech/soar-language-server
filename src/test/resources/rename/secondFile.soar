@@ -1,0 +1,5 @@
+sp "elaborate*top-state
+    (state <s> ^superstate nil)
+-->
+    (<s> ^top-state $NGS_YES)
+"

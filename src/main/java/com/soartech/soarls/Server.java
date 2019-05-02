@@ -65,6 +65,7 @@ public class Server implements LanguageServer, LanguageClientAware {
     capabilities.setExecuteCommandProvider(new ExecuteCommandOptions());
     capabilities.setReferencesProvider(true);
     capabilities.setDocumentLinkProvider(new DocumentLinkOptions());
+    capabilities.setRenameProvider(true);
 
     return CompletableFuture.completedFuture(new InitializeResult(capabilities));
   }

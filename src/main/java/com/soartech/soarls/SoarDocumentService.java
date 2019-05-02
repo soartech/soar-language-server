@@ -59,6 +59,7 @@ import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
+import org.eclipse.lsp4j.RenameParams;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentItem;
@@ -304,6 +305,43 @@ public class SoarDocumentService implements TextDocumentService {
                       .orElseGet(ArrayList::new);
 
               return Either.forLeft(locations);
+            });
+  }
+
+  @Override
+  public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
+    return getAnalysis(activeEntryPoint)
+        .thenApply(
+            analysis -> {
+              // Get original name for lookups
+              URI thisFileUri = uri(params.getTextDocument().getUri());
+              FileAnalysis thisFileAnalysis = analysis.file(thisFileUri).orElse(null);
+              SoarFile file = thisFileAnalysis.file;
+              TclAstNode node = file.tclNode(params.getPosition());
+              String oldName = file.contents.substring(node.getStart(), node.getEnd());
+
+              // Final set of edits
+              HashMap<String, List<TextEdit>> textEdits = new HashMap<>();
+
+              // Assume variables can be accessed between files, so enumerate over them
+              for (FileAnalysis otherFileAnalysis : analysis.files.values()) {
+                SoarFile otherFile = otherFileAnalysis.file;
+                String otherFileUriString = otherFile.uri.toString();
+                TclAstNode root = otherFile.ast;
+                String contents = otherFile.contents;
+                // only attempt to rename leaf nodes like NORMAL_WORD or VARIABLE_NAME
+                for (TclAstNode childNode : root.leafNodes()) {
+                  int start = childNode.getStart();
+                  int end = childNode.getEnd();
+                  if (contents.substring(start, end).equals(oldName)) {
+                    Range range = new Range(otherFile.position(start), otherFile.position(end));
+                    textEdits.putIfAbsent(otherFileUriString, new ArrayList<>());
+                    textEdits.get(otherFileUriString).add(new TextEdit(range, params.getNewName()));
+                  }
+                }
+              }
+
+              return new WorkspaceEdit(textEdits);
             });
   }
 
