@@ -31,7 +31,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
   }
 
   URI resolve(String relativePath) {
-    return workspaceRoot.resolve(relativePath).toUri();
+    return workspaceRoot.resolve(relativePath);
   }
 
   /**

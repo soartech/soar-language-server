@@ -16,8 +16,6 @@ import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.util.Debouncer;
 import java.io.PrintStream;
 import java.net.URI;
-import java.net.URLDecoder;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -109,7 +107,7 @@ public class SoarDocumentService implements TextDocumentService {
   private URI activeEntryPoint = null;
 
   // The path of the currently active workspace.
-  private Path workspaceRootPath = null;
+  private URI workspaceRootUri = null;
 
   private LanguageClient client;
 
@@ -150,7 +148,8 @@ public class SoarDocumentService implements TextDocumentService {
 
   /** Get the URI of the file to use for Tcl expansions. */
   private URI tclExpansionUri() {
-    return workspaceRootPath.resolve(config.tclExpansionFile).toUri();
+    URI uri = URI.create(workspaceRootUri.toString() + config.tclExpansionFile);
+    return uri;
   }
 
   /** Retrieve the Tcl expansion file, creating it if necessary. */
@@ -622,8 +621,8 @@ public class SoarDocumentService implements TextDocumentService {
     this.client = client;
   }
 
-  void setWorkspaceRootPath(Path workspaceRootPath) {
-    this.workspaceRootPath = workspaceRootPath;
+  void setWorkspaceRootUri(URI workspaceRootUri) {
+    this.workspaceRootUri = workspaceRootUri;
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
@@ -737,7 +736,7 @@ public class SoarDocumentService implements TextDocumentService {
    */
   static URI uri(String uriString) {
     try {
-      return new URI(URLDecoder.decode(uriString));
+      return new URI(uriString).normalize();
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
@@ -745,7 +744,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, String prefix) {
     String linePrefix = prefix.substring(0, prefix.length() - 4) + "|-- ";
-    stream.print(linePrefix + workspaceRootPath.toUri().relativize(uri));
+    stream.print(linePrefix + workspaceRootUri.relativize(uri));
     FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
     if (fileAnalysis == null) {
       stream.println(" MISSING");

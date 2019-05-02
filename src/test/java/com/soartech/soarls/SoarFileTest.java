@@ -3,8 +3,9 @@ package com.soartech.soarls;
 import static org.junit.Assert.*;
 
 import com.soartech.soarls.tcl.TclAstNode;
+import java.net.URI;
 import java.nio.file.Files;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
@@ -18,9 +19,9 @@ public class SoarFileTest extends LanguageServerTestFixture {
   public SoarFileTest() throws Exception {
     super("file");
 
-    Path path = workspaceRoot.resolve("test.soar");
-    String content = new String(Files.readAllBytes(path));
-    this.file = new SoarFile(path.toUri(), content);
+    URI uri = workspaceRoot.resolve("test.soar");
+    String content = new String(Files.readAllBytes(Paths.get(uri)));
+    this.file = new SoarFile(uri, content);
 
     this.file.ast.printTree(System.out, this.file.contents.toCharArray(), 0);
   }

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import org.junit.Test;
 
 public class SoarAgentsTest extends LanguageServerTestFixture {
@@ -17,7 +18,7 @@ public class SoarAgentsTest extends LanguageServerTestFixture {
   public void readJson() throws IOException {
 
     String soarAgentsJson =
-        new String(Files.readAllBytes(workspaceRoot.resolve("soarAgents.json")));
+        new String(Files.readAllBytes(Paths.get(workspaceRoot.resolve("soarAgents.json"))));
     EntryPoints soarAgents = new Gson().fromJson(soarAgentsJson, EntryPoints.class);
 
     // just spot checking parts of the structure

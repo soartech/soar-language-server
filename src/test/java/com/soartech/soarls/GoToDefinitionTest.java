@@ -95,7 +95,7 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
   }
 
   String resolve(String relativePath) {
-    return workspaceRoot.resolve(relativePath).toUri().toString();
+    return workspaceRoot.resolve(relativePath).toString();
   }
 
   @Test
