@@ -61,6 +61,65 @@ public class Analysis {
   private static String NO_RHS_FUNCTION_REGEX = "No RHS function named .+";
 
   /**
+   * List of commands that are treated as no-ops. These were borrowed from soar-ide.
+   *
+   * <p>TODO: This list should be configurable on a per-project basis.
+   */
+  public static final String[] NOTHING_COMMANDS = {
+    "echo",
+    "learn",
+    "waitsnc",
+    "watch",
+    "multi-attributes",
+    "multi-attribute",
+    "o-support-mode",
+    "output-strings-destination",
+    "help",
+    "init-soar",
+    "quit",
+    "run",
+    "stop-soar",
+    "default-wme-depth",
+    "gds-print",
+    "internal-symbols",
+    "matches",
+    "memories",
+    "preferences",
+    "print",
+    "production-find",
+    "chunk-name",
+    "firing-counts",
+    "fc",
+    "pwatch",
+    "explain-backtraces",
+    "indifferent-selection",
+    "max-chunks",
+    "max-elaborations",
+    "max-nil-output-cycles",
+    "multi-attributes",
+    "numeric-indifferent-mode",
+    "o-support-mode",
+    "save-backtraces",
+    "soar8",
+    "timers",
+    "dirs",
+    "log",
+    "rete-net",
+    "set-library-location",
+    "add-wme",
+    "remove-wme",
+    "soarnews",
+    "version",
+    "stats",
+    "wm",
+    "smem",
+    "alias",
+    "rl",
+    "epmem",
+    // "dict"
+  };
+
+  /**
    * The document manager may be shared with other analyses which are running concurrently. It is
    * safe for concurrent access.
    */
@@ -120,6 +179,9 @@ public class Analysis {
       LOG.error("failed to initialize directory stack", e);
     }
 
+    for (String command : NOTHING_COMMANDS) {
+      agent.getInterpreter().eval("proc " + command + " { args } {}");
+    }
     agent.getInterpreter().eval("rename proc proc_internal");
     spCommand = agent.getInterpreter().getCommand("sp", null);
     currentVariables = getCurrentVariables();
