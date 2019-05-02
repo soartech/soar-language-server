@@ -15,9 +15,6 @@ public class ProcedureCall {
   /** Where and how the procedure was defined. */
   public final Optional<ProcedureDefinition> definition;
 
-  /** The result that was returned by this call. */
-  private String result;
-
   ProcedureCall(Location location, TclAstNode ast, ProcedureDefinition definition) {
     this.callSiteLocation = location;
     this.callSiteAst = ast;
