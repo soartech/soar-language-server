@@ -152,10 +152,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   /** Get the URI of the file to use for Tcl expansions. */
   private URI tclExpansionUri() {
-    LOG.info("workspaceRootUri :: {}", workspaceRootUri);
     URI uri = URI.create(workspaceRootUri.toString() + config.tclExpansionFile);
-    // URI uri = workspaceRootUri.resolve(config.tclExpansionFile);
-    LOG.info("tclExpansionUri :: {}", uri);
     return uri;
   }
 
@@ -180,7 +177,6 @@ public class SoarDocumentService implements TextDocumentService {
   public void didOpen(DidOpenTextDocumentParams params) {
     TextDocumentItem doc = params.getTextDocument();
     SoarFile soarFile = documents.open(doc);
-    LOG.info("didOpen {}", soarFile.uri);
 
     if (activeEntryPoint == null) {
       this.setEntryPoint(soarFile.uri);
@@ -199,7 +195,6 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public void didChange(DidChangeTextDocumentParams params) {
     URI uri = uri(params.getTextDocument().getUri());
-    LOG.info("didChange {}", uri);
     documents.applyChanges(params);
 
     // If the file that changed was never sourced, then there is no
@@ -437,7 +432,6 @@ public class SoarDocumentService implements TextDocumentService {
         .thenApply(
             projectAnalysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              LOG.info("hover for {}", uri);
               FileAnalysis analysis = projectAnalysis.file(uri).orElse(null);
               SoarFile file = analysis.file;
               TclAstNode hoveredNode = file.tclNode(params.getPosition());
@@ -632,10 +626,7 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   void setWorkspaceRootUri(URI workspaceRootUri) {
-    // LOG.info("setWorkspaceRootPath :: {}", workspaceRootPath);
-    // this.workspaceRootUri = workspaceRootPath.toUri();
     this.workspaceRootUri = workspaceRootUri;
-    LOG.info("workspaceRootUri :: {}", workspaceRootUri);
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
@@ -779,7 +770,6 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
     URI uri = uri(params.getTextDocument().getUri());
-    LOG.info("documentLink {}", uri);
 
     Function<FileAnalysis, List<DocumentLink>> collectLinks =
         fileAnalysis -> {
