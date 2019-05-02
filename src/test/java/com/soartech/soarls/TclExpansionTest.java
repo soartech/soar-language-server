@@ -30,9 +30,17 @@ public class TclExpansionTest extends LanguageServerTestFixture {
    * likely, it is possible that some clients might override it for their own special purposes.
    */
   @Test
-  @org.junit.Ignore
-  public void configureExpansionFile() {
-    fail("unimplemented");
+  public void configureExpansionFile() throws Exception {
+    config.tclExpansionFile = "custom-tcl-expansion-file.soar";
+    sendConfiguration();
+
+    languageServer
+        .getTextDocumentService()
+        .codeAction(params("productions.soar", range(0, 0, 0, 0)))
+        .get();
+
+    SoarFile file = retrieveFile("custom-tcl-expansion-file.soar");
+    assertNotNull(file);
   }
 
   /**

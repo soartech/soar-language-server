@@ -11,9 +11,14 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
+import org.eclipse.lsp4j.CreateFile;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
@@ -25,14 +30,17 @@ import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.ResourceOperation;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.eclipse.lsp4j.TextDocumentEdit;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.LanguageServer;
 
@@ -145,24 +153,50 @@ public class LanguageServerTestFixture implements LanguageClient {
     System.out.println(params.toString());
     this.edits = params.getEdit().getChanges();
 
+    BiConsumer<String, List<TextEdit>> applyTextEdits =
+        (uri, edits) -> {
+          List<TextDocumentContentChangeEvent> contentChanges =
+              edits
+                  .stream()
+                  .map(
+                      textEdit ->
+                          new TextDocumentContentChangeEvent(
+                              textEdit.getRange(), -1, textEdit.getNewText()))
+                  .collect(toList());
+          DidChangeTextDocumentParams didChangeParams =
+              new DidChangeTextDocumentParams(
+                  new VersionedTextDocumentIdentifier(uri, -1), contentChanges);
+          languageServer.getTextDocumentService().didChange(didChangeParams);
+        };
+
+    Consumer<Either<TextDocumentEdit, ResourceOperation>> applyDocumentChange =
+        change -> {
+          if (change.isRight()) {
+            ResourceOperation operation = change.getRight();
+            if (operation instanceof CreateFile) {
+              CreateFile createFile = (CreateFile) operation;
+              DidOpenTextDocumentParams didOpenParams =
+                  new DidOpenTextDocumentParams(
+                      new TextDocumentItem(createFile.getUri(), "soar", -1, ""));
+              languageServer.getTextDocumentService().didOpen(didOpenParams);
+            }
+          }
+        };
+
+    // Apply all text edits
+    Optional.ofNullable(params.getEdit().getChanges())
+        .map(changes -> changes.entrySet().stream())
+        .orElseGet(Stream::empty)
+        .forEach(entry -> applyTextEdits.accept(entry.getKey(), entry.getValue()));
+
+    // Apply all document changes
+    Optional.ofNullable(params.getEdit().getDocumentChanges())
+        .map(List::stream)
+        .orElseGet(Stream::empty)
+        .forEach(applyDocumentChange);
+
     // Tell the server that we applied these edits. This is assuming that all edits are TextEdits;
     // we aren't handling creating/renaming/deleting files here.
-    for (Map.Entry<String, List<TextEdit>> entry : params.getEdit().getChanges().entrySet()) {
-      String uri = entry.getKey();
-      List<TextEdit> edits = entry.getValue();
-      List<TextDocumentContentChangeEvent> contentChanges =
-          edits
-              .stream()
-              .map(
-                  textEdit ->
-                      new TextDocumentContentChangeEvent(
-                          textEdit.getRange(), -1, textEdit.getNewText()))
-              .collect(toList());
-      DidChangeTextDocumentParams didChangeParams =
-          new DidChangeTextDocumentParams(
-              new VersionedTextDocumentIdentifier(uri, -1), contentChanges);
-      languageServer.getTextDocumentService().didChange(didChangeParams);
-    }
 
     return CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true));
   }
