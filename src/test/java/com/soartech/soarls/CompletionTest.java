@@ -109,6 +109,7 @@ public class CompletionTest extends SingleFileTestFixture {
     CompletionParams params = new CompletionParams(fileId(file), new Position(12, 999));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
+    assertTrue(completions.isEmpty());
   }
 
   /** Test that the completion list contains this item. */
