@@ -116,7 +116,7 @@ public class Analysis {
     "alias",
     "rl",
     "epmem",
-    // "dict"
+    "chunk",
   };
 
   /**
