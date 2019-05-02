@@ -463,72 +463,72 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
+
+    Function<FileAnalysis, Hover> getHover =
+        analysis -> {
+          Function<TclAstNode, Hover> hoverVariable =
+              node -> {
+                VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
+                if (retrieval == null) return null;
+                String value = retrieval.definition.map(def -> def.value).orElse("");
+                Range range = analysis.file.rangeForNode(node);
+                return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
+              };
+
+          String prefix = config.renderHoverVerbatim ? "    " : "";
+
+          Function<ProcedureCall, Optional<String>> hoverText =
+              call ->
+                  call.definition
+                      .flatMap(def -> def.commentText)
+                      .map(
+                          comment ->
+                              Arrays.stream(comment.split("\n"))
+                                  .map(line -> line.replaceAll("\\s*#\\s?", ""))
+                                  .map(line -> prefix + line))
+                      .flatMap(
+                          lines ->
+                              config.fullCommentHover
+                                  ? Optional.of(lines.collect(joining("\n")))
+                                  : lines.filter(line -> !line.isEmpty()).findFirst());
+
+          Function<TclAstNode, Hover> hoverProcedureCall =
+              node ->
+                  analysis
+                      .procedureCall(node)
+                      .filter(call -> call.callSiteAst.getChildren().get(0) == node)
+                      .map(
+                          call -> {
+                            SoarFile file = analysis.file;
+                            String value =
+                                hoverText.apply(call).orElse(file.getNodeInternalText(node));
+                            List<TclAstNode> callChildren = call.callSiteAst.getChildren();
+                            Range range =
+                                new Range(
+                                    file.position(callChildren.get(0).getStart()),
+                                    file.position(callChildren.get(0).getEnd()));
+                            return new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range);
+                          })
+                      .orElse(null);
+
+          SoarFile file = analysis.file;
+          TclAstNode hoveredNode = file.tclNode(params.getPosition());
+
+          switch (hoveredNode.getType()) {
+            case TclAstNode.VARIABLE:
+              return hoverVariable.apply(hoveredNode);
+            case TclAstNode.VARIABLE_NAME:
+              return hoverVariable.apply(hoveredNode.getParent());
+            default:
+              return hoverProcedureCall.apply(hoveredNode);
+          }
+        };
+
     return getAnalysis(activeEntryPoint)
         .thenApply(
             projectAnalysis -> {
               URI uri = uri(params.getTextDocument().getUri());
-              FileAnalysis analysis = projectAnalysis.file(uri).orElse(null);
-              SoarFile file = analysis.file;
-              TclAstNode hoveredNode = file.tclNode(params.getPosition());
-
-              Function<TclAstNode, Hover> hoverVariable =
-                  node -> {
-                    VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
-                    if (retrieval == null) return null;
-                    String value = retrieval.definition.map(def -> def.value).orElse("");
-                    Range range = file.rangeForNode(node);
-                    return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-                  };
-
-              String prefix = config.renderHoverVerbatim ? "    " : "";
-
-              Function<ProcedureCall, Optional<String>> hoverText =
-                  call ->
-                      call.definition
-                          .flatMap(def -> def.commentText)
-                          .map(
-                              comment ->
-                                  Arrays.stream(comment.split("\n"))
-                                      .map(line -> line.replaceAll("\\s*#\\s?", ""))
-                                      .map(line -> prefix + line))
-                          .flatMap(
-                              lines ->
-                                  config.fullCommentHover
-                                      ? Optional.of(lines.collect(joining("\n")))
-                                      : lines.filter(line -> !line.isEmpty()).findFirst());
-
-              Function<TclAstNode, Hover> hoverProcedureCall =
-                  node ->
-                      analysis
-                          .procedureCall(node)
-                          .filter(call -> call.callSiteAst.getChildren().get(0) == node)
-                          .map(
-                              call -> {
-                                String value =
-                                    hoverText.apply(call).orElse(file.getNodeInternalText(node));
-                                List<TclAstNode> callChildren = call.callSiteAst.getChildren();
-                                Range range =
-                                    new Range(
-                                        file.position(callChildren.get(0).getStart()),
-                                        file.position(callChildren.get(0).getEnd()));
-                                return new Hover(
-                                    new MarkupContent(MarkupKind.MARKDOWN, value), range);
-                              })
-                          .orElse(null);
-
-              Supplier<Hover> getHover =
-                  () -> {
-                    switch (hoveredNode.getType()) {
-                      case TclAstNode.VARIABLE:
-                        return hoverVariable.apply(hoveredNode);
-                      case TclAstNode.VARIABLE_NAME:
-                        return hoverVariable.apply(hoveredNode.getParent());
-                      default:
-                        return hoverProcedureCall.apply(hoveredNode);
-                    }
-                  };
-
-              return getHover.get();
+              return projectAnalysis.file(uri).map(getHover).orElse(null);
             });
   }
 

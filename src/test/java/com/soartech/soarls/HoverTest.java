@@ -158,4 +158,23 @@ public class HoverTest extends SingleFileTestFixture {
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     assertEquals(hover.getRange(), range(18, 5, 18, 13));
   }
+
+  @Test
+  public void hoverNotApplicable() throws Exception {
+    // In the middle of a comment, there is nothing to hover over.
+    TextDocumentPositionParams params = textDocumentPosition(file, 8, 0);
+    try {
+      Hover hover = languageServer.getTextDocumentService().hover(params).get();
+      assertNull(hover);
+    } catch (Exception e) {
+      fail("hover threw an exception");
+    }
+  }
+
+  @Test
+  public void hoverUnknownFile() throws Exception {
+    TextDocumentPositionParams params = textDocumentPosition("notexistent.soar", 0, 0);
+    Hover hover = languageServer.getTextDocumentService().hover(params).get();
+    assertNull(hover);
+  }
 }
