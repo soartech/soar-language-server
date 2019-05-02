@@ -5,7 +5,6 @@ import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import com.google.common.collect.ImmutableList;
 import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
@@ -22,9 +21,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -61,7 +58,6 @@ import org.eclipse.lsp4j.LocationLink;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
-import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
@@ -707,67 +703,6 @@ public class SoarDocumentService implements TextDocumentService {
     return fileAnalysis.variableRetrieval(node).flatMap(r -> r.definition).map(def -> def.location);
   }
 
-  /**
-   * Method will get expanded code, write to temp buffer file, then return location of expanded code
-   * Assumes that the node to be expanded is of type QUOTED_WORD
-   */
-  private Location goToDefinitionExpansion(
-      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
-    TclAstNode commandNode = node;
-    if (commandNode.getParent() == null) return null;
-    while (commandNode.getParent().getType() != TclAstNode.ROOT) {
-      commandNode = commandNode.getParent();
-    }
-
-    String expandedSoar =
-        projectAnalysis
-            .file(file.uri)
-            .orElse(null)
-            .productions
-            .getOrDefault(commandNode, ImmutableList.of())
-            .stream()
-            .map(production -> "sp {" + production.body + "}\n")
-            .collect(joining("\n"));
-
-    if (expandedSoar == null || expandedSoar.isEmpty()) return null;
-    // add new line for separation from any existing code
-    // when appending to the top of the file
-    expandedSoar += "\n\n";
-
-    URI new_uri = getBufferedUri(file.uri);
-    Position create_position = createFileWithContent(new_uri, expandedSoar);
-
-    return new Location(new_uri.toString(), new Range(create_position, create_position));
-  }
-
-  /**
-   * Create file with given contents If file already exists prepend contents to beginning of file
-   */
-  private Position createFileWithContent(URI file_uri, String content) {
-    // create new "buffer" file to show expanded soar code
-    CreateFile createFile = new CreateFile(file_uri.toString(), new CreateFileOptions(true, false));
-    WorkspaceEdit workspaceEdit = new WorkspaceEdit();
-    workspaceEdit.setDocumentChanges(new ArrayList<>(Arrays.asList(Either.forRight(createFile))));
-    ApplyWorkspaceEditParams workspaceEditParams = new ApplyWorkspaceEditParams(workspaceEdit);
-    Position start = new Position(0, 0);
-
-    CompletableFuture<ApplyWorkspaceEditResponse> future = client.applyEdit(workspaceEditParams);
-    future.thenRun(
-        () -> {
-          // set new content of file to expanded_soar
-          Map<String, List<TextEdit>> edit_map = new HashMap<>();
-          List<TextEdit> edits = new ArrayList<>();
-
-          edits.add(new TextEdit(new Range(start, start), content));
-          edit_map.put(file_uri.toString(), edits);
-          WorkspaceEdit edit = new WorkspaceEdit(edit_map);
-
-          client.applyEdit(new ApplyWorkspaceEditParams(edit));
-        });
-
-    return start;
-  }
-
   @Override
   public CompletableFuture<List<DocumentLink>> documentLink(DocumentLinkParams params) {
     URI uri = uri(params.getTextDocument().getUri());
@@ -791,21 +726,6 @@ public class SoarDocumentService implements TextDocumentService {
     } else {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
-  }
-
-  /**
-   * Given a file uri, returns buffer file uri Where filename is modified with a prepended ~
-   * file:///C:/test/origin_file.soar -> file:///C:/test/~origin_file.soar
-   */
-  private URI getBufferedUri(URI uri_) {
-    // TODO: The URI is being converted to a string and back as a
-    // consequence of replacing usages of String with the URI class. This
-    // keeps the original implementation of this function. There is
-    // probably a better way to do this that makes use of the URI or Path
-    // classes.
-    String uri = uri_.toString();
-    int index = uri.lastIndexOf("/") + 1;
-    return uri(uri.substring(0, index) + "~" + uri.substring(index));
   }
 
   // Helpers
