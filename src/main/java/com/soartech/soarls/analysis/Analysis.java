@@ -13,7 +13,9 @@ import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.net.MalformedURLException;
 import java.net.URI;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -237,7 +239,27 @@ public class Analysis {
       addCommand(
           "pwd",
           (context, args) -> {
-            return this.directoryStack.peek().toString();
+
+            // this is designed to behave very similarly to jsoar's pwd command
+            // * if the URI points to a file, it returns a file path
+            // * otherwise it returns a URL
+            // * in the case that the URI cannot be converted to a URL, we log an error and return
+            // the URI
+
+            URI uri = this.directoryStack.peek();
+            LOG.info("URI: " + uri);
+            String result;
+            if (uri.getScheme().equals("file")) {
+              result = Paths.get(uri).toAbsolutePath().toString();
+            } else {
+              try {
+                result = uri.toURL().toExternalForm();
+              } catch (MalformedURLException e) {
+                result = uri.toString();
+              }
+            }
+
+            return result.replace('\\', '/');
           });
 
       addCommand(
