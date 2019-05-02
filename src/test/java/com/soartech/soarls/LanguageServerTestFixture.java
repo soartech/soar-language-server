@@ -195,9 +195,6 @@ public class LanguageServerTestFixture implements LanguageClient {
         .orElseGet(Stream::empty)
         .forEach(applyDocumentChange);
 
-    // Tell the server that we applied these edits. This is assuming that all edits are TextEdits;
-    // we aren't handling creating/renaming/deleting files here.
-
     return CompletableFuture.completedFuture(new ApplyWorkspaceEditResponse(true));
   }
 
