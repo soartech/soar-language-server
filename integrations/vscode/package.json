@@ -73,7 +73,7 @@
         "soar.languageServer.executablePath": {
           "type": "string",
           "default": "",
-          "description": "Absolute path to the Soar Language Server executable"
+          "description": "Absolute path to an external Soar Language Server executable. Leave blank to use the built-in executable. If you aren't developing the language server itself, you probably don't need this."
         }
       }
     }
