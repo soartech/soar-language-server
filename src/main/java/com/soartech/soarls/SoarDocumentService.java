@@ -233,20 +233,19 @@ public class SoarDocumentService implements TextDocumentService {
               .collect(joining("\n"));
         };
 
+    BiFunction<SoarFile, String, ApplyWorkspaceEditParams> makeParams =
+        (file, contents) ->
+            new ApplyWorkspaceEditParams(
+                new WorkspaceEdit(
+                    singletonMap(
+                        file.uri.toString(),
+                        Arrays.asList(new TextEdit(file.rangeForNode(file.ast), contents)))));
+
     // Given some contents, construct an action to replace the contents of the tcl expansion file.
     Function<String, CompletableFuture<ApplyWorkspaceEditResponse>> editFile =
         contents ->
             tclExpansionFile()
-                .thenCompose(
-                    file ->
-                        client.applyEdit(
-                            new ApplyWorkspaceEditParams(
-                                new WorkspaceEdit(
-                                    singletonMap(
-                                        file.uri.toString(),
-                                        Arrays.asList(
-                                            new TextEdit(
-                                                file.rangeForNode(file.ast), contents)))))));
+                .thenCompose(file -> client.applyEdit(makeParams.apply(file, contents)));
 
     // Try to retrieve expanded production bodies and modify the expansion file; if this fails,
     // that's okay. Then, we return our actual results.
@@ -266,47 +265,52 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>>
       definition(TextDocumentPositionParams params) {
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis -> {
-              URI uri = uri(params.getTextDocument().getUri());
-              List<Location> locations =
-                  analysis
-                      .file(uri)
-                      .map(file -> file.file)
-                      .map(
-                          file -> {
-                            TclAstNode node = file.tclNode(params.getPosition());
 
-                            if (node.getType() == TclAstNode.NORMAL_WORD) {
-                              TclAstNode parent = node.getParent();
+    URI uri = uri(params.getTextDocument().getUri());
 
-                              // if parent is QUOTED_WORD then currently on an SP command -> expand
-                              // the code in
-                              // buffer
-                              // if parent is COMMAND_WORD then go to procedure definition if found.
-                              if (parent.getType() == TclAstNode.QUOTED_WORD) {
-                                // this is currently commented out as we do not want a buffer
-                                // created for each
-                                // file
-                                // return goToDefinitionExpansion(analysis, file, parent);
-                              } else if (parent.getType() == TclAstNode.COMMAND_WORD
-                                  || parent.getType() == TclAstNode.COMMAND) {
-                                return goToDefinitionProcedure(analysis, file, node);
-                              }
-                            } else if (node.getType() == TclAstNode.VARIABLE
-                                || node.getType() == TclAstNode.VARIABLE_NAME) {
-                              return goToDefinitionVariable(analysis, file, node).orElse(null);
-                            }
+    Function<ProjectAnalysis, List<Location>> findDefinition =
+        analysis ->
+            analysis
+                .file(uri)
+                .map(file -> file.file)
+                .flatMap(
+                    file -> {
+                      TclAstNode node = file.tclNode(params.getPosition());
+                      switch (node.getType()) {
+                        case TclAstNode.NORMAL_WORD:
+                          return goToDefinitionProcedure(analysis, file, node);
 
-                            return null;
-                          })
-                      .flatMap(location -> Optional.ofNullable(location))
-                      .map(location -> singletonList(location))
-                      .orElseGet(ArrayList::new);
+                        case TclAstNode.VARIABLE:
+                        case TclAstNode.VARIABLE_NAME:
+                          return goToDefinitionVariable(analysis, file, node);
 
-              return Either.forLeft(locations);
-            });
+                        default:
+                          return Optional.empty();
+                      }
+                    })
+                .map(location -> singletonList(location))
+                .orElseGet(ArrayList::new);
+
+    return getAnalysis().thenApply(findDefinition.andThen(Either::forLeft));
+  }
+
+  /**
+   * Find the procedure definition of the given node. Returns the location of the procedure
+   * definition or null if it doesn't exist.
+   */
+  private Optional<Location> goToDefinitionProcedure(
+      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
+    String name = file.getNodeInternalText(node);
+    return Optional.ofNullable(projectAnalysis.procedureDefinitions.get(name))
+        .map(def -> def.location);
+  }
+
+  private Optional<Location> goToDefinitionVariable(
+      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
+    FileAnalysis fileAnalysis = projectAnalysis.file(file.uri).orElse(null);
+
+    LOG.trace("Looking up definition of variable at node {}", node);
+    return fileAnalysis.variableRetrieval(node).flatMap(r -> r.definition).map(def -> def.location);
   }
 
   @Override
@@ -718,27 +722,6 @@ public class SoarDocumentService implements TextDocumentService {
           new PublishDiagnosticsParams(fileAnalysis.uri.toString(), diagnosticList);
       client.publishDiagnostics(diagnostics);
     }
-  }
-
-  /**
-   * Find the procedure definition of the given node. Returns the location of the procedure
-   * definition or null if it doesn't exist.
-   */
-  private Location goToDefinitionProcedure(
-      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
-    String name = file.getNodeInternalText(node);
-    ProcedureDefinition definition = projectAnalysis.procedureDefinitions.get(name);
-    if (definition == null) return null;
-
-    return definition.location;
-  }
-
-  private Optional<Location> goToDefinitionVariable(
-      ProjectAnalysis projectAnalysis, SoarFile file, TclAstNode node) {
-    FileAnalysis fileAnalysis = projectAnalysis.file(file.uri).orElse(null);
-
-    LOG.trace("Looking up definition of variable at node {}", node);
-    return fileAnalysis.variableRetrieval(node).flatMap(r -> r.definition).map(def -> def.location);
   }
 
   @Override
