@@ -81,6 +81,7 @@
   "dependencies": {
     "vscode-languageclient": "^5.2.1"
   },
+  "extensionDependencies": ["bdegrend.soar"],
   "scripts": {
     "vscode:prepublish": "rm -rf ./soar-language-server && (cd ../../ && ./gradlew installShadowDist) && cp -r ../../build/install/soar-language-server-shadow ./soar-language-server && npm run compile",
     "compile": "tsc -p ./",
