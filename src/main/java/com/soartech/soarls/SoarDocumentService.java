@@ -100,6 +100,8 @@ public class SoarDocumentService implements TextDocumentService {
    */
   private final Debouncer debouncer = new Debouncer(Duration.ofMillis(1000));
 
+  private EntryPoints projectConfig = null;
+
   /**
    * The URI of the currently active entry point. The results of analysing a codebase can be
    * different depending on where we start evaluating from. In some cases, such as reporting
@@ -177,7 +179,8 @@ public class SoarDocumentService implements TextDocumentService {
     SoarFile soarFile = documents.open(doc);
 
     if (activeEntryPoint == null) {
-      this.setEntryPoint(soarFile.uri);
+      this.activeEntryPoint = soarFile.uri;
+      scheduleAnalysis();
     }
   }
 
@@ -669,8 +672,9 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
-  void setEntryPoint(URI uri) {
-    this.activeEntryPoint = uri;
+  void setProjectConfig(EntryPoints projectConfig) {
+    this.projectConfig = projectConfig;
+    this.activeEntryPoint = workspaceRootUri.resolve(projectConfig.activeEntryPoint().path);
     scheduleAnalysis();
   }
 
@@ -699,7 +703,8 @@ public class SoarDocumentService implements TextDocumentService {
     debouncer.submit(
         () -> {
           try {
-            ProjectAnalysis analysis = Analysis.analyse(this.documents, this.activeEntryPoint);
+            ProjectAnalysis analysis =
+                Analysis.analyse(this.projectConfig, this.documents, this.activeEntryPoint);
             reportDiagnostics(analysis);
             future.complete(analysis);
           } catch (Exception e) {

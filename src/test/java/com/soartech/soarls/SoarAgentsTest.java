@@ -1,11 +1,12 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import org.junit.Test;
 
 public class SoarAgentsTest extends LanguageServerTestFixture {
@@ -26,5 +27,6 @@ public class SoarAgentsTest extends LanguageServerTestFixture {
     assertEquals("project", soarAgents.active);
     assertEquals("completion", soarAgents.entryPoints.get(0).name);
     assertEquals("completion/test.soar", soarAgents.entryPoints.get(0).path);
+    assertEquals(Arrays.asList("custom-rhs-1", "custom-rhs-2"), soarAgents.rhsFunctions);
   }
 }

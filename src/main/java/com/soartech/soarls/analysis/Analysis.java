@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.soartech.soarls.Documents;
+import com.soartech.soarls.EntryPoints;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
@@ -24,6 +25,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Stack;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
@@ -58,7 +61,7 @@ public class Analysis {
 
   private static String DUPLICATE_PRODUCTION_REGEX = "Ignoring .+ because it is a duplicate of .+";
 
-  private static String NO_RHS_FUNCTION_REGEX = "No RHS function named .+";
+  private static Pattern NO_RHS_FUNCTION_PATTERN = Pattern.compile("No RHS function named '(.+)'");
 
   /**
    * List of commands that are treated as no-ops. These were borrowed from soar-ide.
@@ -119,6 +122,9 @@ public class Analysis {
     "chunk",
   };
 
+  /** The manifest file as it was when the analysis was started. */
+  private final EntryPoints projectConfig;
+
   /**
    * The document manager may be shared with other analyses which are running concurrently. It is
    * safe for concurrent access.
@@ -160,7 +166,9 @@ public class Analysis {
 
   private final Interp tclInterp;
 
-  private Analysis(Documents documents, URI entryPointUri) throws SoarException {
+  private Analysis(EntryPoints projectConfig, Documents documents, URI entryPointUri)
+      throws SoarException {
+    this.projectConfig = projectConfig;
     this.documents = documents;
     this.entryPointUri = entryPointUri;
 
@@ -188,10 +196,11 @@ public class Analysis {
   }
 
   /** Perform a full analysis of a project starting from the given entry point. */
-  public static ProjectAnalysis analyse(Documents documents, URI entryPointUri) {
+  public static ProjectAnalysis analyse(
+      EntryPoints projectConfig, Documents documents, URI entryPointUri) {
     Analysis analysis = null;
     try {
-      analysis = new Analysis(documents, entryPointUri);
+      analysis = new Analysis(projectConfig, documents, entryPointUri);
       SoarFile file = documents.get(entryPointUri);
       analysis.analyseFile(file);
       LOG.info("Completed analysis {}", analysis);
@@ -503,8 +512,16 @@ public class Analysis {
                     String message = e.getMessage().trim();
                     DiagnosticSeverity severity = DiagnosticSeverity.Error;
                     LOG.info("Diagnostic message: {}", message);
-                    if (message.matches(DUPLICATE_PRODUCTION_REGEX)
-                        || message.matches(NO_RHS_FUNCTION_REGEX)) {
+                    Matcher rhsMatcher = NO_RHS_FUNCTION_PATTERN.matcher(message);
+                    if (rhsMatcher.matches()) {
+                      severity = DiagnosticSeverity.Warning;
+                      String rhsFunction = rhsMatcher.group(1);
+                      boolean whitelisted = projectConfig.rhsFunctions.contains(rhsFunction);
+                      if (whitelisted) {
+                        continue;
+                      }
+                    }
+                    if (message.matches(DUPLICATE_PRODUCTION_REGEX)) {
                       severity = DiagnosticSeverity.Warning;
                     }
                     diagnosticList.add(

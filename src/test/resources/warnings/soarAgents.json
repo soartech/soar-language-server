@@ -1,0 +1,8 @@
+{
+    "entryPoints": [
+        {
+            "path": "test.soar"
+        }
+    ],
+    "rhsFunctions": ["custom-rhs"]
+}

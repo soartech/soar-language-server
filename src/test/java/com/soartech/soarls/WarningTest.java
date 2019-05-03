@@ -33,6 +33,15 @@ public class WarningTest extends SingleFileTestFixture {
     assertEquals(diagnostic.getMessage(), "No RHS function named 'force-learn'");
   }
 
+  /**
+   * This RHS function would normally be treated as a warning, but it is whitelisted in
+   * soarAgents.json.
+   */
+  @Test
+  public void whitelistedRHSFunction() {
+    assertFalse(getFileDiagnostics().stream().anyMatch(d -> d.getMessage().contains("custom-rhs")));
+  }
+
   @Test
   public void duplicateProduction() {
     Diagnostic diagnostic =

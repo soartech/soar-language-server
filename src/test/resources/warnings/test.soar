@@ -18,3 +18,9 @@ sp "elaborate*duplicate
 -->
     (<s> ^top-state *YES*)
 "
+
+sp "custom-rhs
+    (state <s> ^superstate nil)
+-->
+    (custom-rhs)
+"

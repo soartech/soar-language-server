@@ -1,10 +1,8 @@
 package com.soartech.soarls;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-import com.soartech.soarls.EntryPoints.EntryPoint;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -62,24 +60,9 @@ class SoarWorkspaceService implements WorkspaceService {
       if (soarAgentEntryPoints.entryPoints.size() == 0)
         return; // bail out if there are no defined entry points
 
-      // get the active entry point (default to the first one)
-
-      EntryPoint activeEntryPoint = soarAgentEntryPoints.entryPoints.get(0);
-      if (soarAgentEntryPoints.active != null) {
-
-        activeEntryPoint =
-            soarAgentEntryPoints
-                .entryPoints
-                .stream()
-                .filter(entryPoint -> entryPoint.name.equals(soarAgentEntryPoints.active))
-                .findAny()
-                .orElse(null);
-      }
-
       // set the entry point
 
-      URI agentEntryPoint = workspaceRootUri.resolve(activeEntryPoint.path);
-      documentService.setEntryPoint(agentEntryPoint);
+      documentService.setProjectConfig(soarAgentEntryPoints);
 
     } catch (IOException | JsonSyntaxException e) {
       LOG.error("Error trying to read {}", soarAgentsPath, e);
@@ -99,12 +82,7 @@ class SoarWorkspaceService implements WorkspaceService {
   @Override
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
     Gson gson = new Gson();
-    if (params.getCommand().equals("set-entry-point")) {
-      URI uri =
-          SoarDocumentService.uri(
-              gson.fromJson((JsonElement) params.getArguments().get(0), String.class));
-      documentService.setEntryPoint(uri);
-    } else if (params.getCommand().equals("log-source-tree")) {
+    if (params.getCommand().equals("log-source-tree")) {
       return documentService
           .getAnalysis()
           .thenAccept(

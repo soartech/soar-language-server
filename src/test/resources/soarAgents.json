@@ -33,5 +33,6 @@
 			"name": "signature"
 		}
 	],
-	"active": "project"
+	"active": "project",
+	"rhsFunctions": ["custom-rhs-1", "custom-rhs-2"]
 }
