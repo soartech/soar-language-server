@@ -82,17 +82,18 @@ Here's an example:
 
 ```json
 {
-	"entryPoints": [
-		{
-			"path": "agent1/load.soar",
-			"name": "agent1"
-		},
-		{
-			"path": "agent2/load.soar",
-			"name": "agent2"
-		}
-	],
-	"active": "agent1"
+    "entryPoints": [
+        {
+            "path": "agent1/load.soar",
+            "name": "agent1"
+        },
+        {
+            "path": "agent2/load.soar",
+            "name": "agent2"
+        }
+    ],
+    "active": "agent1",
+    "rhsFunctions": ["force-learn"]
 }
 
 ```
@@ -101,6 +102,10 @@ The `entryPoints` list defines the name and start file for each
 agent. There should be at least one entry in here. The `active` field
 is the name of the agent to use as the default. This should match the
 name of one of the entries in the `entryPoint` list.
+
+The `rhsFunctions` list is optional. This is a list of right hand side
+functions that should not produce warnings even though they are not
+defined by default.
 
 If you modify this file, you may have to restart the LSP server (e.g.,
 re-open your workspace or restart your IDE).
