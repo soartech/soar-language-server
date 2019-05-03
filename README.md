@@ -60,7 +60,7 @@ found on the [releases page].
 * **Emacs**: Download the server from the [releases page] and use the
   plugin found at [integrations/emacs](./integrations/emacs).
 * **Intellij**: Download the server from the [releases page] and
-  install the plugin fonud in
+  install the plugin found in
   [integrations/intellj](./integrations/intellij).
 
 Any other editor that supports the Language Server Protocol will work
@@ -104,6 +104,22 @@ name of one of the entries in the `entryPoint` list.
 
 If you modify this file, you may have to restart the LSP server (e.g.,
 re-open your workspace or restart your IDE).
+
+# FAQ
+Q: How can I contribute?
+A: See [Developing](#developing) below.
+
+Q: Why is nothing working? (e.g., I get a bunch of errors, etc.)
+A: Make sure you have created a `soarAgents.json` file as described in [Project Setup](#project-setup).
+
+Q: How do I see Tcl expansions?
+A: A special file (called `~tcl-expansions.soar` by default) is created. If your IDE doesn't automatically open that file, you should and arrange it so you can see it and your main code at the same time (e.g., side-by-side). As you click around in your code, it will just update. This is a temporary file that you can delete -- there's no need to save it.
+
+Q: Why is there no syntax highlighting?
+A: LSP does not directly handle syntax highlighting -- other IDE-specific plugins do that. In VSCode, the Soar Language Server plugin automatically installs the other existing plugin that provides syntax highlighting. For other IDEs, you may have to install an appropriate plugin separately (many other IDEs have Soar syntax highlighters of varying quality).
+
+Q: Can I comment out selected code? I don't see that in the features list.
+A: This is not handled directly by LSP, but it probably handled by the syntax highlighting plugin (in concert with your IDE). For example, in VSCode, Ctrl+/ comments/uncomments, but this is provided by the Soar syntax highlighting plugin (which the Soar Language Server plugin depends on), not directly by the LSP.
 
 # Developing
 
