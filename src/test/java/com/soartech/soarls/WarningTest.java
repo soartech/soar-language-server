@@ -1,10 +1,10 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for diagnostics which should produce warnings, not errors. */
 public class WarningTest extends SingleFileTestFixture {

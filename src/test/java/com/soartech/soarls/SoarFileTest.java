@@ -1,6 +1,6 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import java.net.URI;
@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SoarFileTest extends LanguageServerTestFixture {
   final SoarFile file;

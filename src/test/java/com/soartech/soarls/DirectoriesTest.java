@@ -1,9 +1,9 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.Location;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Although we use JSoar's Tcl interpreter to evaluate source files, we had to implement the AST

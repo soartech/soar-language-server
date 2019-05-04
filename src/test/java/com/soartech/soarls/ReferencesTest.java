@@ -1,7 +1,7 @@
 package com.soartech.soarls;
 
 import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.Location;
@@ -9,7 +9,7 @@ import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceContext;
 import org.eclipse.lsp4j.ReferenceParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for finding references to tcl procedures and variables. */
 public class ReferencesTest extends LanguageServerTestFixture {

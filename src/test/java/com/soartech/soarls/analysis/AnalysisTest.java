@@ -1,6 +1,6 @@
 package com.soartech.soarls.analysis;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.soartech.soarls.LanguageServerTestFixture;
 import com.soartech.soarls.SoarDocumentService;
@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * These tests are for checking the internal state of the language server as it analyses a

@@ -1,6 +1,6 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.net.URI;
 import org.eclipse.lsp4j.CodeActionContext;
@@ -8,7 +8,7 @@ import org.eclipse.lsp4j.CodeActionParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextDocumentItem;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tcl expansions are implementad by creating and modifying the contents of a special file. */
 public class TclExpansionTest extends LanguageServerTestFixture {

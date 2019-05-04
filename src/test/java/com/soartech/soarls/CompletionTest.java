@@ -1,6 +1,6 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -11,7 +11,7 @@ import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Completions, more so than most requests, must be as responsive as possible. Also, completions are

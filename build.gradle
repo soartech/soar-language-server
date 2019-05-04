@@ -42,7 +42,6 @@ dependencies {
     // Use JUnit test framework
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.2'
-    testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.4.2'
 }
 
 task compileJSoar(type: MavenExec) {
@@ -73,6 +72,10 @@ task javadocJar(type: Jar) {
 task sourcesJar(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
+}
+
+test {
+    useJUnitPlatform()
 }
 
 artifacts {

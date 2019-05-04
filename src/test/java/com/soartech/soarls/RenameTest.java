@@ -1,13 +1,13 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.soartech.soarls.tcl.TclAstNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import org.eclipse.lsp4j.*;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for finding references to tcl procedures and variables. */
 public class RenameTest extends LanguageServerTestFixture {

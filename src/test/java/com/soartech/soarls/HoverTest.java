@@ -1,12 +1,12 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for textDocument/hover request.

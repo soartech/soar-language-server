@@ -1,13 +1,13 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tests for textDocument/foldingRange request.

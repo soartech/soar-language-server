@@ -1,11 +1,11 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.DocumentLink;
 import org.eclipse.lsp4j.DocumentLinkParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * If configured, we turn commands into hyperlinks to the Tcl expansion file. This is off by

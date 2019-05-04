@@ -1,13 +1,13 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureHelpOptions;
 import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class SignatureHelpTest extends SingleFileTestFixture {
   public SignatureHelpTest() throws Exception {

@@ -1,8 +1,8 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /** Tests for a project that involves navigating up to a parent directory. */
 public class UpdirTest extends LanguageServerTestFixture {

@@ -1,11 +1,11 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.DocumentHighlight;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * The current behaviour is to highlight an entire production/command when the cursor is anywhere

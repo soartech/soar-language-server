@@ -1,13 +1,13 @@
 package com.soartech.soarls;
 
 import static java.util.stream.Collectors.toList;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 /**
  * Tcl expansions are implementad by creating and modifying the contents of a special file. We

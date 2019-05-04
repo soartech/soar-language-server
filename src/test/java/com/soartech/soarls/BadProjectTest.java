@@ -1,10 +1,10 @@
 package com.soartech.soarls;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.Diagnostic;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 public class BadProjectTest extends LanguageServerTestFixture {
   public BadProjectTest() throws Exception {
