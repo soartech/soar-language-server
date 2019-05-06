@@ -54,6 +54,7 @@ import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
+import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
@@ -491,7 +492,7 @@ public class SoarDocumentService implements TextDocumentService {
                       .map(
                           comment ->
                               Arrays.stream(comment.split("\n"))
-                                  .map(line -> line.replaceAll("\\s*#\\s?", ""))
+                                  .map(line -> line.replaceFirst("^\\s*#\\s?", ""))
                                   .map(line -> prefix + line))
                       .flatMap(
                           lines ->
@@ -514,7 +515,11 @@ public class SoarDocumentService implements TextDocumentService {
                                 new Range(
                                     file.position(callChildren.get(0).getStart()),
                                     file.position(callChildren.get(0).getEnd()));
-                            return new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range);
+                            return config.renderHoverVerbatim
+                                ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
+                                : new Hover(
+                                    Arrays.asList(Either.forRight(new MarkedString("raw", value))),
+                                    range);
                           })
                       .orElse(null);
 

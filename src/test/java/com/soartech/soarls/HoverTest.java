@@ -3,6 +3,7 @@ package com.soartech.soarls;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
@@ -74,9 +75,9 @@ public class HoverTest extends SingleFileTestFixture {
     // ngs-bind
     TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.MARKDOWN);
-    assertEquals(contents.getValue(), "This is a stub for NGS bind.");
+    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(string.getLanguage(), "raw");
+    assertEquals(string.getValue(), "This is a stub for NGS bind.");
   }
 
   /** This proc has a comment that has extra leading spaces. They should be stripped away. */
@@ -85,9 +86,9 @@ public class HoverTest extends SingleFileTestFixture {
     // ngs-create-attribute
     TextDocumentPositionParams params = textDocumentPosition(file, 20, 10);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.MARKDOWN);
-    assertEquals(contents.getValue(), "Create an attribute.");
+    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(string.getLanguage(), "raw");
+    assertEquals(string.getValue(), "Create an attribute.");
   }
 
   /** The default configuration is to show the full comment text should be shown. */
@@ -100,10 +101,10 @@ public class HoverTest extends SingleFileTestFixture {
     TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.MARKDOWN);
+    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(string.getLanguage(), "raw");
     assertEquals(
-        contents.getValue(),
+        string.getValue(),
         "\n"
             + "This is a stub for NGS bind.\n"
             + "\n"
@@ -121,8 +122,8 @@ public class HoverTest extends SingleFileTestFixture {
     TextDocumentPositionParams params = textDocumentPosition(file, 17, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getValue(), "ngs-match-top-state");
+    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(string.getValue(), "ngs-match-top-state");
   }
 
   /**
@@ -135,8 +136,8 @@ public class HoverTest extends SingleFileTestFixture {
     TextDocumentPositionParams params = textDocumentPosition(file, 40, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getValue(), "ngs-has-no-comment");
+    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(string.getValue(), "ngs-has-no-comment");
   }
 
   /**

@@ -28,5 +28,5 @@ class Configuration {
    * If true, then hover text will be prepended with four leading spaces such that a markdown
    * renderer will render thet text verbatim.
    */
-  public Boolean renderHoverVerbatim = true;
+  public Boolean renderHoverVerbatim = false;
 }
