@@ -12,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
+import org.eclipse.lsp4j.FileEvent;
 import org.eclipse.lsp4j.services.WorkspaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +78,13 @@ class SoarWorkspaceService implements WorkspaceService {
   }
 
   @Override
-  public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {}
+  public void didChangeWatchedFiles(DidChangeWatchedFilesParams params) {
+    for (FileEvent change : params.getChanges()) {
+      if (URI.create(change.getUri()).equals(manifestUri())) {
+        processEntryPoints();
+      }
+    }
+  }
 
   @Override
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
@@ -94,5 +101,10 @@ class SoarWorkspaceService implements WorkspaceService {
       LOG.warn("Unsupported command: {}", params.getCommand());
     }
     return CompletableFuture.completedFuture(null);
+  }
+
+  /** Returns the URI of the project configuration file. */
+  private URI manifestUri() {
+    return workspaceRootUri.resolve(SOAR_AGENTS_FILE);
   }
 }

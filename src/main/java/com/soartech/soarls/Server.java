@@ -1,12 +1,18 @@
 package com.soartech.soarls;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import org.eclipse.lsp4j.CompletionOptions;
+import org.eclipse.lsp4j.DidChangeWatchedFilesRegistrationOptions;
 import org.eclipse.lsp4j.DocumentLinkOptions;
 import org.eclipse.lsp4j.ExecuteCommandOptions;
+import org.eclipse.lsp4j.FileSystemWatcher;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializeResult;
+import org.eclipse.lsp4j.InitializedParams;
+import org.eclipse.lsp4j.Registration;
+import org.eclipse.lsp4j.RegistrationParams;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.SignatureHelpOptions;
 import org.eclipse.lsp4j.TextDocumentSyncKind;
@@ -23,6 +29,7 @@ public class Server implements LanguageServer, LanguageClientAware {
 
   private final SoarDocumentService documentService = new SoarDocumentService();
   private final SoarWorkspaceService workspaceService = new SoarWorkspaceService(documentService);
+  private LanguageClient client = null;
 
   public Server() {
     // NOTE: I'm not sure where the proper place to set this is.
@@ -71,7 +78,22 @@ public class Server implements LanguageServer, LanguageClientAware {
   }
 
   @Override
+  public void initialized(InitializedParams params) {
+    // Here we register for changes to the manifest file, so that we trigger a new analysis when
+    // configurations change.
+    FileSystemWatcher watcher = new FileSystemWatcher("**/soarAgents.json");
+    List<FileSystemWatcher> watchers = Arrays.asList(watcher);
+    DidChangeWatchedFilesRegistrationOptions options =
+        new DidChangeWatchedFilesRegistrationOptions(watchers);
+    Registration registration =
+        new Registration("changes", "workspace/didChangeWatchedFiles", options);
+    List<Registration> registrations = Arrays.asList(registration);
+    client.registerCapability(new RegistrationParams(registrations));
+  }
+
+  @Override
   public void connect(LanguageClient client) {
+    this.client = client;
     documentService.connect(client);
   }
 }

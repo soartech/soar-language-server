@@ -86,7 +86,7 @@ public class SoarDocumentService implements TextDocumentService {
   /**
    * Diagnostics information about each file. This includes things like the other files that get
    * sourced, declarations of Tcl procedures and variables, production declarations, and so on. The
-   * analyseFile method is the entry point for how this information gets generated.
+   * scheduleAnalysis method is the entry point for how this information gets generated.
    */
   private final ConcurrentHashMap<URI, ProjectAnalysis> analyses = new ConcurrentHashMap<>();
 
@@ -692,7 +692,13 @@ public class SoarDocumentService implements TextDocumentService {
    * the requests are debounced.
    */
   private void scheduleAnalysis() {
-    if (this.activeEntryPoint == null) return;
+    if (this.activeEntryPoint == null) {
+      return;
+    }
+
+    // TODO: this has the side effect of clearing the pendingAnalysis entry if there is one. I don't
+    // like relying on that subtle behaviour.
+    getAnalysis(this.activeEntryPoint);
 
     CompletableFuture<ProjectAnalysis> future =
         pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture<>());

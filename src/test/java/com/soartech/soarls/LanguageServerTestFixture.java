@@ -30,6 +30,7 @@ import org.eclipse.lsp4j.MessageParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.RegistrationParams;
 import org.eclipse.lsp4j.ResourceOperation;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
@@ -212,6 +213,12 @@ public class LanguageServerTestFixture implements LanguageClient {
   @Override
   public void telemetryEvent(Object object) {
     System.out.println(object.toString());
+  }
+
+  @Override
+  public CompletableFuture<Void> registerCapability(RegistrationParams params) {
+    // The server will attempt to call this, but right now nothing in the test suite depends on it.
+    return CompletableFuture.completedFuture(null);
   }
 
   // Helpers
