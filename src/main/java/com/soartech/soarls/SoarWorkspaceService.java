@@ -11,15 +11,21 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import org.codehaus.janino.util.Producer;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
+import org.eclipse.lsp4j.DidChangeWatchedFilesRegistrationOptions;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.FileEvent;
+import org.eclipse.lsp4j.FileSystemWatcher;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.Registration;
+import org.eclipse.lsp4j.RegistrationParams;
 import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.WorkspaceService;
 import org.slf4j.Logger;
@@ -31,10 +37,10 @@ class SoarWorkspaceService implements WorkspaceService {
 
   private static final String SOAR_AGENTS_FILE = "soarAgents.json";
 
-  private LanguageClient client;
+  private LanguageClient client = null;
 
   private final SoarDocumentService documentService;
-  private URI workspaceRootUri;
+  private URI workspaceRootUri = null;
   private EntryPoints soarAgentEntryPoints;
 
   SoarWorkspaceService(SoarDocumentService documentService) {
@@ -45,9 +51,21 @@ class SoarWorkspaceService implements WorkspaceService {
     this.client = client;
   }
 
-  public void setWorkspaceRoot(String workspaceRootUri) {
-    LOG.info("Setting workspace root: {}", workspaceRootUri);
-    this.workspaceRootUri = URI.create(workspaceRootUri);
+  void setWorkspaceRoot(URI workspaceRootUri) {
+    this.workspaceRootUri = workspaceRootUri;
+  }
+
+  void initialized() {
+    // Here we register for changes to the manifest file, so that we trigger a new analysis when
+    // configurations change.
+    FileSystemWatcher watcher = new FileSystemWatcher("**/soarAgents.json");
+    List<FileSystemWatcher> watchers = Arrays.asList(watcher);
+    DidChangeWatchedFilesRegistrationOptions options =
+        new DidChangeWatchedFilesRegistrationOptions(watchers);
+    Registration registration =
+        new Registration("changes", "workspace/didChangeWatchedFiles", options);
+    List<Registration> registrations = Arrays.asList(registration);
+    client.registerCapability(new RegistrationParams(registrations));
 
     processEntryPoints();
   }
@@ -58,36 +76,54 @@ class SoarWorkspaceService implements WorkspaceService {
    */
   public void processEntryPoints() {
     LOG.info("Processing entry points: workspace path: " + workspaceRootUri);
-    documentService.setWorkspaceRootUri(workspaceRootUri);
 
-    Path soarAgentsPath = Paths.get(workspaceRootUri).resolve(SOAR_AGENTS_FILE);
+    Function<String, Diagnostic> makeError =
+        message ->
+            new Diagnostic(
+                new Range(new Position(0, 0), new Position(0, 0)),
+                message,
+                DiagnosticSeverity.Error,
+                "workspace service");
 
-    if (!Files.exists(soarAgentsPath)) {
-      LOG.info("Not found: {} -- using default entry point", soarAgentsPath);
-      return;
-    }
+    Producer<List<Diagnostic>> readEntryPoints =
+        () -> {
+          Path soarAgentsPath = Paths.get(workspaceRootUri).resolve(SOAR_AGENTS_FILE);
 
-    try {
-      // read the SOAR_AGENTS_FILE into an EntryPoints object
-      String soarAgentsJson = new String(Files.readAllBytes(soarAgentsPath));
-      soarAgentEntryPoints = new Gson().fromJson(soarAgentsJson, EntryPoints.class);
+          if (!Files.exists(soarAgentsPath)) {
+            LOG.info("Not found: {} -- using default entry point", soarAgentsPath);
+            return Arrays.asList(makeError.apply("soarAgents.json was not found"));
+          }
 
-      if (soarAgentEntryPoints.entryPoints.size() == 0)
-        return; // bail out if there are no defined entry points
+          String soarAgentsJson;
+          try {
+            soarAgentsJson = new String(Files.readAllBytes(soarAgentsPath));
+          } catch (IOException e) {
+            return Arrays.asList(makeError.apply("Failed to read file"));
+          }
 
-      // set the entry point
+          try {
+            soarAgentEntryPoints = new Gson().fromJson(soarAgentsJson, EntryPoints.class);
 
-      documentService.setProjectConfig(soarAgentEntryPoints);
+            if (soarAgentEntryPoints.entryPoints.size() == 0) {
+              return Arrays.asList(makeError.apply("No entry points were specified"));
+            }
+            if (soarAgentEntryPoints.activeEntryPoint() == null) {
+              return Arrays.asList(makeError.apply("Active entry point is invalid or missing"));
+            }
 
-    } catch (IOException | JsonSyntaxException e) {
-      LOG.error("Error trying to read {}", soarAgentsPath, e);
-      List<Diagnostic> diagnostics =
-          Arrays.asList(
-              new Diagnostic(
-                  new Range(new Position(0, 0), new Position(0, 0)), e.getMessage(), DiagnosticSeverity.Error, "workspace service"));
-      client.publishDiagnostics(
-          new PublishDiagnosticsParams(workspaceRootUri.resolve(SOAR_AGENTS_FILE).toString(), diagnostics));
-    }
+            // set the entry point
+            documentService.setProjectConfig(soarAgentEntryPoints);
+          } catch (JsonSyntaxException e) {
+            LOG.error("Error trying to read {}", soarAgentsPath, e);
+            return Arrays.asList(makeError.apply(e.getMessage()));
+          }
+
+          // On success, there are no diagnostics
+          return Arrays.asList();
+        };
+
+    List<Diagnostic> diagnostics = readEntryPoints.produce();
+    client.publishDiagnostics(new PublishDiagnosticsParams(manifestUri().toString(), diagnostics));
   }
 
   @Override

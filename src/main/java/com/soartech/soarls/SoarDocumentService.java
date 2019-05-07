@@ -114,7 +114,7 @@ public class SoarDocumentService implements TextDocumentService {
   // The path of the currently active workspace.
   private URI workspaceRootUri = null;
 
-  private LanguageClient client;
+  private LanguageClient client = null;
 
   /**
    * Configuration sent by the client in a workspace/didChangeConfiguration notification. It is
@@ -672,7 +672,7 @@ public class SoarDocumentService implements TextDocumentService {
     this.client = client;
   }
 
-  void setWorkspaceRootUri(URI workspaceRootUri) {
+  void setWorkspaceRoot(URI workspaceRootUri) {
     this.workspaceRootUri = workspaceRootUri;
   }
 

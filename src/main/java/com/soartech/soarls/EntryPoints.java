@@ -48,7 +48,7 @@ public class EntryPoints {
           .stream()
           .filter(entryPoint -> entryPoint.name.equals(active))
           .findAny()
-          .orElse(firstEntryPoint);
+          .orElse(null);
     }
   }
 }
