@@ -29,7 +29,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
@@ -126,6 +129,23 @@ public class SoarDocumentService implements TextDocumentService {
    * be out of date.
    */
   private Configuration config = new Configuration();
+
+  /** Retrieve a stream of the analyses for all entry points. */
+  public CompletableFuture<Stream<ProjectAnalysis>> getAllAnalyses() {
+    Collector<CompletableFuture<ProjectAnalysis>, ?, CompletableFuture<Stream<ProjectAnalysis>>>
+        collector =
+            Collectors.reducing(
+                CompletableFuture.completedFuture(Stream.empty()),
+                a -> a.thenApply(Stream::of),
+                (first, second) -> first.thenCombine(second, Stream::concat));
+
+    return projectConfig
+        .entryPoints
+        .stream()
+        .map(entryPoint -> workspaceRootUri.resolve(entryPoint.path))
+        .map(uri -> getAnalysis(uri))
+        .collect(collector);
+  }
 
   /** Retrieve the most recently completed analysis for the active entry point. */
   public CompletableFuture<ProjectAnalysis> getAnalysis() {
