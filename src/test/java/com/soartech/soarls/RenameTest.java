@@ -2,7 +2,6 @@ package com.soartech.soarls;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.soartech.soarls.tcl.TclAstNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -19,22 +18,6 @@ public class RenameTest extends LanguageServerTestFixture {
 
   String resolve(String relativePath) {
     return workspaceRoot.resolve(relativePath).toString();
-  }
-
-  private TclAstNode getVariableNode(TclAstNode rootNode) {
-    if (rootNode.getType() == TclAstNode.VARIABLE
-        || rootNode.getType() == TclAstNode.VARIABLE_NAME) {
-      return rootNode;
-    }
-    if (rootNode.getChildren() != null) {
-      for (TclAstNode child : rootNode.getChildren()) {
-        TclAstNode recursedNode = getVariableNode(child);
-        if (recursedNode != null) {
-          return recursedNode;
-        }
-      }
-    }
-    return null;
   }
 
   private WorkspaceEdit rename(String relativePath, int line, int character, String newName)

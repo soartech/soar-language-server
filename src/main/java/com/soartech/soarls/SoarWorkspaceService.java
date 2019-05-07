@@ -88,7 +88,6 @@ class SoarWorkspaceService implements WorkspaceService {
 
   @Override
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
-    Gson gson = new Gson();
     if (params.getCommand().equals("log-source-tree")) {
       return documentService
           .getAnalysis()
