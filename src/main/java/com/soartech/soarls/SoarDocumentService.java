@@ -779,6 +779,11 @@ public class SoarDocumentService implements TextDocumentService {
 
       PublishDiagnosticsParams diagnostics =
           new PublishDiagnosticsParams(fileAnalysis.uri.toString(), diagnosticList);
+      // NOTE: I believe that publishDiagnostics is NOT thread safe. If multiple analyses complete
+      // at the same time, and they both try to send diagnostics, then the client might get into a
+      // bad state. However, since this method here gets called from the analysis threadpool, which
+      // has been allocated a single thread, it will not be called from mulitple threads at the same
+      // time. If we change the threading model, then we MUST revisit this assumption.
       client.publishDiagnostics(diagnostics);
     }
   }
