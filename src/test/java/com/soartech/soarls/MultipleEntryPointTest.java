@@ -56,6 +56,23 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
     return workspaceRoot.resolve(relativePath).toString();
   }
 
+  @Test
+  void variableDefinitions() throws Exception {
+    // Usage of $agent_name variable
+    TextDocumentPositionParams params = textDocumentPosition("common.soar", 3, 30);
+    List<Location> definitions =
+        languageServer
+            .getTextDocumentService()
+            .definition(params)
+            .get()
+            .getLeft()
+            .stream()
+            .collect(toList());
+    System.out.println(definitions);
+    assertLocation(definitions, "primary.soar", range(0, 0, 0, 22));
+    assertLocation(definitions, "secondary.soar", range(0, 0, 0, 24));
+  }
+
   /** Assert that the list of locations includes the given URI and range. */
   void assertLocation(List<Location> locations, String relativePath, Range range) {
     String uri = resolve(relativePath);

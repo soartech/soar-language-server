@@ -315,7 +315,11 @@ public class SoarDocumentService implements TextDocumentService {
                 .map(location -> singletonList(location))
                 .orElseGet(ArrayList::new);
 
-    return getAnalysis().thenApply(findDefinition.andThen(Either::forLeft));
+    return getAllAnalyses()
+        .thenApply(
+            analyses ->
+                analyses.flatMap(findDefinition.andThen(List::stream)).distinct().collect(toList()))
+        .thenApply(Either::forLeft);
   }
 
   /**
@@ -751,10 +755,12 @@ public class SoarDocumentService implements TextDocumentService {
     debouncer.submit(
         () -> {
           try {
+            LOG.info("Beginning analysis for {}", entryPoint);
             ProjectAnalysis analysis =
                 Analysis.analyse(this.projectConfig, this.documents, entryPoint);
             reportDiagnostics(analysis);
             future.complete(analysis);
+            LOG.info("Completed analysis for {}", entryPoint);
           } catch (Exception e) {
             future.completeExceptionally(e);
           }
