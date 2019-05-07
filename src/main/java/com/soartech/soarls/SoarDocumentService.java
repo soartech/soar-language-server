@@ -566,52 +566,58 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis -> {
-              URI uri = uri(params.getTextDocument().getUri());
-              FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
-              TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
+    URI uri = uri(params.getTextDocument().getUri());
 
-              List<Location> references = new ArrayList<>();
+    Function<ProjectAnalysis, Stream<Location>> findReferences =
+        analysis -> {
+          FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
+          if (fileAnalysis == null) {
+            return Stream.of();
+          }
+          TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
 
-              Optional<ProcedureDefinition> procDef =
-                  fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
-              if (!procDef.isPresent()) {
-                procDef =
-                    fileAnalysis
-                        .procedureDefinitions
-                        .stream()
-                        .filter(def -> def.ast.containsChild(astNode))
-                        .findFirst();
-              }
-              procDef.ifPresent(
-                  def -> {
-                    for (ProcedureCall call : analysis.procedureCalls.get(def)) {
-                      references.add(call.callSiteLocation);
-                    }
-                  });
+          List<Location> references = new ArrayList<>();
 
-              Optional<VariableDefinition> varDef =
-                  fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
-              if (!varDef.isPresent()) {
-                varDef =
-                    analysis
-                        .variableRetrievals
-                        .keySet()
-                        .stream()
-                        .filter(def -> def.ast.containsChild(astNode))
-                        .findFirst();
-              }
-              varDef.ifPresent(
-                  def -> {
-                    for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
-                      references.add(ret.readSiteLocation);
-                    }
-                  });
+          Optional<ProcedureDefinition> procDef =
+              fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
+          if (!procDef.isPresent()) {
+            procDef =
+                fileAnalysis
+                    .procedureDefinitions
+                    .stream()
+                    .filter(def -> def.ast.containsChild(astNode))
+                    .findFirst();
+          }
+          procDef.ifPresent(
+              def -> {
+                for (ProcedureCall call : analysis.procedureCalls.get(def)) {
+                  references.add(call.callSiteLocation);
+                }
+              });
 
-              return references;
-            });
+          Optional<VariableDefinition> varDef =
+              fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
+          if (!varDef.isPresent()) {
+            varDef =
+                analysis
+                    .variableRetrievals
+                    .keySet()
+                    .stream()
+                    .filter(def -> def.ast.containsChild(astNode))
+                    .findFirst();
+          }
+          varDef.ifPresent(
+              def -> {
+                for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
+                  references.add(ret.readSiteLocation);
+                }
+              });
+
+          return references.stream();
+        };
+
+    return getAllAnalyses()
+        .thenApply(analyses -> analyses.flatMap(findReferences).distinct().collect(toList()));
   }
 
   @Override
