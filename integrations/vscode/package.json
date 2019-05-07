@@ -21,7 +21,8 @@
   ],
   "activationEvents": [
     "onLanguage:soar",
-    "onLanguage:tcl"
+    "onLanguage:tcl",
+    "workspaceContains:soarAgents.json"
   ],
   "main": "./out/extension.js",
   "contributes": {
