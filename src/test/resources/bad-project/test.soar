@@ -1,5 +1,4 @@
-# Even though the soarAgents.json file is badly formed, this file
-# should still work.
+# The soarAgents.json file is badly formed, so this file will not be analysed.
 
 set NGS_YES *YES*
 
@@ -8,12 +7,3 @@ sp "elaborate*top-state
 -->
     (<s> ^top-state $NGS_YES)
 "
-
-
-# Using Tcl exceptions is not common in Soar programs, but apparently
-# people do this! The following should not result in an error.
-if { [catch {source "non-existant-file.tcl"}] } {
-    echo ">>>>> no non-existant-file.tcl file"
-} else {
-    echo ">>>>> sourced non-existant-file.tcl"
-}

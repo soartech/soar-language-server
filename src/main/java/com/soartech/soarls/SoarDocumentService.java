@@ -5,6 +5,7 @@ import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
+import com.soartech.soarls.EntryPoints.EntryPoint;
 import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
@@ -96,10 +97,12 @@ public class SoarDocumentService implements TextDocumentService {
       new ConcurrentHashMap<>();
 
   /**
-   * The debouncer is used to schedule analysis runs. They can be submitted as often as you like,
-   * but they will only be run periodically.
+   * For each entry point, we debounce analysis requests so that when multiple edits are made in
+   * quick succession we only perform an analysis once.
+   *
+   * <p>TODO: Combine this and the other hash maps that are keyed on URIs into a single structure.
    */
-  private final Debouncer debouncer = new Debouncer(Duration.ofMillis(1000));
+  private final ConcurrentHashMap<URI, Debouncer> debouncers = new ConcurrentHashMap<>();
 
   private EntryPoints projectConfig = null;
 
@@ -177,12 +180,7 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public void didOpen(DidOpenTextDocumentParams params) {
     TextDocumentItem doc = params.getTextDocument();
-    SoarFile soarFile = documents.open(doc);
-
-    if (activeEntryPoint == null) {
-      this.activeEntryPoint = soarFile.uri;
-      scheduleAnalysis();
-    }
+    documents.open(doc);
   }
 
   @Override
@@ -202,12 +200,14 @@ public class SoarDocumentService implements TextDocumentService {
     // If the file that changed was never sourced, then there is no
     // need to re-analyse the project. This mainly prevents the Tcl
     // expansion buffer from triggering a continuous loop of analyses.
-    boolean changeAffectsAnalysis =
-        Optional.ofNullable(getAnalysis(activeEntryPoint).getNow(null))
-            .map(analysis -> analysis.files.containsKey(uri))
-            .orElse(false);
-    if (changeAffectsAnalysis) {
-      scheduleAnalysis();
+    List<ProjectAnalysis> analysisAffected =
+        analyses
+            .values()
+            .stream()
+            .filter(analysis -> analysis.files.containsKey(uri))
+            .collect(toList());
+    for (ProjectAnalysis analysis : analysisAffected) {
+      scheduleAnalysis(analysis.entryPointUri);
     }
   }
 
@@ -680,15 +680,25 @@ public class SoarDocumentService implements TextDocumentService {
   void setProjectConfig(EntryPoints projectConfig) {
     this.projectConfig = projectConfig;
     this.activeEntryPoint = workspaceRootUri.resolve(projectConfig.activeEntryPoint().path);
-    scheduleAnalysis();
+    for (EntryPoint entryPoint : projectConfig.entryPoints) {
+      URI uri = workspaceRootUri.resolve(entryPoint.path);
+      scheduleAnalysis(uri);
+    }
   }
 
   void setConfiguration(Configuration config) {
     this.config = config;
     if (config.debounceTime != null) {
       LOG.info("Updating debounce time");
-      debouncer.setDelay(Duration.ofMillis(config.debounceTime));
-      scheduleAnalysis();
+      for (Debouncer debouncer : debouncers.values()) {
+        debouncer.setDelay(Duration.ofMillis(config.debounceTime));
+      }
+      if (projectConfig != null) {
+        for (EntryPoint entryPoint : projectConfig.entryPoints) {
+          URI uri = workspaceRootUri.resolve(entryPoint.path);
+          scheduleAnalysis(uri);
+        }
+      }
     }
   }
 
@@ -696,26 +706,27 @@ public class SoarDocumentService implements TextDocumentService {
    * Schedule an analysis run. It is safe to call this multiple times in quick succession, because
    * the requests are debounced.
    */
-  private void scheduleAnalysis() {
-    if (this.activeEntryPoint == null) {
-      return;
-    }
-
+  private void scheduleAnalysis(URI entryPoint) {
     // TODO: this has the side effect of clearing the pendingAnalysis entry if there is one. I don't
     // like relying on that subtle behaviour.
-    getAnalysis(this.activeEntryPoint);
+    getAnalysis(entryPoint);
 
     CompletableFuture<ProjectAnalysis> future =
-        pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture<>());
+        pendingAnalyses.computeIfAbsent(entryPoint, key -> new CompletableFuture<>());
 
     if (future.isDone()) {
       return;
     }
+
+    Debouncer debouncer =
+        debouncers.computeIfAbsent(
+            entryPoint, uri -> new Debouncer(Duration.ofMillis(config.debounceTime)));
+
     debouncer.submit(
         () -> {
           try {
             ProjectAnalysis analysis =
-                Analysis.analyse(this.projectConfig, this.documents, this.activeEntryPoint);
+                Analysis.analyse(this.projectConfig, this.documents, entryPoint);
             reportDiagnostics(analysis);
             future.complete(analysis);
           } catch (Exception e) {
