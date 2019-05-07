@@ -18,7 +18,13 @@ import java.util.concurrent.TimeUnit;
 public class Debouncer {
   private Duration delay;
 
-  private final ScheduledExecutorService workerThread = Executors.newScheduledThreadPool(1);
+  /**
+   * We use a single worker thread for all analyses because it is unclear whether or not the JTcl
+   * interpreter is thread safe. Until such time as we determine whether it is (or refactor the
+   * analysis functions if there is only a small critical section to lock in), we should not perform
+   * analyses in parallel.
+   */
+  private static final ScheduledExecutorService workerThread = Executors.newScheduledThreadPool(1);
 
   private Future<?> pendingTask = null;
 
