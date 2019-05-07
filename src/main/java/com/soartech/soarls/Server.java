@@ -95,5 +95,6 @@ public class Server implements LanguageServer, LanguageClientAware {
   public void connect(LanguageClient client) {
     this.client = client;
     documentService.connect(client);
+    workspaceService.connect(client);
   }
 }

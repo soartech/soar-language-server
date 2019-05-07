@@ -8,11 +8,19 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import org.eclipse.lsp4j.Diagnostic;
+import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeWatchedFilesParams;
 import org.eclipse.lsp4j.ExecuteCommandParams;
 import org.eclipse.lsp4j.FileEvent;
+import org.eclipse.lsp4j.Position;
+import org.eclipse.lsp4j.PublishDiagnosticsParams;
+import org.eclipse.lsp4j.Range;
+import org.eclipse.lsp4j.services.LanguageClient;
 import org.eclipse.lsp4j.services.WorkspaceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,12 +31,18 @@ class SoarWorkspaceService implements WorkspaceService {
 
   private static final String SOAR_AGENTS_FILE = "soarAgents.json";
 
+  private LanguageClient client;
+
   private final SoarDocumentService documentService;
   private URI workspaceRootUri;
   private EntryPoints soarAgentEntryPoints;
 
   SoarWorkspaceService(SoarDocumentService documentService) {
     this.documentService = documentService;
+  }
+
+  public void connect(LanguageClient client) {
+    this.client = client;
   }
 
   public void setWorkspaceRoot(String workspaceRootUri) {
@@ -67,6 +81,12 @@ class SoarWorkspaceService implements WorkspaceService {
 
     } catch (IOException | JsonSyntaxException e) {
       LOG.error("Error trying to read {}", soarAgentsPath, e);
+      List<Diagnostic> diagnostics =
+          Arrays.asList(
+              new Diagnostic(
+                  new Range(new Position(0, 0), new Position(0, 0)), e.getMessage(), DiagnosticSeverity.Error, "workspace service"));
+      client.publishDiagnostics(
+          new PublishDiagnosticsParams(workspaceRootUri.resolve(SOAR_AGENTS_FILE).toString(), diagnostics));
     }
   }
 
