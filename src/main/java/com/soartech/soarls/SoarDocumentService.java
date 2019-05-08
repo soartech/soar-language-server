@@ -503,8 +503,8 @@ public class SoarDocumentService implements TextDocumentService {
    * <p>In the case of variables, we consider that running the codebase from different entry points
    * could produce different results. Therefore, we retrieve a variable's value with respect to each
    * of the analysis results, and then deduplicate. If all code paths produced the same value, then
-   * we return a single result. Otherwise, we return a multi-line result where each line is "<name
-   * of entry point>: <variable value>".
+   * we return a single result. Otherwise, we return a multi-line result where each line is
+   * "entry_point_name: variable_value".
    *
    * <p>For procedure calls, we just use the analysis for the active entry point. Since hover text
    * for procedure calls shows the full documentation of the procedure, it wouldn't make sense to
