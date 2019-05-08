@@ -77,12 +77,20 @@
           "description": "Absolute path to an external Soar Language Server executable. Leave blank to use the built-in executable. If you aren't developing the language server itself, you probably don't need this."
         }
       }
-    }
+    },
+    "jsonValidation": [
+      {
+        "fileMatch": "soarAgents.json",
+        "url": "./schemas/soarAgents.json"
+      }
+    ]
   },
   "dependencies": {
     "vscode-languageclient": "^5.2.1"
   },
-  "extensionDependencies": ["bdegrend.soar"],
+  "extensionDependencies": [
+    "bdegrend.soar"
+  ],
   "scripts": {
     "vscode:prepublish": "rm -rf ./soar-language-server && (cd ../../ && ./gradlew installShadowDist) && cp -r ../../build/install/soar-language-server-shadow ./soar-language-server && npm run compile",
     "compile": "tsc -p ./",
