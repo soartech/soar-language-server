@@ -736,13 +736,13 @@ public class SoarDocumentService implements TextDocumentService {
    * Schedule an analysis run. It is safe to call this multiple times in quick succession, because
    * the requests are debounced.
    */
-  private void scheduleAnalysis(URI entryPoint) {
+  private void scheduleAnalysis(URI entryPointUri) {
     // TODO: this has the side effect of clearing the pendingAnalysis entry if there is one. I don't
     // like relying on that subtle behaviour.
-    getAnalysis(entryPoint);
+    getAnalysis(entryPointUri);
 
     CompletableFuture<ProjectAnalysis> future =
-        pendingAnalyses.computeIfAbsent(entryPoint, key -> new CompletableFuture<>());
+        pendingAnalyses.computeIfAbsent(entryPointUri, key -> new CompletableFuture<>());
 
     if (future.isDone()) {
       return;
@@ -750,17 +750,26 @@ public class SoarDocumentService implements TextDocumentService {
 
     Debouncer debouncer =
         debouncers.computeIfAbsent(
-            entryPoint, uri -> new Debouncer(Duration.ofMillis(config.debounceTime)));
+            entryPointUri, uri -> new Debouncer(Duration.ofMillis(config.debounceTime)));
+
+    // This is a clunky way to retrieve the entry point associated with a given URI.
+    EntryPoint entryPoint =
+        projectConfig
+            .entryPoints
+            .stream()
+            .filter(entry -> workspaceRootUri.resolve(entry.path).equals(entryPointUri))
+            .findFirst()
+            .orElse(null);
 
     debouncer.submit(
         () -> {
           try {
-            LOG.info("Beginning analysis for {}", entryPoint);
+            LOG.info("Beginning analysis for {}", entryPointUri);
             ProjectAnalysis analysis =
-                Analysis.analyse(this.projectConfig, this.documents, entryPoint);
+                Analysis.analyse(this.projectConfig, this.documents, entryPoint, entryPointUri);
             reportDiagnostics(analysis);
             future.complete(analysis);
-            LOG.info("Completed analysis for {}", entryPoint);
+            LOG.info("Completed analysis for {}", entryPointUri);
           } catch (Exception e) {
             future.completeExceptionally(e);
           }
