@@ -1,7 +1,9 @@
 package com.soartech.soarls;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -22,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -493,79 +496,129 @@ public class SoarDocumentService implements TextDocumentService {
     return CompletableFuture.completedFuture(ranges);
   }
 
+  /**
+   * We implement hover for two cases: variable retrievals and procedure calls. We select an
+   * implementation based on the type of the AST node.
+   *
+   * <p>In the case of variables, we consider that running the codebase from different entry points
+   * could produce different results. Therefore, we retrieve a variable's value with respect to each
+   * of the analysis results, and then deduplicate. If all code paths produced the same value, then
+   * we return a single result. Otherwise, we return a multi-line result where each line is "<name
+   * of entry point>: <variable value>".
+   *
+   * <p>For procedure calls, we just use the analysis for the active entry point. Since hover text
+   * for procedure calls shows the full documentation of the procedure, it wouldn't make sense to
+   * concatenate multiple results even if they differed (which probably wouldn't happen in most
+   * codebases anyway).
+   */
   @Override
   public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
+    URI uri = uri(params.getTextDocument().getUri());
+    SoarFile file = documents.get(uri);
+    TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
-    Function<FileAnalysis, Hover> getHover =
-        analysis -> {
-          Function<TclAstNode, Hover> hoverVariable =
-              node -> {
-                VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
-                if (retrieval == null) return null;
-                String value = retrieval.definition.map(def -> def.value).orElse("");
-                Range range = analysis.file.rangeForNode(node);
-                return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-              };
+    ////////
+    // Helpers for variable hovers.
 
-          String prefix = config.renderHoverVerbatim ? "    " : "";
+    // Retrieve a variable value given a particular analysis. The results of all these will be
+    // merged.
+    Function<ProjectAnalysis, String> getHoverValue =
+        projectAnalysis ->
+            projectAnalysis
+                .file(uri)
+                .flatMap(
+                    fileAnalysis -> {
+                      TclAstNode node = fileAnalysis.file.tclNode(params.getPosition());
+                      return fileAnalysis
+                          .variableRetrieval(node)
+                          .flatMap(retrieval -> retrieval.definition)
+                          .map(def -> def.value);
+                    })
+                .orElse("<NOT SET>");
 
-          Function<ProcedureCall, Optional<String>> hoverText =
-              call ->
-                  call.definition
-                      .flatMap(def -> def.commentText)
-                      .map(
-                          comment ->
-                              Arrays.stream(comment.split("\n"))
-                                  .map(line -> line.replaceFirst("^\\s*#\\s?", ""))
-                                  .map(line -> prefix + line))
+    // Get the hover value with respect to each analysis, then combine them. If there are multiple
+    // values, then we show each of them, but if they all agree then we only show a single value.
+    Function<Stream<ProjectAnalysis>, Hover> hoverVariable =
+        analyses -> {
+          Map<String, List<ProjectAnalysis>> values = analyses.collect(groupingBy(getHoverValue));
+          Range range =
+              hoveredNode.getType() == TclAstNode.VARIABLE
+                  ? file.rangeForNode(hoveredNode)
+                  : file.rangeForNode(hoveredNode.getParent());
+          String value =
+              values.size() == 1
+                  ? values.keySet().stream().findFirst().orElse(null)
+                  : values
+                      .entrySet()
+                      .stream()
                       .flatMap(
-                          lines ->
-                              config.fullCommentHover
-                                  ? Optional.of(lines.collect(joining("\n")))
-                                  : lines.filter(line -> !line.isEmpty()).findFirst());
-
-          Function<TclAstNode, Hover> hoverProcedureCall =
-              node ->
-                  analysis
-                      .procedureCall(node)
-                      .filter(call -> call.callSiteAst.getChildren().get(0) == node)
-                      .map(
-                          call -> {
-                            SoarFile file = analysis.file;
-                            String value =
-                                hoverText.apply(call).orElse(file.getNodeInternalText(node));
-                            List<TclAstNode> callChildren = call.callSiteAst.getChildren();
-                            Range range =
-                                new Range(
-                                    file.position(callChildren.get(0).getStart()),
-                                    file.position(callChildren.get(0).getEnd()));
-                            return config.renderHoverVerbatim
-                                ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
-                                : new Hover(
-                                    Arrays.asList(Either.forRight(new MarkedString("raw", value))),
-                                    range);
-                          })
-                      .orElse(null);
-
-          SoarFile file = analysis.file;
-          TclAstNode hoveredNode = file.tclNode(params.getPosition());
-
-          switch (hoveredNode.getType()) {
-            case TclAstNode.VARIABLE:
-              return hoverVariable.apply(hoveredNode);
-            case TclAstNode.VARIABLE_NAME:
-              return hoverVariable.apply(hoveredNode.getParent());
-            default:
-              return hoverProcedureCall.apply(hoveredNode);
-          }
+                          entry ->
+                              entry
+                                  .getValue()
+                                  .stream()
+                                  .map(analysis -> analysis.entryPoint.name)
+                                  .map(name -> name != null ? name : "<UNNAMED ENTRY POINT>")
+                                  .map(name -> name + ": " + entry.getKey()))
+                      .sorted()
+                      .collect(joining("\n"));
+          return new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
         };
 
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            projectAnalysis -> {
-              URI uri = uri(params.getTextDocument().getUri());
-              return projectAnalysis.file(uri).map(getHover).orElse(null);
-            });
+    ////////
+    // Helpers for procedure hovers.
+
+    // If we are configured to do so, then we prefix each line with four spaces so that markdown
+    // renderers treat the text as verbatim.
+    String prefix = config.renderHoverVerbatim ? "    " : "";
+
+    // Format a procedure call for the hover tooltip. We strip leading `#` comment characters and
+    // optionally filter to just the first line.
+    Function<ProcedureCall, Optional<String>> hoverText =
+        call ->
+            call.definition
+                .flatMap(def -> def.commentText)
+                .map(
+                    comment ->
+                        Arrays.stream(comment.split("\n"))
+                            .map(line -> line.replaceFirst("^\\s*#\\s?", ""))
+                            .map(line -> prefix + line))
+                .flatMap(
+                    lines ->
+                        config.fullCommentHover
+                            ? Optional.of(lines.collect(joining("\n")))
+                            : lines.filter(line -> !line.isEmpty()).findFirst());
+
+    Function<FileAnalysis, Optional<Hover>> hoverProcedureCallFile =
+        fileAnalysis -> {
+          TclAstNode node = fileAnalysis.file.tclNode(params.getPosition());
+          return fileAnalysis
+              .procedureCall(node)
+              .filter(call -> call.callSiteAst.getChildren().get(0) == node)
+              .map(
+                  call -> {
+                    String value =
+                        hoverText.apply(call).orElse(fileAnalysis.file.getNodeInternalText(node));
+                    List<TclAstNode> callChildren = call.callSiteAst.getChildren();
+                    Range range = fileAnalysis.file.rangeForNode(callChildren.get(0));
+                    return config.renderHoverVerbatim
+                        ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
+                        : new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
+                  });
+        };
+
+    Function<ProjectAnalysis, Hover> hoverProcedureCall =
+        analysis -> analysis.file(uri).flatMap(hoverProcedureCallFile).orElse(null);
+
+    ////////
+    // Select an implementation depending on the node type.
+
+    switch (hoveredNode.getType()) {
+      case TclAstNode.VARIABLE:
+      case TclAstNode.VARIABLE_NAME:
+        return getAllAnalyses().thenApply(hoverVariable);
+      default:
+        return getAnalysis().thenApply(hoverProcedureCall);
+    }
   }
 
   @Override

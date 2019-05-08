@@ -6,7 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.List;
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.Location;
-import org.eclipse.lsp4j.MarkupContent;
+import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceContext;
@@ -25,8 +25,8 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
     TextDocumentPositionParams params = textDocumentPosition("common.soar", 5, 35);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkupContent content = hover.getContents().getRight();
-    assertEquals(content.getValue(), "primary");
+    MarkedString content = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(content.getValue(), "primary: primary\nsecondary: secondary");
   }
 
   List<Location> getReferences(String relativePath, int line, int character) throws Exception {

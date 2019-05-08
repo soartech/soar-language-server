@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.Hover;
 import org.eclipse.lsp4j.MarkedString;
-import org.eclipse.lsp4j.MarkupContent;
-import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.junit.jupiter.api.Test;
 
@@ -31,8 +29,8 @@ public class HoverTest extends SingleFileTestFixture {
   public void hoverVariableValue() throws Exception {
     TextDocumentPositionParams params = textDocumentPosition(file, 20, 44);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkupContent contents = hover.getContents().getRight();
-    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
+    MarkedString contents = hover.getContents().getLeft().get(0).getRight();
+    assertEquals(contents.getLanguage(), "raw");
     assertEquals(contents.getValue(), "*YES*");
   }
 
@@ -48,7 +46,7 @@ public class HoverTest extends SingleFileTestFixture {
     // The 'L' in '$ALPHA'
     TextDocumentPositionParams params = textDocumentPosition(file, 28, 23);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkupContent contents = hover.getContents().getRight();
+    MarkedString contents = hover.getContents().getLeft().get(0).getRight();
     assertEquals(contents.getValue(), "alpha");
   }
 
@@ -58,7 +56,7 @@ public class HoverTest extends SingleFileTestFixture {
     // The 'E' in 'prefix-$BETA'
     TextDocumentPositionParams params = textDocumentPosition(file, 29, 30);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkupContent contents = hover.getContents().getRight();
+    MarkedString contents = hover.getContents().getLeft().get(0).getRight();
     assertEquals(contents.getValue(), "beta");
   }
 
@@ -170,12 +168,5 @@ public class HoverTest extends SingleFileTestFixture {
     } catch (Exception e) {
       fail("hover threw an exception");
     }
-  }
-
-  @Test
-  public void hoverUnknownFile() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition("notexistent.soar", 0, 0);
-    Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    assertNull(hover);
   }
 }
