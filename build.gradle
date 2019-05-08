@@ -36,8 +36,12 @@ dependencies {
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.7.1'
 
     // We are currently depending on a JSoar version that is in flux.
-    implementation 'com.soartech:jsoar-core:4.0-SNAPSHOT'
-    implementation 'com.soartech:jsoar-tcl:4.0-SNAPSHOT'
+    implementation('com.soartech:jsoar-core:4.0-SNAPSHOT') {
+        exclude group: 'junit'
+    }
+    implementation('com.soartech:jsoar-tcl:4.0-SNAPSHOT') {
+        exclude group: 'junit'
+    }
 
     // Use JUnit test framework
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.2'
