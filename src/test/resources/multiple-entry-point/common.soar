@@ -1,0 +1,7 @@
+# This file is sourced by both entry points.
+
+sp "match-name
+    (state <s> ^name $agent_name)
+-->
+    (write (crlf) |my name is $agent_name|)
+"

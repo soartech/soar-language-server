@@ -9,28 +9,13 @@ import org.junit.jupiter.api.Test;
 public class BadProjectTest extends LanguageServerTestFixture {
   public BadProjectTest() throws Exception {
     super("bad-project");
-    open("test.soar");
-    waitForAnalysis("test.soar");
   }
 
-  /**
-   * Even though the project is missing a manifest, when we open test.soar it should become the
-   * default entry point.
-   */
+  /** When there is a badly formed manifest, we report diagnostics for the soarAgents.json file. */
   @Test
   public void fileWithoutManifest() {
-    List<Diagnostic> diagnostics = diagnosticsForFile("test.soar");
+    List<Diagnostic> diagnostics = diagnosticsForFile("soarAgents.json");
     assertNotNull(diagnostics);
-  }
-
-  /**
-   * We normally report errors about missing files, but in this case the source command is being
-   * wrapped in a Tcl exception handler. It is normal for it to fail, so we shouldn't report an
-   * error.
-   */
-  @Test
-  public void catchSourceException() {
-    List<Diagnostic> diagnostics = diagnosticsForFile("test.soar");
-    assertTrue(diagnostics.isEmpty());
+    assertFalse(diagnostics.isEmpty());
   }
 }

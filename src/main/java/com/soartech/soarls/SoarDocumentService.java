@@ -1,10 +1,13 @@
 package com.soartech.soarls;
 
+import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
+import com.soartech.soarls.EntryPoints.EntryPoint;
 import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
@@ -21,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -28,7 +32,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
@@ -96,10 +103,12 @@ public class SoarDocumentService implements TextDocumentService {
       new ConcurrentHashMap<>();
 
   /**
-   * The debouncer is used to schedule analysis runs. They can be submitted as often as you like,
-   * but they will only be run periodically.
+   * For each entry point, we debounce analysis requests so that when multiple edits are made in
+   * quick succession we only perform an analysis once.
+   *
+   * <p>TODO: Combine this and the other hash maps that are keyed on URIs into a single structure.
    */
-  private final Debouncer debouncer = new Debouncer(Duration.ofMillis(1000));
+  private final ConcurrentHashMap<URI, Debouncer> debouncers = new ConcurrentHashMap<>();
 
   private EntryPoints projectConfig = null;
 
@@ -123,6 +132,23 @@ public class SoarDocumentService implements TextDocumentService {
    * be out of date.
    */
   private Configuration config = new Configuration();
+
+  /** Retrieve a stream of the analyses for all entry points. */
+  public CompletableFuture<Stream<ProjectAnalysis>> getAllAnalyses() {
+    Collector<CompletableFuture<ProjectAnalysis>, ?, CompletableFuture<Stream<ProjectAnalysis>>>
+        collector =
+            Collectors.reducing(
+                CompletableFuture.completedFuture(Stream.empty()),
+                a -> a.thenApply(Stream::of),
+                (first, second) -> first.thenCombine(second, Stream::concat));
+
+    return projectConfig
+        .entryPoints
+        .stream()
+        .map(entryPoint -> workspaceRootUri.resolve(entryPoint.path))
+        .map(uri -> getAnalysis(uri))
+        .collect(collector);
+  }
 
   /** Retrieve the most recently completed analysis for the active entry point. */
   public CompletableFuture<ProjectAnalysis> getAnalysis() {
@@ -177,12 +203,7 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public void didOpen(DidOpenTextDocumentParams params) {
     TextDocumentItem doc = params.getTextDocument();
-    SoarFile soarFile = documents.open(doc);
-
-    if (activeEntryPoint == null) {
-      this.activeEntryPoint = soarFile.uri;
-      scheduleAnalysis();
-    }
+    documents.open(doc);
   }
 
   @Override
@@ -202,12 +223,14 @@ public class SoarDocumentService implements TextDocumentService {
     // If the file that changed was never sourced, then there is no
     // need to re-analyse the project. This mainly prevents the Tcl
     // expansion buffer from triggering a continuous loop of analyses.
-    boolean changeAffectsAnalysis =
-        Optional.ofNullable(getAnalysis(activeEntryPoint).getNow(null))
-            .map(analysis -> analysis.files.containsKey(uri))
-            .orElse(false);
-    if (changeAffectsAnalysis) {
-      scheduleAnalysis();
+    List<ProjectAnalysis> analysisAffected =
+        analyses
+            .values()
+            .stream()
+            .filter(analysis -> analysis.files.containsKey(uri))
+            .collect(toList());
+    for (ProjectAnalysis analysis : analysisAffected) {
+      scheduleAnalysis(analysis.entryPointUri);
     }
   }
 
@@ -295,7 +318,11 @@ public class SoarDocumentService implements TextDocumentService {
                 .map(location -> singletonList(location))
                 .orElseGet(ArrayList::new);
 
-    return getAnalysis().thenApply(findDefinition.andThen(Either::forLeft));
+    return getAllAnalyses()
+        .thenApply(
+            analyses ->
+                analyses.flatMap(findDefinition.andThen(List::stream)).distinct().collect(toList()))
+        .thenApply(Either::forLeft);
   }
 
   /**
@@ -469,140 +496,195 @@ public class SoarDocumentService implements TextDocumentService {
     return CompletableFuture.completedFuture(ranges);
   }
 
+  /**
+   * We implement hover for two cases: variable retrievals and procedure calls. We select an
+   * implementation based on the type of the AST node.
+   *
+   * <p>In the case of variables, we consider that running the codebase from different entry points
+   * could produce different results. Therefore, we retrieve a variable's value with respect to each
+   * of the analysis results, and then deduplicate. If all code paths produced the same value, then
+   * we return a single result. Otherwise, we return a multi-line result where each line is "<name
+   * of entry point>: <variable value>".
+   *
+   * <p>For procedure calls, we just use the analysis for the active entry point. Since hover text
+   * for procedure calls shows the full documentation of the procedure, it wouldn't make sense to
+   * concatenate multiple results even if they differed (which probably wouldn't happen in most
+   * codebases anyway).
+   */
   @Override
   public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
+    URI uri = uri(params.getTextDocument().getUri());
+    SoarFile file = documents.get(uri);
+    TclAstNode hoveredNode = file.tclNode(params.getPosition());
 
-    Function<FileAnalysis, Hover> getHover =
-        analysis -> {
-          Function<TclAstNode, Hover> hoverVariable =
-              node -> {
-                VariableRetrieval retrieval = analysis.variableRetrievals.get(node);
-                if (retrieval == null) return null;
-                String value = retrieval.definition.map(def -> def.value).orElse("");
-                Range range = analysis.file.rangeForNode(node);
-                return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
-              };
+    ////////
+    // Helpers for variable hovers.
 
-          String prefix = config.renderHoverVerbatim ? "    " : "";
+    // Retrieve a variable value given a particular analysis. The results of all these will be
+    // merged.
+    Function<ProjectAnalysis, String> getHoverValue =
+        projectAnalysis ->
+            projectAnalysis
+                .file(uri)
+                .flatMap(
+                    fileAnalysis -> {
+                      TclAstNode node = fileAnalysis.file.tclNode(params.getPosition());
+                      return fileAnalysis
+                          .variableRetrieval(node)
+                          .flatMap(retrieval -> retrieval.definition)
+                          .map(def -> def.value);
+                    })
+                .orElse("<NOT SET>");
 
-          Function<ProcedureCall, Optional<String>> hoverText =
-              call ->
-                  call.definition
-                      .flatMap(def -> def.commentText)
-                      .map(
-                          comment ->
-                              Arrays.stream(comment.split("\n"))
-                                  .map(line -> line.replaceFirst("^\\s*#\\s?", ""))
-                                  .map(line -> prefix + line))
+    // Get the hover value with respect to each analysis, then combine them. If there are multiple
+    // values, then we show each of them, but if they all agree then we only show a single value.
+    Function<Stream<ProjectAnalysis>, Hover> hoverVariable =
+        analyses -> {
+          Map<String, List<ProjectAnalysis>> values = analyses.collect(groupingBy(getHoverValue));
+          Range range =
+              hoveredNode.getType() == TclAstNode.VARIABLE
+                  ? file.rangeForNode(hoveredNode)
+                  : file.rangeForNode(hoveredNode.getParent());
+          String value =
+              values.size() == 1
+                  ? values.keySet().stream().findFirst().orElse(null)
+                  : values
+                      .entrySet()
+                      .stream()
                       .flatMap(
-                          lines ->
-                              config.fullCommentHover
-                                  ? Optional.of(lines.collect(joining("\n")))
-                                  : lines.filter(line -> !line.isEmpty()).findFirst());
-
-          Function<TclAstNode, Hover> hoverProcedureCall =
-              node ->
-                  analysis
-                      .procedureCall(node)
-                      .filter(call -> call.callSiteAst.getChildren().get(0) == node)
-                      .map(
-                          call -> {
-                            SoarFile file = analysis.file;
-                            String value =
-                                hoverText.apply(call).orElse(file.getNodeInternalText(node));
-                            List<TclAstNode> callChildren = call.callSiteAst.getChildren();
-                            Range range =
-                                new Range(
-                                    file.position(callChildren.get(0).getStart()),
-                                    file.position(callChildren.get(0).getEnd()));
-                            return config.renderHoverVerbatim
-                                ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
-                                : new Hover(
-                                    Arrays.asList(Either.forRight(new MarkedString("raw", value))),
-                                    range);
-                          })
-                      .orElse(null);
-
-          SoarFile file = analysis.file;
-          TclAstNode hoveredNode = file.tclNode(params.getPosition());
-
-          switch (hoveredNode.getType()) {
-            case TclAstNode.VARIABLE:
-              return hoverVariable.apply(hoveredNode);
-            case TclAstNode.VARIABLE_NAME:
-              return hoverVariable.apply(hoveredNode.getParent());
-            default:
-              return hoverProcedureCall.apply(hoveredNode);
-          }
+                          entry ->
+                              entry
+                                  .getValue()
+                                  .stream()
+                                  .map(analysis -> analysis.entryPoint.name)
+                                  .map(name -> name != null ? name : "<UNNAMED ENTRY POINT>")
+                                  .map(name -> name + ": " + entry.getKey()))
+                      .sorted()
+                      .collect(joining("\n"));
+          return new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
         };
 
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            projectAnalysis -> {
-              URI uri = uri(params.getTextDocument().getUri());
-              return projectAnalysis.file(uri).map(getHover).orElse(null);
-            });
+    ////////
+    // Helpers for procedure hovers.
+
+    // If we are configured to do so, then we prefix each line with four spaces so that markdown
+    // renderers treat the text as verbatim.
+    String prefix = config.renderHoverVerbatim ? "    " : "";
+
+    // Format a procedure call for the hover tooltip. We strip leading `#` comment characters and
+    // optionally filter to just the first line.
+    Function<ProcedureCall, Optional<String>> hoverText =
+        call ->
+            call.definition
+                .flatMap(def -> def.commentText)
+                .map(
+                    comment ->
+                        Arrays.stream(comment.split("\n"))
+                            .map(line -> line.replaceFirst("^\\s*#\\s?", ""))
+                            .map(line -> prefix + line))
+                .flatMap(
+                    lines ->
+                        config.fullCommentHover
+                            ? Optional.of(lines.collect(joining("\n")))
+                            : lines.filter(line -> !line.isEmpty()).findFirst());
+
+    Function<FileAnalysis, Optional<Hover>> hoverProcedureCallFile =
+        fileAnalysis -> {
+          TclAstNode node = fileAnalysis.file.tclNode(params.getPosition());
+          return fileAnalysis
+              .procedureCall(node)
+              .filter(call -> call.callSiteAst.getChildren().get(0) == node)
+              .map(
+                  call -> {
+                    String value =
+                        hoverText.apply(call).orElse(fileAnalysis.file.getNodeInternalText(node));
+                    List<TclAstNode> callChildren = call.callSiteAst.getChildren();
+                    Range range = fileAnalysis.file.rangeForNode(callChildren.get(0));
+                    return config.renderHoverVerbatim
+                        ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
+                        : new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
+                  });
+        };
+
+    Function<ProjectAnalysis, Hover> hoverProcedureCall =
+        analysis -> analysis.file(uri).flatMap(hoverProcedureCallFile).orElse(null);
+
+    ////////
+    // Select an implementation depending on the node type.
+
+    switch (hoveredNode.getType()) {
+      case TclAstNode.VARIABLE:
+      case TclAstNode.VARIABLE_NAME:
+        return getAllAnalyses().thenApply(hoverVariable);
+      default:
+        return getAnalysis().thenApply(hoverProcedureCall);
+    }
   }
 
   @Override
   public CompletableFuture<List<? extends Location>> references(ReferenceParams params) {
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis -> {
-              URI uri = uri(params.getTextDocument().getUri());
-              FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
-              TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
+    URI uri = uri(params.getTextDocument().getUri());
 
-              List<Location> references = new ArrayList<>();
+    Function<ProjectAnalysis, Stream<Location>> findReferences =
+        analysis -> {
+          FileAnalysis fileAnalysis = analysis.file(uri).orElse(null);
+          if (fileAnalysis == null) {
+            return Stream.of();
+          }
+          TclAstNode astNode = fileAnalysis.file.tclNode(params.getPosition());
 
-              // We first try to find references to a variable
+          List<Location> references = new ArrayList<>();
 
-              Optional<VariableDefinition> varDef =
-                  fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
-              if (!varDef.isPresent()) {
-                varDef =
-                    analysis
-                        .variableRetrievals
-                        .keySet()
-                        .stream()
-                        .filter(def -> def.ast.containsChild(astNode))
-                        .findFirst();
-              }
-              varDef.ifPresent(
-                  def -> {
-                    for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
-                      references.add(ret.readSiteLocation);
-                    }
-                  });
+          // We first try to find references to a variable.
 
-              // If we successfully found a variable reference, then return now; we don't want to
-              // return references to an enclosing procedure call.
-              if (!references.isEmpty()) {
-                return references;
-              }
+          Optional<VariableDefinition> varDef =
+              fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
+          if (!varDef.isPresent()) {
+            varDef =
+                analysis
+                    .variableRetrievals
+                    .keySet()
+                    .stream()
+                    .filter(def -> def.ast.containsChild(astNode))
+                    .findFirst();
+          }
+          varDef.ifPresent(
+              def -> {
+                for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
+                  references.add(ret.readSiteLocation);
+                }
+              });
 
-              // If we weren't querying a variable, then try finding references to a procedure.
+          // If we successfully found a variable reference, then return now; we don't want to
+          // return references to an enclosing procedure call.
+          if (!references.isEmpty()) {
+            return references.stream();
+          }
 
-              Optional<ProcedureDefinition> procDef =
-                  fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
-              if (!procDef.isPresent()) {
-                procDef =
-                    fileAnalysis
-                        .procedureDefinitions
-                        .stream()
-                        .filter(def -> def.ast.containsChild(astNode))
-                        .findFirst();
-              }
-              procDef.ifPresent(
-                  def -> {
-                    LOG.info("references to procedure: {}", def.name);
-                    for (ProcedureCall call : analysis.procedureCalls.get(def)) {
-                      references.add(call.callSiteLocation);
-                    }
-                  });
+          // If we weren't querying a variable, then try to find references to a procedure.
 
-              return references;
-            });
+          Optional<ProcedureDefinition> procDef =
+              fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
+          if (!procDef.isPresent()) {
+            procDef =
+                fileAnalysis
+                    .procedureDefinitions
+                    .stream()
+                    .filter(def -> def.ast.containsChild(astNode))
+                    .findFirst();
+          }
+          procDef.ifPresent(
+              def -> {
+                for (ProcedureCall call : analysis.procedureCalls.get(def)) {
+                  references.add(call.callSiteLocation);
+                }
+              });
+
+          return references.stream();
+        };
+
+    return getAllAnalyses()
+        .thenApply(analyses -> analyses.flatMap(findReferences).distinct().collect(toList()));
   }
 
   @Override
@@ -691,15 +773,25 @@ public class SoarDocumentService implements TextDocumentService {
   void setProjectConfig(EntryPoints projectConfig) {
     this.projectConfig = projectConfig;
     this.activeEntryPoint = workspaceRootUri.resolve(projectConfig.activeEntryPoint().path);
-    scheduleAnalysis();
+    for (EntryPoint entryPoint : projectConfig.entryPoints) {
+      URI uri = workspaceRootUri.resolve(entryPoint.path);
+      scheduleAnalysis(uri);
+    }
   }
 
   void setConfiguration(Configuration config) {
     this.config = config;
     if (config.debounceTime != null) {
       LOG.info("Updating debounce time");
-      debouncer.setDelay(Duration.ofMillis(config.debounceTime));
-      scheduleAnalysis();
+      for (Debouncer debouncer : debouncers.values()) {
+        debouncer.setDelay(Duration.ofMillis(config.debounceTime));
+      }
+      if (projectConfig != null) {
+        for (EntryPoint entryPoint : projectConfig.entryPoints) {
+          URI uri = workspaceRootUri.resolve(entryPoint.path);
+          scheduleAnalysis(uri);
+        }
+      }
     }
   }
 
@@ -707,28 +799,40 @@ public class SoarDocumentService implements TextDocumentService {
    * Schedule an analysis run. It is safe to call this multiple times in quick succession, because
    * the requests are debounced.
    */
-  private void scheduleAnalysis() {
-    if (this.activeEntryPoint == null) {
-      return;
-    }
-
+  private void scheduleAnalysis(URI entryPointUri) {
     // TODO: this has the side effect of clearing the pendingAnalysis entry if there is one. I don't
     // like relying on that subtle behaviour.
-    getAnalysis(this.activeEntryPoint);
+    getAnalysis(entryPointUri);
 
     CompletableFuture<ProjectAnalysis> future =
-        pendingAnalyses.computeIfAbsent(this.activeEntryPoint, key -> new CompletableFuture<>());
+        pendingAnalyses.computeIfAbsent(entryPointUri, key -> new CompletableFuture<>());
 
     if (future.isDone()) {
       return;
     }
+
+    Debouncer debouncer =
+        debouncers.computeIfAbsent(
+            entryPointUri, uri -> new Debouncer(Duration.ofMillis(config.debounceTime)));
+
+    // This is a clunky way to retrieve the entry point associated with a given URI.
+    EntryPoint entryPoint =
+        projectConfig
+            .entryPoints
+            .stream()
+            .filter(entry -> workspaceRootUri.resolve(entry.path).equals(entryPointUri))
+            .findFirst()
+            .orElse(null);
+
     debouncer.submit(
         () -> {
           try {
+            LOG.info("Beginning analysis for {}", entryPointUri);
             ProjectAnalysis analysis =
-                Analysis.analyse(this.projectConfig, this.documents, this.activeEntryPoint);
+                Analysis.analyse(this.projectConfig, this.documents, entryPoint, entryPointUri);
             reportDiagnostics(analysis);
             future.complete(analysis);
+            LOG.info("Completed analysis for {}", entryPointUri);
           } catch (Exception e) {
             future.completeExceptionally(e);
           }
@@ -747,6 +851,11 @@ public class SoarDocumentService implements TextDocumentService {
 
       PublishDiagnosticsParams diagnostics =
           new PublishDiagnosticsParams(fileAnalysis.uri.toString(), diagnosticList);
+      // NOTE: I believe that publishDiagnostics is NOT thread safe. If multiple analyses complete
+      // at the same time, and they both try to send diagnostics, then the client might get into a
+      // bad state. However, since this method here gets called from the analysis threadpool, which
+      // has been allocated a single thread, it will not be called from mulitple threads at the same
+      // time. If we change the threading model, then we MUST revisit this assumption.
       client.publishDiagnostics(diagnostics);
     }
   }

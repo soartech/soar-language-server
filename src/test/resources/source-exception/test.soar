@@ -1,11 +1,3 @@
-# This is the root load.soar of a multi-file project.
-
-source micro-ngs/load.soar
-source productions.soar
-
-# Attempting to load this file should cause an error.
-source missing-file.soar
-
 # Using Tcl exceptions is not common in Soar programs, but apparently
 # people do this! The following should not result in an error.
 if { [catch {source "non-existant-file.tcl"}] } {

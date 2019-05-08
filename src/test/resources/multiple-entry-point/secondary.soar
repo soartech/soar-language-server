@@ -1,0 +1,3 @@
+set agent_name secondary
+
+source common.soar

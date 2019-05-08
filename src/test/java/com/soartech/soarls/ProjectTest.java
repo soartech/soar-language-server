@@ -28,7 +28,7 @@ public class ProjectTest extends LanguageServerTestFixture {
   @Test
   public void hasErrorsInLoadFile() {
     List<Diagnostic> diagnostics = diagnosticsForFile("load.soar");
-    assert (!diagnostics.isEmpty());
+    assertEquals(diagnostics.size(), 1);
   }
 
   @Test

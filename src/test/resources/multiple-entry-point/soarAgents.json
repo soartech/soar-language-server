@@ -1,0 +1,13 @@
+{
+    "entryPoints": [
+        {
+            "name": "primary",
+            "path": "primary.soar"
+        },
+        {
+            "name": "secondary",
+            "path": "secondary.soar"
+        }
+    ],
+    "active": "primary"
+}

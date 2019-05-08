@@ -9,6 +9,7 @@ import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.soartech.soarls.Documents;
 import com.soartech.soarls.EntryPoints;
+import com.soartech.soarls.EntryPoints.EntryPoint;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
@@ -157,6 +158,7 @@ public class Analysis {
   // counterpart at the end.
 
   private final URI entryPointUri;
+  private final EntryPoint entryPoint;
   private final Map<URI, FileAnalysis> files = new HashMap<>();
   private final Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
   private final Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
@@ -166,9 +168,11 @@ public class Analysis {
 
   private final Interp tclInterp;
 
-  private Analysis(EntryPoints projectConfig, Documents documents, URI entryPointUri)
+  private Analysis(
+      EntryPoints projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri)
       throws SoarException {
     this.projectConfig = projectConfig;
+    this.entryPoint = entryPoint;
     this.documents = documents;
     this.entryPointUri = entryPointUri;
 
@@ -197,10 +201,10 @@ public class Analysis {
 
   /** Perform a full analysis of a project starting from the given entry point. */
   public static ProjectAnalysis analyse(
-      EntryPoints projectConfig, Documents documents, URI entryPointUri) {
+      EntryPoints projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri) {
     Analysis analysis = null;
     try {
-      analysis = new Analysis(projectConfig, documents, entryPointUri);
+      analysis = new Analysis(projectConfig, documents, entryPoint, entryPointUri);
       SoarFile file = documents.get(entryPointUri);
       analysis.analyseFile(file);
       LOG.info("Completed analysis {}", analysis);
@@ -217,6 +221,7 @@ public class Analysis {
   private ProjectAnalysis toProjectAnalysis() {
     return new ProjectAnalysis(
         entryPointUri,
+        entryPoint,
         files,
         procedureDefinitions,
         procedureCalls,

@@ -4,6 +4,7 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.soartech.soarls.EntryPoints.EntryPoint;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +20,8 @@ import java.util.Optional;
  */
 public class ProjectAnalysis {
   public final URI entryPointUri;
+
+  public final EntryPoint entryPoint;
 
   public final ImmutableMap<URI, FileAnalysis> files;
 
@@ -50,12 +53,14 @@ public class ProjectAnalysis {
    */
   ProjectAnalysis(
       URI entryPointUri,
+      EntryPoint entryPoint,
       Map<URI, FileAnalysis> files,
       Map<String, ProcedureDefinition> procedureDefinitions,
       Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls,
       Map<String, VariableDefinition> variableDefinitions,
       Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals) {
     this.entryPointUri = entryPointUri;
+    this.entryPoint = entryPoint;
     this.files = ImmutableMap.copyOf(files);
     this.procedureDefinitions = ImmutableMap.copyOf(procedureDefinitions);
     this.procedureCalls =
