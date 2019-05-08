@@ -2,7 +2,7 @@
   "name": "soar-language-support",
   "displayName": "Soar Language Support",
   "description": "Language server client for use with the Soar Language Server",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "publisher": "soartech",
   "license": "BSD-3-Clause",
   "repository": {
