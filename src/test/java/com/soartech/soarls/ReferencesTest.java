@@ -61,6 +61,7 @@ public class ReferencesTest extends LanguageServerTestFixture {
     List<Location> references = referencesForPoint("productions.soar", 3, 40);
     assertReference(references, "productions.soar", range(3, 40, 3, 48));
     assertReference(references, "productions.soar", range(11, 44, 11, 52));
+    assertEquals(references.size(), 2);
   }
 
   @Test
@@ -69,6 +70,7 @@ public class ReferencesTest extends LanguageServerTestFixture {
     List<Location> references = referencesForPoint("productions.soar", 3, 42);
     assertReference(references, "productions.soar", range(3, 40, 3, 48));
     assertReference(references, "productions.soar", range(11, 44, 11, 52));
+    assertEquals(references.size(), 2);
   }
 
   @Test

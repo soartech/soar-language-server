@@ -1,0 +1,41 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "title": "SoarAgents",
+    "description": "Manifest file for the Soar Language Server.",
+    "properties": {
+        "entryPoints": {
+            "description": "A list of entry points of the agent.",
+            "type": "array",
+            "items": { "$ref": "#/definitions/EntryPoint" },
+            "minItems": 1
+        },
+        "active": {
+            "description": "The name of the item in the entryPoints list that should be considered the primary entry point. This is used to break ties in cases where using different entry points would cause the language server to give different results.",
+            "type": "string"
+        },
+        "rhsFunctions": {
+            "description": "A list of strings containing the names of RHS functions that should not be treated as errors. This is useful when your application defines RHS functions that can not be detected just from looking at the Soar code.",
+            "type": "array",
+            "items": { "type": "string" }
+        }
+    },
+    "required": ["entryPoints"],
+    "definitions": {
+        "EntryPoint": {
+            "type": "object",
+            "title": "EntryPoint",
+            "description": "Information about where to start when analysing a codebase.",
+            "properties": {
+                "name": {
+                    "description": "A user-friendly name used to identify this entry point. The `active` field refers to this name.",
+                    "type": "string"
+                },
+                "path": {
+                    "description": "The path, relative to the workspace root, of the first file to source. Common examples are `load.soar` or `src/load.soar`.",
+                    "type": "string"
+                }
+            },
+            "required": ["path"]
+        }
+    }
+}
