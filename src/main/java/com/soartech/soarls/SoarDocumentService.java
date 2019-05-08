@@ -555,22 +555,7 @@ public class SoarDocumentService implements TextDocumentService {
 
               List<Location> references = new ArrayList<>();
 
-              Optional<ProcedureDefinition> procDef =
-                  fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
-              if (!procDef.isPresent()) {
-                procDef =
-                    fileAnalysis
-                        .procedureDefinitions
-                        .stream()
-                        .filter(def -> def.ast.containsChild(astNode))
-                        .findFirst();
-              }
-              procDef.ifPresent(
-                  def -> {
-                    for (ProcedureCall call : analysis.procedureCalls.get(def)) {
-                      references.add(call.callSiteLocation);
-                    }
-                  });
+              // We first try to find references to a variable
 
               Optional<VariableDefinition> varDef =
                   fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
@@ -587,6 +572,32 @@ public class SoarDocumentService implements TextDocumentService {
                   def -> {
                     for (VariableRetrieval ret : analysis.variableRetrievals.get(def)) {
                       references.add(ret.readSiteLocation);
+                    }
+                  });
+
+              // If we successfully found a variable reference, then return now; we don't want to
+              // return references to an enclosing procedure call.
+              if (!references.isEmpty()) {
+                return references;
+              }
+
+              // If we weren't querying a variable, then try finding references to a procedure.
+
+              Optional<ProcedureDefinition> procDef =
+                  fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
+              if (!procDef.isPresent()) {
+                procDef =
+                    fileAnalysis
+                        .procedureDefinitions
+                        .stream()
+                        .filter(def -> def.ast.containsChild(astNode))
+                        .findFirst();
+              }
+              procDef.ifPresent(
+                  def -> {
+                    LOG.info("references to procedure: {}", def.name);
+                    for (ProcedureCall call : analysis.procedureCalls.get(def)) {
+                      references.add(call.callSiteLocation);
                     }
                   });
 
