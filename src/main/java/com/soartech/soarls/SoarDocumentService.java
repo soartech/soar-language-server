@@ -541,6 +541,10 @@ public class SoarDocumentService implements TextDocumentService {
     Function<Stream<ProjectAnalysis>, Hover> hoverVariable =
         analyses -> {
           Map<String, List<ProjectAnalysis>> values = analyses.collect(groupingBy(getHoverValue));
+          // If all code paths either set the same value or none at all, then just show the value.
+          if (values.containsKey("<NOT SET>") && values.size() == 2) {
+            values.remove("<NOT SET>");
+          }
           Range range =
               hoveredNode.getType() == TclAstNode.VARIABLE
                   ? file.rangeForNode(hoveredNode)
