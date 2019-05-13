@@ -3,7 +3,7 @@ package com.soartech.soarls;
 import java.util.ArrayList;
 import java.util.List;
 
-public class EntryPoints {
+public class ProjectConfiguration {
 
   /** List of Soar agent start files. */
   public final List<EntryPoint> entryPoints = new ArrayList<>();
@@ -19,7 +19,7 @@ public class EntryPoints {
    */
   public final List<String> rhsFunctions = new ArrayList<>();
 
-  public EntryPoints() {}
+  public ProjectConfiguration() {}
 
   public static class EntryPoint {
 

@@ -8,8 +8,8 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.MapDifference;
 import com.google.common.collect.Maps;
 import com.soartech.soarls.Documents;
-import com.soartech.soarls.EntryPoints;
-import com.soartech.soarls.EntryPoints.EntryPoint;
+import com.soartech.soarls.ProjectConfiguration;
+import com.soartech.soarls.ProjectConfiguration.EntryPoint;
 import com.soartech.soarls.SoarFile;
 import com.soartech.soarls.tcl.TclAstNode;
 import com.soartech.soarls.tcl.TclParser;
@@ -124,7 +124,7 @@ public class Analysis {
   };
 
   /** The manifest file as it was when the analysis was started. */
-  private final EntryPoints projectConfig;
+  private final ProjectConfiguration projectConfig;
 
   /**
    * The document manager may be shared with other analyses which are running concurrently. It is
@@ -169,7 +169,7 @@ public class Analysis {
   private final Interp tclInterp;
 
   private Analysis(
-      EntryPoints projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri)
+      ProjectConfiguration projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri)
       throws SoarException {
     this.projectConfig = projectConfig;
     this.entryPoint = entryPoint;
@@ -201,7 +201,7 @@ public class Analysis {
 
   /** Perform a full analysis of a project starting from the given entry point. */
   public static ProjectAnalysis analyse(
-      EntryPoints projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri) {
+      ProjectConfiguration projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri) {
     Analysis analysis = null;
     try {
       analysis = new Analysis(projectConfig, documents, entryPoint, entryPointUri);

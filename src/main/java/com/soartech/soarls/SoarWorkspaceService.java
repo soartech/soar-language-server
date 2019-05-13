@@ -41,7 +41,7 @@ class SoarWorkspaceService implements WorkspaceService {
 
   private final SoarDocumentService documentService;
   private URI workspaceRootUri = null;
-  private EntryPoints soarAgentEntryPoints;
+  private ProjectConfiguration soarAgentEntryPoints;
 
   SoarWorkspaceService(SoarDocumentService documentService) {
     this.documentService = documentService;
@@ -102,7 +102,7 @@ class SoarWorkspaceService implements WorkspaceService {
           }
 
           try {
-            soarAgentEntryPoints = new Gson().fromJson(soarAgentsJson, EntryPoints.class);
+            soarAgentEntryPoints = new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
 
             if (soarAgentEntryPoints.entryPoints.size() == 0) {
               return Arrays.asList(makeError.apply("No entry points were specified"));

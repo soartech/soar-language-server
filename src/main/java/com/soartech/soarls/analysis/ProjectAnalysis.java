@@ -4,7 +4,7 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.soartech.soarls.EntryPoints.EntryPoint;
+import com.soartech.soarls.ProjectConfiguration.EntryPoint;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;

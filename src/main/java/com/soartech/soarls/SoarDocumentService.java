@@ -7,7 +7,7 @@ import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
-import com.soartech.soarls.EntryPoints.EntryPoint;
+import com.soartech.soarls.ProjectConfiguration.EntryPoint;
 import com.soartech.soarls.analysis.Analysis;
 import com.soartech.soarls.analysis.FileAnalysis;
 import com.soartech.soarls.analysis.ProcedureCall;
@@ -110,7 +110,7 @@ public class SoarDocumentService implements TextDocumentService {
    */
   private final ConcurrentHashMap<URI, Debouncer> debouncers = new ConcurrentHashMap<>();
 
-  private EntryPoints projectConfig = null;
+  private ProjectConfiguration projectConfig = null;
 
   /**
    * The URI of the currently active entry point. The results of analysing a codebase can be
@@ -774,7 +774,7 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
-  void setProjectConfig(EntryPoints projectConfig) {
+  void setProjectConfig(ProjectConfiguration projectConfig) {
     this.projectConfig = projectConfig;
     this.activeEntryPoint = workspaceRootUri.resolve(projectConfig.activeEntryPoint().path);
     for (EntryPoint entryPoint : projectConfig.entryPoints) {
