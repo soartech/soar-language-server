@@ -41,7 +41,6 @@ class SoarWorkspaceService implements WorkspaceService {
 
   private final SoarDocumentService documentService;
   private URI workspaceRootUri = null;
-  private ProjectConfiguration soarAgentEntryPoints;
 
   SoarWorkspaceService(SoarDocumentService documentService) {
     this.documentService = documentService;
@@ -102,17 +101,17 @@ class SoarWorkspaceService implements WorkspaceService {
           }
 
           try {
-            soarAgentEntryPoints = new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
+            ProjectConfiguration configuration = new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
 
-            if (soarAgentEntryPoints.entryPoints.size() == 0) {
+            if (configuration.entryPoints.size() == 0) {
               return Arrays.asList(makeError.apply("No entry points were specified"));
             }
-            if (soarAgentEntryPoints.activeEntryPoint() == null) {
+            if (configuration.activeEntryPoint() == null) {
               return Arrays.asList(makeError.apply("Active entry point is invalid or missing"));
             }
 
             // set the entry point
-            documentService.setProjectConfig(soarAgentEntryPoints);
+            documentService.setProjectConfig(configuration);
           } catch (JsonSyntaxException e) {
             LOG.error("Error trying to read {}", soarAgentsPath, e);
             return Arrays.asList(makeError.apply(e.getMessage()));
