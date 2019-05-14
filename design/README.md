@@ -2,7 +2,25 @@
 title: Design of the Soar Language Server
 ---
 
-This document outlines the basic architecture of the language server.
+This document outlines the basic architecture of the Soar Language Server.
+
+The language server protocol allows tools such as editors and IDEs to
+communicate with language tooling using a common interface. This means
+that IDE features only need to be implemented once, and they can be
+made available to all editors that support the protocol:
+
+![LSP overview from https://code.visualstudio.com docs](https://code.visualstudio.com/assets/api/language-extensions/language-server-extension-guide/lsp-languages-editors.png)
+
+Building tooling on top of the LSP spec is a pragmatic choice for many
+languages, and particularly languages such Soar, which has a
+relatively small community and limited resources to devote to tooling.
+
+# Overview
+
+The language server performs two main actions: it analyses source code
+and it handles queries defined by the LSP API. In order to keep the
+API handlers simple, fast, and responsive, we try to move as much
+complexity as possible into the analysis part.
 
 The bulk of the interesting code can be found in two places: the
 `Analysis` class and the `SoarDocumentService` class.
