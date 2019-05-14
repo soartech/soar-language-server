@@ -20,7 +20,8 @@ public class SoarAgentsTest extends LanguageServerTestFixture {
 
     String soarAgentsJson =
         new String(Files.readAllBytes(Paths.get(workspaceRoot.resolve("soarAgents.json"))));
-    ProjectConfiguration soarAgents = new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
+    ProjectConfiguration soarAgents =
+        new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
 
     // just spot checking parts of the structure
     assertEquals(8, soarAgents.entryPoints.size());

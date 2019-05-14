@@ -169,7 +169,10 @@ public class Analysis {
   private final Interp tclInterp;
 
   private Analysis(
-      ProjectConfiguration projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri)
+      ProjectConfiguration projectConfig,
+      Documents documents,
+      EntryPoint entryPoint,
+      URI entryPointUri)
       throws SoarException {
     this.projectConfig = projectConfig;
     this.entryPoint = entryPoint;
@@ -201,7 +204,10 @@ public class Analysis {
 
   /** Perform a full analysis of a project starting from the given entry point. */
   public static ProjectAnalysis analyse(
-      ProjectConfiguration projectConfig, Documents documents, EntryPoint entryPoint, URI entryPointUri) {
+      ProjectConfiguration projectConfig,
+      Documents documents,
+      EntryPoint entryPoint,
+      URI entryPointUri) {
     Analysis analysis = null;
     try {
       analysis = new Analysis(projectConfig, documents, entryPoint, entryPointUri);
