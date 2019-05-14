@@ -128,6 +128,9 @@ A: This is not handled directly by LSP, but it probably handled by the syntax hi
 
 # Developing
 
+> An overview of the design of the language server can be found in the
+> [design](./design) directory.
+
 First, clone this repository:
 
 ```bash

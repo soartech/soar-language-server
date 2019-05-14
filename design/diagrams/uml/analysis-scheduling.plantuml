@@ -1,0 +1,32 @@
+@startuml
+
+hide footbox
+
+actor Client
+participant TextDocumentService
+participant Debouncer
+
+Client -> TextDocumentService : textDocument/didChange
+create Analysis as "CompletableFuture\n<ProjectAnalysis>"
+note over Analysis : This will eventually resolve\nto the results of the analysis.
+TextDocumentService -> Analysis : new
+create Thread as "analysis\nclosure"
+TextDocumentService -> Thread : create
+note right : This closure\nnever gets\nto run
+TextDocumentService -> Debouncer : submit(analysis closure)
+
+Client -> TextDocumentService : textDocument/didChange
+create Thread2 as "new analysis\nclosure"
+TextDocumentService -> Thread2 : create
+TextDocumentService -> Debouncer : submit(new analysis closure)
+Debouncer -> Thread : cancel
+destroy Thread
+
+...debounce time passes...
+
+Debouncer -> Thread2 : run
+activate Thread2
+Thread2 -> Analysis : complete
+destroy Thread2
+
+@enduml
