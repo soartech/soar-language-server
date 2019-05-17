@@ -80,7 +80,7 @@ end note
 namespace com.soartech.soarls.analysis {
     class ProjectAnalysis {
         entryPointUri : URI
-        files
+        files : Map<URI, FileAnalysis>
         procedureDefinitions : Map<String, ProcedureDefinition>
         procedureCalls : Map<ProcedureDefinition, List<ProcedureCall>>
         variableDefinitions : Map<String, VariableDefinition>
