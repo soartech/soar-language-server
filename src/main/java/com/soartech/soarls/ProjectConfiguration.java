@@ -2,6 +2,7 @@ package com.soartech.soarls;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 public class ProjectConfiguration {
 
@@ -50,5 +51,12 @@ public class ProjectConfiguration {
           .findAny()
           .orElse(null);
     }
+  }
+
+  /** Create a stream of all the entry points, with the active one first. */
+  public Stream<EntryPoint> entryPoints() {
+    EntryPoint active = activeEntryPoint();
+    Stream<EntryPoint> others = entryPoints.stream().filter(ep -> ep != active);
+    return Stream.concat(Stream.of(active), others);
   }
 }

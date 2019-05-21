@@ -143,8 +143,7 @@ public class SoarDocumentService implements TextDocumentService {
                 (first, second) -> first.thenCombine(second, Stream::concat));
 
     return projectConfig
-        .entryPoints
-        .stream()
+        .entryPoints()
         .map(entryPoint -> workspaceRootUri.resolve(entryPoint.path))
         .map(uri -> getAnalysis(uri))
         .collect(collector);
@@ -276,11 +275,14 @@ public class SoarDocumentService implements TextDocumentService {
 
     // Try to retrieve expanded production bodies and modify the expansion file; if this fails,
     // that's okay. Then, we return our actual results.
-    return getAnalysis(activeEntryPoint)
+    return getAllAnalyses()
         .thenComposeAsync(
-            analysis ->
-                analysis
-                    .file(uri)
+            analyses ->
+                analyses
+                    .map(analysis -> analysis.file(uri))
+                    .filter(f -> f.isPresent())
+                    .map(f -> f.get())
+                    .findFirst()
                     .map(concatSelectedProductions)
                     .map(editFile)
                     .orElse(CompletableFuture.completedFuture(null)))
