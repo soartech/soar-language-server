@@ -53,7 +53,7 @@ The Soar Language Server can be used with any editor or IDE that
 supports the Language Server Protocol. Prebuilt executables can be
 found on the [releases page].
 
-* **VSCode**: Install the [Soar Language Support](mps.github.io/)
+* **VSCode**: Install the [Soar Language Support](https://marketplace.visualstudio.com/items?itemName=soartech.soar-language-support)
   plugin from the Visual Studio Marketplace.
 * **Sublime**: Download the server from the [releases page] and follow
   the instructions in [integrations/sublime](./integrations/sublime).
