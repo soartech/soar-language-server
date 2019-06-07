@@ -70,6 +70,7 @@ public class Analysis {
    * <p>TODO: This list should be configurable on a per-project basis.
    */
   public static final String[] NOTHING_COMMANDS = {
+    "puts",
     "echo",
     "learn",
     "waitsnc",
