@@ -73,6 +73,14 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
     assertLocation(definitions, "secondary.soar", range(0, 0, 0, 24));
   }
 
+  /** Check that the entry point with "disabled": true is never analysed. */
+  @Test
+  void disabledEntryPoint() throws Exception {
+    waitForAnalysis("primary.soar");
+    waitForAnalysis("secondary.soar");
+    assertThrows(NullPointerException.class, () -> waitForAnalysis("common.soar"));
+  }
+
   /** Assert that the list of locations includes the given URI and range. */
   void assertLocation(List<Location> locations, String relativePath, Range range) {
     String uri = resolve(relativePath);

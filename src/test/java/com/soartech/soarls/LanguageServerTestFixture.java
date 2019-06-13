@@ -105,6 +105,7 @@ public class LanguageServerTestFixture implements LanguageClient {
     languageServer.getWorkspaceService().didChangeConfiguration(params);
   }
 
+  /** Block until the analysis starting at the given file is complete. */
   void waitForAnalysis(String relativePath) throws Exception {
     URI uri = workspaceRoot.resolve(relativePath);
     System.out.println("Waiting for analysis from " + uri);

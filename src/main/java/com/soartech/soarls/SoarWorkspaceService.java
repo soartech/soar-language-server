@@ -104,7 +104,7 @@ class SoarWorkspaceService implements WorkspaceService {
             ProjectConfiguration configuration =
                 new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
 
-            if (configuration.entryPoints.size() == 0) {
+            if (configuration.entryPoints().count() == 0) {
               return Arrays.asList(makeError.apply("No entry points were specified"));
             }
             if (configuration.activeEntryPoint() == null) {

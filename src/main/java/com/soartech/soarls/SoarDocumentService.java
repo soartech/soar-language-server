@@ -779,10 +779,13 @@ public class SoarDocumentService implements TextDocumentService {
   void setProjectConfig(ProjectConfiguration projectConfig) {
     this.projectConfig = projectConfig;
     this.activeEntryPoint = workspaceRootUri.resolve(projectConfig.activeEntryPoint().path);
-    for (EntryPoint entryPoint : projectConfig.entryPoints) {
-      URI uri = workspaceRootUri.resolve(entryPoint.path);
-      scheduleAnalysis(uri);
-    }
+    projectConfig
+        .entryPoints()
+        .forEach(
+            entryPoint -> {
+              URI uri = workspaceRootUri.resolve(entryPoint.path);
+              scheduleAnalysis(uri);
+            });
   }
 
   void setConfiguration(Configuration config) {
@@ -793,10 +796,13 @@ public class SoarDocumentService implements TextDocumentService {
         debouncer.setDelay(Duration.ofMillis(config.debounceTime));
       }
       if (projectConfig != null) {
-        for (EntryPoint entryPoint : projectConfig.entryPoints) {
-          URI uri = workspaceRootUri.resolve(entryPoint.path);
-          scheduleAnalysis(uri);
-        }
+        projectConfig
+            .entryPoints()
+            .forEach(
+                entryPoint -> {
+                  URI uri = workspaceRootUri.resolve(entryPoint.path);
+                  scheduleAnalysis(uri);
+                });
       }
     }
   }
@@ -824,8 +830,7 @@ public class SoarDocumentService implements TextDocumentService {
     // This is a clunky way to retrieve the entry point associated with a given URI.
     EntryPoint entryPoint =
         projectConfig
-            .entryPoints
-            .stream()
+            .entryPoints()
             .filter(entry -> workspaceRootUri.resolve(entry.path).equals(entryPointUri))
             .findFirst()
             .orElse(null);

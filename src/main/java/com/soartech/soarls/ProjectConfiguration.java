@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 public class ProjectConfiguration {
 
   /** List of Soar agent start files. */
-  public final List<EntryPoint> entryPoints = new ArrayList<>();
+  private final List<EntryPoint> entryPoints = new ArrayList<>();
 
   /**
    * The entryPoint to use by default (e.g., for determining things like Tcl variable values). Must
@@ -33,6 +33,9 @@ public class ProjectConfiguration {
     /** Name of this agent (can be null). */
     public String name;
 
+    /** Whether this agent should be analysed. */
+    public boolean enabled = true;
+
     public EntryPoint() {}
   }
 
@@ -56,7 +59,7 @@ public class ProjectConfiguration {
   /** Create a stream of all the entry points, with the active one first. */
   public Stream<EntryPoint> entryPoints() {
     EntryPoint active = activeEntryPoint();
-    Stream<EntryPoint> others = entryPoints.stream().filter(ep -> ep != active);
+    Stream<EntryPoint> others = entryPoints.stream().filter(ep -> ep.enabled && ep != active);
     return Stream.concat(Stream.of(active), others);
   }
 }

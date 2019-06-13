@@ -33,6 +33,10 @@
                 "path": {
                     "description": "The path, relative to the workspace root, of the first file to source. Common examples are `load.soar` or `src/load.soar`.",
                     "type": "string"
+                },
+                "enabled": {
+                    "description": "Whether this entry point should be analysed. This is true by default. This is convenient if you want to declare a long list of entry points and toggle them on or off easily.",
+                    "type": "boolean"
                 }
             },
             "required": ["path"]
