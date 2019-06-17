@@ -47,10 +47,6 @@ export function deactivate(): Thenable<void> | undefined {
     return client.stop();
 }
 
-function correctBinname(binname: string): string {
-    return binname + ((process.platform === 'win32') ? '.exe' : '');
-}
-
 function correctScriptName(binname: string): string {
     return binname + ((process.platform === 'win32') ? '.bat' : '');
 }
