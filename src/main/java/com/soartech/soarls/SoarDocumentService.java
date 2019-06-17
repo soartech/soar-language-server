@@ -65,6 +65,7 @@ import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
+import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.PublishDiagnosticsParams;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
@@ -391,7 +392,8 @@ public class SoarDocumentService implements TextDocumentService {
             analysis -> {
               URI uri = uri(params.getTextDocument().getUri());
               SoarFile file = documents.get(uri);
-              String line = file.line(params.getPosition().getLine());
+              int lineNumber = params.getPosition().getLine();
+              String line = file.line(lineNumber);
 
               int cursor = params.getPosition().getCharacter();
               if (cursor >= line.length()) {
@@ -436,6 +438,8 @@ public class SoarDocumentService implements TextDocumentService {
               if (cursor > line.length()) cursor = line.length();
               if (cursor < start) cursor = start;
 
+              Range replacementRange = range(lineNumber, start, lineNumber, cursor);
+
               String prefix = line.substring(start, cursor);
               List<CompletionItem> completions =
                   source
@@ -443,6 +447,8 @@ public class SoarDocumentService implements TextDocumentService {
                       .filter(s -> s.startsWith(prefix))
                       .map(CompletionItem::new)
                       .peek(item -> item.setKind(itemKind))
+                      .peek(
+                          item -> item.setTextEdit(new TextEdit(replacementRange, item.getLabel())))
                       .collect(toList());
 
               return Either.forLeft(completions);
@@ -911,6 +917,11 @@ public class SoarDocumentService implements TextDocumentService {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /** Create a new range. This is a shortcut to save a few characters. */
+  static Range range(int startLine, int startCharacter, int endLine, int endCharacter) {
+    return new Range(new Position(startLine, startCharacter), new Position(endLine, endCharacter));
   }
 
   void printAnalysisTree(ProjectAnalysis analysis, PrintStream stream, URI uri, String prefix) {

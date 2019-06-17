@@ -10,6 +10,7 @@ import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
+import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
 import org.junit.jupiter.api.Test;
 
@@ -110,6 +111,24 @@ public class CompletionTest extends SingleFileTestFixture {
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
     assertTrue(completions.isEmpty());
+  }
+
+  /**
+   * Although the LSP spec only requires that we return completion text, this means that editors
+   * would have to determine exactly what to replace, which is generally based on however they
+   * define bound boundaries. By returning a text edit, we're explicit to the editor about what
+   * exactly should be replaced, which is especially helpful given how loose Tcl's definition of a
+   * word is.
+   */
+  @Test
+  public void textEdit() throws Exception {
+    CompletionParams params = new CompletionParams(fileId(file), new Position(11, 10));
+    List<CompletionItem> completions =
+        languageServer.getTextDocumentService().completion(params).get().getLeft();
+
+    CompletionItem completion = completions.get(0);
+    assertEquals(completion.getLabel(), "ngs-bind");
+    assertEquals(completion.getTextEdit(), new TextEdit(range(11, 5, 11, 10), "ngs-bind"));
   }
 
   /** Test that the completion list contains this item. */
