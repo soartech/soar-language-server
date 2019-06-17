@@ -119,6 +119,21 @@ public class SignatureHelpTest extends SingleFileTestFixture {
     assertEquals(help.getActiveParameter(), new Integer(2));
   }
 
+  /**
+   * It is common that the cursor is placed somewhere after a proc that could use signature help. In
+   * this case, the cursor is not actually on the AST node that we care about, so we need to make
+   * sure that this case is covered.
+   */
+  @Test
+  public void afterEndOfLine() throws Exception {
+    // Cursor is on the second spaces after the end of ngs-bind: `[ngs-bind _]`
+    TextDocumentPositionParams params = textDocumentPosition(file, 23, 14);
+    SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
+
+    SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
+    assertSignature(info, "ngs-bind");
+  }
+
   void assertSignature(SignatureInformation info, String expected) {
     assertEquals(info.getLabel().split(" ")[0], expected);
   }

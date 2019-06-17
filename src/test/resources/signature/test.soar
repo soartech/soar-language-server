@@ -21,6 +21,6 @@ sp "test-production
 
 sp "test*missing-arguments
     [ngs-match-top-state <s>]
-    [ngs-bind]
+    [ngs-bind  ]
 -->
 "
