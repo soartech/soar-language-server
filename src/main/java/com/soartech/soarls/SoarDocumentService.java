@@ -731,7 +731,9 @@ public class SoarDocumentService implements TextDocumentService {
                   .collect(toList());
 
           int argumentsFilledIn = call.callSiteAst.getChildren().size() - 1;
-          int activeSignature = Math.min(argumentsFilledIn, totalArgs) - (int) requiredArgs;
+          int activeSignature =
+              Math.max((int) requiredArgs, Math.min(totalArgs, argumentsFilledIn))
+                  - (int) requiredArgs;
 
           Supplier<Integer> getActiveParameter =
               () -> {

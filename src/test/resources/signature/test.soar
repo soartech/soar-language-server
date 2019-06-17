@@ -18,3 +18,9 @@ sp "test-production
 -->
     [proc-not-defined <s> arg1 arg2]
 "
+
+sp "test*missing-arguments
+    [ngs-match-top-state <s>]
+    [ngs-bind]
+-->
+"

@@ -32,6 +32,21 @@ public class SignatureHelpTest extends SingleFileTestFixture {
     assertParameter(info, 1, "args");
   }
 
+  /**
+   * This procedure call does not have all its arguments filled in. We still show the signature for
+   * the variant with the fewest arguments.
+   */
+  @Test
+  public void procFewerArguments() throws Exception {
+    TextDocumentPositionParams params = textDocumentPosition(file, 23, 7);
+    SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
+
+    SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
+    assertSignature(info, "ngs-bind");
+    assertParameter(info, 0, "id");
+    assertParameter(info, 1, "args");
+  }
+
   @Test
   public void procMoreArguments() throws Exception {
     TextDocumentPositionParams params = textDocumentPosition(file, 14, 7);
