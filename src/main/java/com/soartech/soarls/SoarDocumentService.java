@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -420,35 +419,24 @@ public class SoarDocumentService implements TextDocumentService {
 
     CompletionItemKind itemKind = kind;
     int itemStart = start;
+    String prefix = line.substring(itemStart, cursor);
+    Range replacementRange = range(lineNumber, itemStart, lineNumber, cursor);
 
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              // The set of completions to draw from.
-              Set<String> source = null;
-
+              Stream<CompletionItem> completions = null;
               if (itemKind == CompletionItemKind.Constant) {
-                source = analysis.variableDefinitions.keySet();
+                completions =
+                    CompletionRequest.completeVariable(analysis, prefix, replacementRange);
               } else if (itemKind == CompletionItemKind.Function) {
-                source = analysis.procedureDefinitions.keySet();
+                completions =
+                    CompletionRequest.completeProcedure(analysis, prefix, replacementRange);
               } else {
                 return null;
               }
 
-              Range replacementRange = range(lineNumber, itemStart, lineNumber, cursor);
-
-              String prefix = line.substring(itemStart, cursor);
-              List<CompletionItem> completions =
-                  source
-                      .stream()
-                      .filter(s -> s.startsWith(prefix))
-                      .map(CompletionItem::new)
-                      .peek(item -> item.setKind(itemKind))
-                      .peek(
-                          item -> item.setTextEdit(new TextEdit(replacementRange, item.getLabel())))
-                      .collect(toList());
-
-              return Either.forLeft(completions);
+              return Either.forLeft(completions.collect(toList()));
             });
   }
 
