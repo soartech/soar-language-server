@@ -62,7 +62,6 @@ public class Server implements LanguageServer, LanguageClientAware {
 
     ServerCapabilities capabilities = new ServerCapabilities();
     capabilities.setTextDocumentSync(TextDocumentSyncKind.Incremental);
-    // capabilities.setDocumentHighlightProvider(true);
     capabilities.setFoldingRangeProvider(true);
     capabilities.setCompletionProvider(new CompletionOptions(false, Arrays.asList("$", "[")));
     capabilities.setSignatureHelpProvider(new SignatureHelpOptions(Arrays.asList(" ")));
@@ -73,6 +72,7 @@ public class Server implements LanguageServer, LanguageClientAware {
     capabilities.setReferencesProvider(true);
     capabilities.setDocumentLinkProvider(new DocumentLinkOptions());
     capabilities.setRenameProvider(true);
+    capabilities.setDocumentSymbolProvider(true);
 
     return CompletableFuture.completedFuture(new InitializeResult(capabilities));
   }

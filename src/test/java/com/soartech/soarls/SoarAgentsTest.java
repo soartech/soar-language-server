@@ -25,7 +25,7 @@ public class SoarAgentsTest extends LanguageServerTestFixture {
         new Gson().fromJson(soarAgentsJson, ProjectConfiguration.class);
 
     // just spot checking parts of the structure
-    assertEquals(8, soarAgents.entryPoints().count());
+    assertEquals(9, soarAgents.entryPoints().count());
     assertEquals("project", soarAgents.active);
     // The first entry is the active one, so we skip one to start at the top of the list.
     EntryPoint firstEntry = soarAgents.entryPoints().skip(1).iterator().next();

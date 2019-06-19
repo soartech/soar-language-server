@@ -31,6 +31,10 @@
 		{
 			"path": "signature/test.soar",
 			"name": "signature"
+		},
+		{
+			"path": "symbols/test.soar",
+			"name": "symbols"
 		}
 	],
 	"active": "project",

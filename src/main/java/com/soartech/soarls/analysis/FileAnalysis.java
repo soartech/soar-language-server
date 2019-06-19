@@ -10,6 +10,7 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.eclipse.lsp4j.Diagnostic;
 
 /**
@@ -80,6 +81,14 @@ public class FileAnalysis {
       node = node.getParent();
     }
     return Optional.ofNullable(variableRetrievals.get(node));
+  }
+
+  /**
+   * Get the productions that were defined at the given AST node. If none were defined, the stream
+   * will be empty.
+   */
+  public Stream<Production> productions(TclAstNode node) {
+    return Optional.ofNullable(productions.get(node)).map(List::stream).orElseGet(Stream::empty);
   }
 
   public FileAnalysis(

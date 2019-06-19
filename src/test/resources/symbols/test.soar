@@ -1,0 +1,27 @@
+proc ngs-match-top-state { id } { return "(state $id ^superstate nil)" }
+
+proc generate-productions { label } {
+    sp "generated*$label*1
+        [ngs-match-top-state <s>]
+    -->
+        (<s> ^$label 1)
+    "
+
+    sp "generated*$label*2
+        [ngs-match-top-state <s>]
+    -->
+        (<s> ^$label 2)
+    "
+}
+
+set ALPHA alpha
+set BETA beta
+
+generate-productions $ALPHA
+generate-productions $BETA
+
+sp "normal-production
+    [ngs-match-top-state <s>]
+-->
+    (<s> ^test test)
+"

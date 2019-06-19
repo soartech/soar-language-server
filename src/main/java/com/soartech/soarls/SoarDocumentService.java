@@ -55,6 +55,8 @@ import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentHighlight;
 import org.eclipse.lsp4j.DocumentLink;
 import org.eclipse.lsp4j.DocumentLinkParams;
+import org.eclipse.lsp4j.DocumentSymbol;
+import org.eclipse.lsp4j.DocumentSymbolParams;
 import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
@@ -72,6 +74,7 @@ import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.RenameParams;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureInformation;
+import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.TextDocumentItem;
 import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
@@ -902,6 +905,19 @@ public class SoarDocumentService implements TextDocumentService {
     } else {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
+  }
+
+  @Override
+  public CompletableFuture<List<Either<SymbolInformation, DocumentSymbol>>> documentSymbol(
+      DocumentSymbolParams params) {
+    URI uri = uri(params.getTextDocument().getUri());
+
+    return getAnalysis()
+        .thenApply(
+            analysis ->
+                DocumentSymbolRequest.symbols(analysis, uri)
+                    .map(Either::<SymbolInformation, DocumentSymbol>forRight)
+                    .collect(toList()));
   }
 
   // Helpers
