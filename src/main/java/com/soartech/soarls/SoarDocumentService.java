@@ -390,60 +390,54 @@ public class SoarDocumentService implements TextDocumentService {
   @Override
   public CompletableFuture<Either<List<CompletionItem>, CompletionList>> completion(
       CompletionParams params) {
+    URI uri = uri(params.getTextDocument().getUri());
+    SoarFile file = documents.get(uri);
+    int lineNumber = params.getPosition().getLine();
+    String line = file.line(lineNumber);
+
+    int cursor = params.getPosition().getCharacter();
+    if (cursor >= line.length()) {
+      return CompletableFuture.completedFuture(null);
+    }
+    // Find the start of the token and determine its type.
+    CompletionItemKind kind = null;
+    int start = cursor;
+    outerloop:
+    for (start = cursor; start >= 0; --start) {
+      switch (line.charAt(start)) {
+        case '$':
+          kind = CompletionItemKind.Constant;
+          break outerloop;
+        case ' ':
+        case '[':
+          kind = CompletionItemKind.Function;
+          break outerloop;
+        default:
+          break;
+      }
+    }
+    start += 1;
+
+    CompletionItemKind itemKind = kind;
+    int itemStart = start;
+
     return getAnalysis(activeEntryPoint)
         .thenApply(
             analysis -> {
-              URI uri = uri(params.getTextDocument().getUri());
-              SoarFile file = documents.get(uri);
-              int lineNumber = params.getPosition().getLine();
-              String line = file.line(lineNumber);
-
-              int cursor = params.getPosition().getCharacter();
-              if (cursor >= line.length()) {
-                return Either.forLeft(new ArrayList<>());
-              }
-
-              // The position of the start of the token.
-              int start = -1;
               // The set of completions to draw from.
               Set<String> source = null;
-              CompletionItemKind kind = CompletionItemKind.Function;
 
-              // Find the start of the token and determine its type.
-              for (int i = cursor; i >= 0; --i) {
-                switch (line.charAt(i)) {
-                  case '$':
-                    source = analysis.variableDefinitions.keySet();
-                    kind = CompletionItemKind.Constant;
-                    break;
-                  case ' ':
-                  case '[':
-                    source = analysis.procedureDefinitions.keySet();
-                    kind = CompletionItemKind.Function;
-                    break;
-                }
-                if (source != null) {
-                  start = i + 1;
-                  break;
-                }
-              }
-              if (source == null) {
+              if (itemKind == CompletionItemKind.Constant) {
+                source = analysis.variableDefinitions.keySet();
+              } else if (itemKind == CompletionItemKind.Function) {
                 source = analysis.procedureDefinitions.keySet();
-                kind = CompletionItemKind.Function;
-                start = 0;
+              } else {
+                return null;
               }
 
-              CompletionItemKind itemKind = kind;
+              Range replacementRange = range(lineNumber, itemStart, lineNumber, cursor);
 
-              if (start >= line.length()) start = line.length() - 1;
-              if (start < 0) start = 0;
-
-              if (cursor > line.length()) cursor = line.length();
-              if (cursor < start) cursor = start;
-
-              Range replacementRange = range(lineNumber, start, lineNumber, cursor);
-
-              String prefix = line.substring(start, cursor);
+              String prefix = line.substring(itemStart, cursor);
               List<CompletionItem> completions =
                   source
                       .stream()

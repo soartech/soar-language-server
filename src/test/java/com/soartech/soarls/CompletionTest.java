@@ -108,9 +108,7 @@ public class CompletionTest extends SingleFileTestFixture {
   @Test
   public void outOfBounds() throws Exception {
     CompletionParams params = new CompletionParams(fileId(file), new Position(12, 999));
-    List<CompletionItem> completions =
-        languageServer.getTextDocumentService().completion(params).get().getLeft();
-    assertTrue(completions.isEmpty());
+    assertNull(languageServer.getTextDocumentService().completion(params).get());
   }
 
   /**
