@@ -1,9 +1,11 @@
 package com.soartech.soarls;
 
+import com.soartech.soarls.analysis.ProcedureDefinition.Argument;
 import com.soartech.soarls.analysis.ProjectAnalysis;
 import java.util.stream.Stream;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
+import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
 
@@ -37,7 +39,20 @@ public class CompletionRequest {
             def -> {
               CompletionItem item = new CompletionItem(def.name);
               item.setKind(CompletionItemKind.Function);
-              item.setTextEdit(new TextEdit(replacementRange, def.name));
+
+              String snippet = def.name;
+              for (int i = 0; i != def.arguments.size(); ++i) {
+                Argument arg = def.arguments.get(i);
+                String value =
+                    arg.defaultValue
+                        .map(val -> "{ " + arg.name + " " + val + " \\}")
+                        .orElse(arg.name);
+                snippet += " ${" + (i + 1) + ":" + value + "}";
+              }
+              snippet += "$0";
+              item.setTextEdit(new TextEdit(replacementRange, snippet));
+
+              item.setInsertTextFormat(InsertTextFormat.Snippet);
               item.setDocumentation(def.commentText.orElse(null));
               return item;
             });

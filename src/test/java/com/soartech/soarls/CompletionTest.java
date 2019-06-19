@@ -8,9 +8,9 @@ import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
+import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
-import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
 import org.junit.jupiter.api.Test;
 
@@ -46,9 +46,9 @@ public class CompletionTest extends SingleFileTestFixture {
 
   @Test
   public void tclVariable() throws Exception {
-    insertText("$", 12, 58);
+    insertText("$", 13, 58);
 
-    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 59));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(13, 59));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
@@ -61,7 +61,7 @@ public class CompletionTest extends SingleFileTestFixture {
 
   @Test
   public void tclProcedure() throws Exception {
-    CompletionParams params = new CompletionParams(fileId(file), new Position(11, 10));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 10));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
@@ -77,9 +77,9 @@ public class CompletionTest extends SingleFileTestFixture {
 
   @Test
   public void variableItemKind() throws Exception {
-    insertText("$", 12, 58);
+    insertText("$", 13, 58);
 
-    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 59));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(13, 59));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
@@ -91,7 +91,7 @@ public class CompletionTest extends SingleFileTestFixture {
 
   @Test
   public void procedureItemKind() throws Exception {
-    CompletionParams params = new CompletionParams(fileId(file), new Position(11, 10));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 10));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
@@ -107,7 +107,7 @@ public class CompletionTest extends SingleFileTestFixture {
    */
   @Test
   public void outOfBounds() throws Exception {
-    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 999));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(13, 999));
     assertNull(languageServer.getTextDocumentService().completion(params).get());
   }
 
@@ -120,19 +120,19 @@ public class CompletionTest extends SingleFileTestFixture {
    */
   @Test
   public void textEdit() throws Exception {
-    CompletionParams params = new CompletionParams(fileId(file), new Position(11, 10));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 10));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
     CompletionItem completion = completions.get(0);
     assertEquals(completion.getLabel(), "ngs-bind");
-    assertEquals(completion.getTextEdit(), new TextEdit(range(11, 5, 11, 10), "ngs-bind"));
+    assertEquals(completion.getTextEdit().getRange(), range(12, 5, 12, 10));
   }
 
   /** When possible, we provide doc comments. */
   @Test
   public void documentation() throws Exception {
-    CompletionParams params = new CompletionParams(fileId(file), new Position(11, 10));
+    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 10));
     List<CompletionItem> completions =
         languageServer.getTextDocumentService().completion(params).get().getLeft();
 
@@ -153,6 +153,34 @@ public class CompletionTest extends SingleFileTestFixture {
     if (!present) {
       fail("missing " + expected);
     }
+  }
+
+  @Test
+  public void insertSnippet() throws Exception {
+    CompletionParams params = new CompletionParams(fileId(file), new Position(12, 10));
+    List<CompletionItem> completions =
+        languageServer.getTextDocumentService().completion(params).get().getLeft();
+
+    CompletionItem completion = completions.get(0);
+    assertEquals(completion.getLabel(), "ngs-bind");
+    assertEquals(completion.getInsertTextFormat(), InsertTextFormat.Snippet);
+    assertEquals(completion.getTextEdit().getRange(), range(12, 5, 12, 10));
+    assertEquals(completion.getTextEdit().getNewText(), "ngs-bind ${1:obj_id} ${2:args}$0");
+  }
+
+  @Test
+  // @Disabled
+  public void insertSnippetOptionalArgs() throws Exception {
+    CompletionParams params = new CompletionParams(fileId(file), new Position(14, 20));
+    List<CompletionItem> completions =
+        languageServer.getTextDocumentService().completion(params).get().getLeft();
+
+    CompletionItem completion = completions.get(0);
+    assertEquals(completion.getLabel(), "ngs-create-attribute-by-operator");
+    assertEquals(completion.getTextEdit().getRange(), range(14, 5, 14, 20));
+    assertEquals(
+        completion.getTextEdit().getNewText(),
+        "ngs-create-attribute-by-operator ${1:state_id} ${2:parent_obj_id} ${3:attribute} ${4:value} ${5:{ replacement_behavior \"\" \\}} ${6:{ add_prefs \"=\" \\}}$0");
   }
 
   /** Test that the completion list does _not_ contain this item. */

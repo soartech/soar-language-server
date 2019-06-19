@@ -395,15 +395,15 @@ public class SoarDocumentService implements TextDocumentService {
     String line = file.line(lineNumber);
 
     int cursor = params.getPosition().getCharacter();
-    if (cursor >= line.length()) {
+    if (cursor > line.length()) {
       return CompletableFuture.completedFuture(null);
     }
     // Find the start of the token and determine its type.
     CompletionItemKind kind = null;
     int start = cursor;
     outerloop:
-    for (start = cursor; start >= 0; --start) {
-      switch (line.charAt(start)) {
+    for (start = cursor; start > 0; --start) {
+      switch (line.charAt(start - 1)) {
         case '$':
           kind = CompletionItemKind.Constant;
           break outerloop;
@@ -415,7 +415,6 @@ public class SoarDocumentService implements TextDocumentService {
           break;
       }
     }
-    start += 1;
 
     CompletionItemKind itemKind = kind;
     int itemStart = start;
