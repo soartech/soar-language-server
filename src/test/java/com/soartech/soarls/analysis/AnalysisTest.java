@@ -18,7 +18,10 @@ import org.junit.jupiter.api.Test;
  * workspace.
  *
  * <p>Black box integration tests, which test only the language server API, are in the ProjectTest
- * class.
+ * class. However, since those often rely on the underlying data model provided by the analysis, if
+ * any of these tests are failing then it is unlikely that the language server is functioning
+ * correctly. Therefore, if you are debugging a problem you should usually focus on getting these
+ * tests to pass before dealing with other issues.
  */
 public class AnalysisTest extends LanguageServerTestFixture {
   /** The project analysis for the entire project, assuming load.soar as the entry point. */

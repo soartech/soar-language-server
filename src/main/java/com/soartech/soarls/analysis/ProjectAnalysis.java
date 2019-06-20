@@ -63,17 +63,9 @@ public class ProjectAnalysis {
     this.entryPoint = entryPoint;
     this.files = ImmutableMap.copyOf(files);
     this.procedureDefinitions = ImmutableMap.copyOf(procedureDefinitions);
-    this.procedureCalls =
-        procedureCalls
-            .entrySet()
-            .stream()
-            .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
+    this.procedureCalls = immutableMapOfLists(procedureCalls);
     this.variableDefinitions = ImmutableMap.copyOf(variableDefinitions);
-    this.variableRetrievals =
-        variableRetrievals
-            .entrySet()
-            .stream()
-            .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
+    this.variableRetrievals = immutableMapOfLists(variableRetrievals);
   }
 
   // Helpers
@@ -84,5 +76,12 @@ public class ProjectAnalysis {
    */
   public Optional<FileAnalysis> file(URI uri) {
     return Optional.ofNullable(files.get(uri));
+  }
+
+  static <K, V> ImmutableMap<K, ImmutableList<V>> immutableMapOfLists(Map<K, List<V>> input) {
+    return input
+        .entrySet()
+        .stream()
+        .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
   }
 }

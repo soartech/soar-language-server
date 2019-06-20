@@ -2,8 +2,13 @@ package com.soartech.soarls;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Stream;
 
+/**
+ * This class contains configuration options for a single project. It defines the structure of the
+ * soarAgents.json manifest file which is required by the language server.
+ */
 public class ProjectConfiguration {
 
   /** List of Soar agent start files. */
@@ -22,6 +27,10 @@ public class ProjectConfiguration {
 
   public ProjectConfiguration() {}
 
+  /**
+   * An entry point describes the file that the language server should source first when it is
+   * analysing a codebase.
+   */
   public static class EntryPoint {
 
     /**
@@ -43,23 +52,20 @@ public class ProjectConfiguration {
    * Retrieve the active entry point, which is the one specified by the "active" field, or the first
    * one in the list if unspecified.
    */
-  public EntryPoint activeEntryPoint() {
-    EntryPoint firstEntryPoint = entryPoints.get(0);
+  public Optional<EntryPoint> activeEntryPoint() {
+    Optional<EntryPoint> firstEntryPoint =
+        entryPoints.stream().filter(ep -> ep.enabled).findFirst();
     if (active == null) {
       return firstEntryPoint;
     } else {
-      return entryPoints
-          .stream()
-          .filter(entryPoint -> entryPoint.name.equals(active))
-          .findAny()
-          .orElse(null);
+      return entryPoints.stream().filter(entryPoint -> entryPoint.name.equals(active)).findAny();
     }
   }
 
   /** Create a stream of all the entry points, with the active one first. */
   public Stream<EntryPoint> entryPoints() {
-    EntryPoint active = activeEntryPoint();
+    EntryPoint active = activeEntryPoint().orElse(null);
     Stream<EntryPoint> others = entryPoints.stream().filter(ep -> ep.enabled && ep != active);
-    return Stream.concat(Stream.of(active), others);
+    return Stream.concat(active != null ? Stream.of(active) : Stream.empty(), others);
   }
 }

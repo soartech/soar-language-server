@@ -113,7 +113,7 @@ public class SoarDocumentService implements TextDocumentService {
    */
   private final ConcurrentHashMap<URI, Debouncer> debouncers = new ConcurrentHashMap<>();
 
-  private ProjectConfiguration projectConfig = null;
+  private ProjectConfiguration projectConfig = new ProjectConfiguration();
 
   /**
    * The URI of the currently active entry point. The results of analysing a codebase can be
@@ -121,7 +121,7 @@ public class SoarDocumentService implements TextDocumentService {
    * diagnostics, we can send results for all possible entry points. In other cases, such as
    * go-to-definition, we need to compute results with respect to a single entry point.
    */
-  private URI activeEntryPoint = null;
+  private Optional<URI> activeEntryPoint = Optional.empty();
 
   // The path of the currently active workspace.
   private URI workspaceRootUri = null;
@@ -153,8 +153,8 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   /** Retrieve the most recently completed analysis for the active entry point. */
-  public CompletableFuture<ProjectAnalysis> getAnalysis() {
-    return getAnalysis(activeEntryPoint);
+  public Optional<CompletableFuture<ProjectAnalysis>> getAnalysis() {
+    return activeEntryPoint.map(entry -> getAnalysis(entry));
   }
 
   /**
@@ -355,39 +355,38 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<WorkspaceEdit> rename(RenameParams params) {
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis -> {
-              // Get original name for lookups
-              URI thisFileUri = uri(params.getTextDocument().getUri());
-              FileAnalysis thisFileAnalysis = analysis.file(thisFileUri).orElse(null);
-              SoarFile file = thisFileAnalysis.file;
-              TclAstNode node = file.tclNode(params.getPosition());
-              String oldName = file.contents.substring(node.getStart(), node.getEnd());
+    return mapAnalysis(
+        analysis -> {
+          // Get original name for lookups
+          URI thisFileUri = uri(params.getTextDocument().getUri());
+          FileAnalysis thisFileAnalysis = analysis.file(thisFileUri).orElse(null);
+          SoarFile file = thisFileAnalysis.file;
+          TclAstNode node = file.tclNode(params.getPosition());
+          String oldName = file.contents.substring(node.getStart(), node.getEnd());
 
-              // Final set of edits
-              HashMap<String, List<TextEdit>> textEdits = new HashMap<>();
+          // Final set of edits
+          HashMap<String, List<TextEdit>> textEdits = new HashMap<>();
 
-              // Assume variables can be accessed between files, so enumerate over them
-              for (FileAnalysis otherFileAnalysis : analysis.files.values()) {
-                SoarFile otherFile = otherFileAnalysis.file;
-                String otherFileUriString = otherFile.uri.toString();
-                TclAstNode root = otherFile.ast;
-                String contents = otherFile.contents;
-                // only attempt to rename leaf nodes like NORMAL_WORD or VARIABLE_NAME
-                for (TclAstNode childNode : root.leafNodes()) {
-                  int start = childNode.getStart();
-                  int end = childNode.getEnd();
-                  if (contents.substring(start, end).equals(oldName)) {
-                    Range range = new Range(otherFile.position(start), otherFile.position(end));
-                    textEdits.putIfAbsent(otherFileUriString, new ArrayList<>());
-                    textEdits.get(otherFileUriString).add(new TextEdit(range, params.getNewName()));
-                  }
-                }
+          // Assume variables can be accessed between files, so enumerate over them
+          for (FileAnalysis otherFileAnalysis : analysis.files.values()) {
+            SoarFile otherFile = otherFileAnalysis.file;
+            String otherFileUriString = otherFile.uri.toString();
+            TclAstNode root = otherFile.ast;
+            String contents = otherFile.contents;
+            // only attempt to rename leaf nodes like NORMAL_WORD or VARIABLE_NAME
+            for (TclAstNode childNode : root.leafNodes()) {
+              int start = childNode.getStart();
+              int end = childNode.getEnd();
+              if (contents.substring(start, end).equals(oldName)) {
+                Range range = new Range(otherFile.position(start), otherFile.position(end));
+                textEdits.putIfAbsent(otherFileUriString, new ArrayList<>());
+                textEdits.get(otherFileUriString).add(new TextEdit(range, params.getNewName()));
               }
+            }
+          }
 
-              return new WorkspaceEdit(textEdits);
-            });
+          return new WorkspaceEdit(textEdits);
+        });
   }
 
   @Override
@@ -425,22 +424,19 @@ public class SoarDocumentService implements TextDocumentService {
     String prefix = line.substring(itemStart, cursor);
     Range replacementRange = range(lineNumber, itemStart, lineNumber, cursor);
 
-    return getAnalysis(activeEntryPoint)
-        .thenApply(
-            analysis -> {
-              Stream<CompletionItem> completions = null;
-              if (itemKind == CompletionItemKind.Constant) {
-                completions =
-                    CompletionRequest.completeVariable(analysis, prefix, replacementRange);
-              } else if (itemKind == CompletionItemKind.Function) {
-                completions =
-                    CompletionRequest.completeProcedure(analysis, prefix, replacementRange);
-              } else {
-                return null;
-              }
+    return mapAnalysis(
+        analysis -> {
+          Stream<CompletionItem> completions = null;
+          if (itemKind == CompletionItemKind.Constant) {
+            completions = CompletionRequest.completeVariable(analysis, prefix, replacementRange);
+          } else if (itemKind == CompletionItemKind.Function) {
+            completions = CompletionRequest.completeProcedure(analysis, prefix, replacementRange);
+          } else {
+            return null;
+          }
 
-              return Either.forLeft(completions.collect(toList()));
-            });
+          return Either.forLeft(completions.collect(toList()));
+        });
   }
 
   @Override
@@ -617,7 +613,7 @@ public class SoarDocumentService implements TextDocumentService {
       case TclAstNode.VARIABLE_NAME:
         return getAllAnalyses().thenApply(hoverVariable);
       default:
-        return getAnalysis().thenApply(hoverProcedureCall);
+        return mapAnalysis(hoverProcedureCall);
     }
   }
 
@@ -749,17 +745,16 @@ public class SoarDocumentService implements TextDocumentService {
         };
 
     URI uri = uri(params.getTextDocument().getUri());
-    return getAnalysis(activeEntryPoint)
-        .thenApply(project -> project.file(uri).orElse(null))
-        .thenApply(
-            analysis -> {
-              TclAstNode cursorNode = analysis.file.tclNode(params.getPosition());
-              int cursorOffset = analysis.file.offset(params.getPosition());
-              return analysis
-                  .procedureCall(cursorNode)
-                  .flatMap(call -> makeSignatureHelp.apply(call, cursorOffset))
-                  .orElseGet(SignatureHelp::new);
-            });
+    return mapAnalysis(
+        project -> {
+          FileAnalysis analysis = project.file(uri).orElse(null);
+          TclAstNode cursorNode = analysis.file.tclNode(params.getPosition());
+          int cursorOffset = analysis.file.offset(params.getPosition());
+          return analysis
+              .procedureCall(cursorNode)
+              .flatMap(call -> makeSignatureHelp.apply(call, cursorOffset))
+              .orElseGet(SignatureHelp::new);
+        });
   }
 
   /** Wire up a reference to the client, so that we can send diagnostics. */
@@ -774,7 +769,8 @@ public class SoarDocumentService implements TextDocumentService {
   /** Set the entry point of the Soar agent - the first file that should be sourced. */
   void setProjectConfig(ProjectConfiguration projectConfig) {
     this.projectConfig = projectConfig;
-    this.activeEntryPoint = workspaceRootUri.resolve(projectConfig.activeEntryPoint().path);
+    this.activeEntryPoint =
+        projectConfig.activeEntryPoint().map(entry -> workspaceRootUri.resolve(entry.path));
     projectConfig
         .entryPoints()
         .forEach(
@@ -885,8 +881,7 @@ public class SoarDocumentService implements TextDocumentService {
         };
 
     if (config.hyperlinkExpansionFile) {
-      return getAnalysis(activeEntryPoint)
-          .thenApply(analysis -> analysis.file(uri).map(collectLinks).orElse(null));
+      return mapAnalysis(analysis -> analysis.file(uri).map(collectLinks).orElse(null));
     } else {
       return CompletableFuture.completedFuture(new ArrayList<>());
     }
@@ -897,12 +892,11 @@ public class SoarDocumentService implements TextDocumentService {
       DocumentSymbolParams params) {
     URI uri = uri(params.getTextDocument().getUri());
 
-    return getAnalysis()
-        .thenApply(
-            analysis ->
-                DocumentSymbolRequest.symbols(analysis, uri)
-                    .map(Either::<SymbolInformation, DocumentSymbol>forRight)
-                    .collect(toList()));
+    return mapAnalysis(
+        analysis ->
+            DocumentSymbolRequest.symbols(analysis, uri)
+                .map(Either::<SymbolInformation, DocumentSymbol>forRight)
+                .collect(toList()));
   }
 
   // Helpers
@@ -939,5 +933,22 @@ public class SoarDocumentService implements TextDocumentService {
         printAnalysisTree(analysis, stream, sourcedUri, prefix + (isLast ? "    " : "|   "));
       }
     }
+  }
+
+  /**
+   * Apply the given function in the context of the active ProjectAnalysis, if it exists and when it
+   * is available.
+   *
+   * <p>This accounts for two kinds of uncertainty. Optional captures the possibility that the
+   * active entry point does not exist (typically because the user either hasn't created or has an
+   * invalid soarAgents.json file) and CompletableFuture models the possibility that the analysis
+   * will exist but doesn't yet (because the analysis is still running).
+   *
+   * <p>For anyone interested, Optional and CompletableFuture are examples of functors.
+   */
+  private <T> CompletableFuture<T> mapAnalysis(Function<ProjectAnalysis, T> function) {
+    return getAnalysis()
+        .map(future -> future.thenApply(function))
+        .orElseGet(() -> CompletableFuture.completedFuture(null));
   }
 }
