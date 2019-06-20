@@ -68,7 +68,8 @@ public class Server implements LanguageServer, LanguageClientAware {
     capabilities.setHoverProvider(true);
     capabilities.setDefinitionProvider(true);
     capabilities.setCodeActionProvider(true);
-    capabilities.setExecuteCommandProvider(new ExecuteCommandOptions());
+    capabilities.setExecuteCommandProvider(
+        new ExecuteCommandOptions(Arrays.asList("log-source-tree", "log-syntax-tree")));
     capabilities.setReferencesProvider(true);
     capabilities.setDocumentLinkProvider(new DocumentLinkOptions());
     capabilities.setRenameProvider(true);

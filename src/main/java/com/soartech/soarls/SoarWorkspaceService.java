@@ -2,6 +2,7 @@ package com.soartech.soarls;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 import com.google.gson.JsonSyntaxException;
 import java.io.IOException;
 import java.net.URI;
@@ -145,13 +146,21 @@ class SoarWorkspaceService implements WorkspaceService {
   @Override
   public CompletableFuture<Object> executeCommand(ExecuteCommandParams params) {
     if (params.getCommand().equals("log-source-tree")) {
+      LOG.info("Executing log-source-tree command");
       return documentService
           .getAnalysis()
+          .orElse(null)
           .thenAccept(
               analysis ->
                   documentService.printAnalysisTree(
                       analysis, System.err, analysis.entryPointUri, "    "))
           .thenApply(result -> result);
+    } else if (params.getCommand().equals("log-syntax-tree")) {
+      URI uri =
+          URI.create(
+              new Gson().fromJson((JsonPrimitive) params.getArguments().get(0), String.class));
+      SoarFile file = documentService.documents.get(uri);
+      file.ast.printTree(System.err, file.contents.toCharArray(), 0);
     } else {
       LOG.warn("Unsupported command: {}", params.getCommand());
     }

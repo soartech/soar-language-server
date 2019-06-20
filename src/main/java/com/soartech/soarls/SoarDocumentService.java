@@ -291,7 +291,11 @@ public class SoarDocumentService implements TextDocumentService {
                     .orElse(CompletableFuture.completedFuture(null)))
         .thenApply(
             response ->
-                Arrays.asList(Either.forLeft(new Command("Log source tree", "log-source-tree"))));
+                Arrays.asList(
+                    Either.forLeft(new Command("Log source tree", "log-source-tree")),
+                    Either.forLeft(
+                        new Command(
+                            "Log syntax tree", "log-syntax-tree", Arrays.asList(uri.toString())))));
   }
 
   @Override
