@@ -274,7 +274,15 @@ public class SoarDocumentService implements TextDocumentService {
     Function<String, CompletableFuture<ApplyWorkspaceEditResponse>> editFile =
         contents ->
             tclExpansionFile()
-                .thenCompose(file -> client.applyEdit(makeParams.apply(file, contents)));
+                .thenCompose(
+                    file ->
+                        client
+                            // We first clear the contents so that the client will scroll to the top
+                            // of the file, then we insert the actual contents. This ensures that
+                            // after the edit, the contents of the file are in view.
+                            .applyEdit(makeParams.apply(file, ""))
+                            .thenComposeAsync(
+                                response -> client.applyEdit(makeParams.apply(file, contents))));
 
     // Try to retrieve expanded production bodies and modify the expansion file; if this fails,
     // that's okay. Then, we return our actual results.
