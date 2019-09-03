@@ -117,7 +117,7 @@ Q: How can I contribute?
 A: See [Developing](#developing) below.
 
 Q: Why is nothing working? (e.g., I get a bunch of errors, etc.)
-A: Make sure you have created a `soarAgents.json` file as described in [Project Setup](#project-setup).
+A: First, make sure you have Java installed. Next, make sure you have created a `soarAgents.json` file as described in [Project Setup](#project-setup).
 
 Q: How do I see Tcl expansions?
 A: A special file (called `~tcl-expansions.soar` by default) is created. If your IDE doesn't automatically open that file, you should and arrange it so you can see it and your main code at the same time (e.g., side-by-side). As you click around in your code, it will just update. This is a temporary file that you can delete -- there's no need to save it.
