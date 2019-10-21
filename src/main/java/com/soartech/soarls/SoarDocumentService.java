@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -179,6 +180,25 @@ public class SoarDocumentService implements TextDocumentService {
     return analysis == null ? pending : CompletableFuture.completedFuture(analysis);
   }
 
+  /**
+   * Retrieve the most up-to-date analyses for the given entry point, waiting for the currently
+   * executing one to complete if necessary.
+   *
+   * <p>This should not generally be used, since it could block for a long time. This is exposed
+   * only for the purposes of unit tests.
+   */
+  public ProjectAnalysis waitForAnalysis(URI uri) throws InterruptedException, ExecutionException {
+    CompletableFuture<ProjectAnalysis> pending = pendingAnalyses.get(uri);
+    if (pending != null) {
+      analyses.put(uri, pending.get());
+    }
+    ProjectAnalysis analysis = analyses.get(uri);
+    if (analysis == null) {
+      throw new NullPointerException("Analyses should never be null.");
+    }
+    return analysis;
+  }
+
   /** Get the URI of the file to use for Tcl expansions. */
   private URI tclExpansionUri() {
     URI uri = URI.create(workspaceRootUri.toString() + config.tclExpansionFile);
@@ -229,7 +249,7 @@ public class SoarDocumentService implements TextDocumentService {
         analyses
             .values()
             .stream()
-            .filter(analysis -> analysis.files.containsKey(uri))
+            .filter(analysis -> analysis.sourcedUris.contains(uri))
             .collect(toList());
     for (ProjectAnalysis analysis : analysisAffected) {
       scheduleAnalysis(analysis.entryPointUri);

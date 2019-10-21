@@ -21,9 +21,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Stack;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -160,6 +162,7 @@ public class Analysis {
 
   private final URI entryPointUri;
   private final EntryPoint entryPoint;
+  private final Set<URI> sourcedUris = new HashSet<>();
   private final Map<URI, FileAnalysis> files = new HashMap<>();
   private final Map<String, ProcedureDefinition> procedureDefinitions = new HashMap<>();
   private final Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls = new HashMap<>();
@@ -179,6 +182,7 @@ public class Analysis {
     this.entryPoint = entryPoint;
     this.documents = documents;
     this.entryPointUri = entryPointUri;
+    this.sourcedUris.add(entryPointUri);
 
     // for performance reasons we do certain interactions directly on jsoar's internal tcl
     // interpreter
@@ -229,6 +233,7 @@ public class Analysis {
     return new ProjectAnalysis(
         entryPointUri,
         entryPoint,
+        sourcedUris,
         files,
         procedureDefinitions,
         procedureCalls,
@@ -580,6 +585,7 @@ public class Analysis {
             }
           });
 
+      sourcedUris.addAll(filesSourced);
       FileAnalysis analysis =
           new FileAnalysis(
               file,
