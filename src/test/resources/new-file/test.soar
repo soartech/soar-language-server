@@ -1,0 +1,7 @@
+source created-later.soar
+
+sp "test
+    [ngs-match-top-state <s>]
+-->
+    (<s> ^top-state *yes*)
+"

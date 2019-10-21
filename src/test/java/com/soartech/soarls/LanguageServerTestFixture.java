@@ -109,7 +109,7 @@ public class LanguageServerTestFixture implements LanguageClient {
   void waitForAnalysis(String relativePath) throws Exception {
     URI uri = workspaceRoot.resolve(relativePath);
     System.out.println("Waiting for analysis from " + uri);
-    ((SoarDocumentService) languageServer.getTextDocumentService()).getAnalysis(uri).get();
+    ((SoarDocumentService) languageServer.getTextDocumentService()).waitForAnalysis(uri);
   }
 
   /** Construct a text document identifier based on a relative path to the workspace root. */

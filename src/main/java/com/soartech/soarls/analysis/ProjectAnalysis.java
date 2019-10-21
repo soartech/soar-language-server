@@ -4,11 +4,13 @@ import static com.google.common.collect.ImmutableMap.toImmutableMap;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.soartech.soarls.ProjectConfiguration.EntryPoint;
 import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * The results of analysing a Soar project starting from a particular entry point.
@@ -23,6 +25,17 @@ public class ProjectAnalysis {
 
   public final EntryPoint entryPoint;
 
+  /**
+   * The set of URIs that should be reachable from the entry point of this project. This includes
+   * all files that were <i>attempted</i> to be sourced, whether or not analysis succeeded for that
+   * file. This is a superset of the keys in the {@code files} map.
+   */
+  public final ImmutableSet<URI> sourcedUris;
+
+  /**
+   * Analysis information for each file reachable from the project entry point for which analysis
+   * succeeded.
+   */
   public final ImmutableMap<URI, FileAnalysis> files;
 
   /**
@@ -54,6 +67,7 @@ public class ProjectAnalysis {
   ProjectAnalysis(
       URI entryPointUri,
       EntryPoint entryPoint,
+      Set<URI> sourcedUris,
       Map<URI, FileAnalysis> files,
       Map<String, ProcedureDefinition> procedureDefinitions,
       Map<ProcedureDefinition, List<ProcedureCall>> procedureCalls,
@@ -61,6 +75,7 @@ public class ProjectAnalysis {
       Map<VariableDefinition, List<VariableRetrieval>> variableRetrievals) {
     this.entryPointUri = entryPointUri;
     this.entryPoint = entryPoint;
+    this.sourcedUris = ImmutableSet.copyOf(sourcedUris);
     this.files = ImmutableMap.copyOf(files);
     this.procedureDefinitions = ImmutableMap.copyOf(procedureDefinitions);
     this.procedureCalls = immutableMapOfLists(procedureCalls);
