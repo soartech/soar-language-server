@@ -40,6 +40,8 @@ import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.CodeAction;
 import org.eclipse.lsp4j.CodeActionParams;
+import org.eclipse.lsp4j.CodeLens;
+import org.eclipse.lsp4j.CodeLensParams;
 import org.eclipse.lsp4j.Command;
 import org.eclipse.lsp4j.CompletionItem;
 import org.eclipse.lsp4j.CompletionItemKind;
@@ -324,6 +326,34 @@ public class SoarDocumentService implements TextDocumentService {
                     Either.forLeft(
                         new Command(
                             "Log syntax tree", "log-syntax-tree", Arrays.asList(uri.toString())))));
+  }
+
+  /**
+   * Note: It is recommended thot code lenses be created and resolved in two stages. However, since
+   * at the present we are only sending one code lens per file, there's not much reason to worry
+   * about performance in this case. If this changes, then we should implement the codeLens/resolve
+   * request.
+   *
+   * <p>See
+   * https://microsoft.github.io//language-server-protocol/specifications/specification-3-14/#codeLens_resolve
+   * for more information.
+   */
+  @Override
+  public CompletableFuture<List<? extends CodeLens>> codeLens(CodeLensParams params) {
+    URI uri = uri(params.getTextDocument().getUri());
+    return getAllAnalyses()
+        .thenApply(
+            analyses -> {
+              String entryPointList =
+                  analyses
+                      .filter(analysis -> analysis.files.containsKey(uri))
+                      .map(analysis -> analysis.entryPoint.name)
+                      .collect(joining(", "));
+
+              return Arrays.asList(
+                  new CodeLens(
+                      range(0, 0, 0, 0), new Command("Member of " + entryPointList, ""), null));
+            });
   }
 
   @Override
