@@ -1,0 +1,5 @@
+# record.tcl is included in jtcl, which is included transitively via
+# JSoar and so sholud be on the classpath.
+source classpath:/tcl/pkg/tcllib/library/struct/record.tcl
+
+::struct::record::record define Structure { a b c }

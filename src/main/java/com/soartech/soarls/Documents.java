@@ -2,16 +2,18 @@ package com.soartech.soarls;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableSet;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.TextDocumentItem;
+import org.jsoar.util.UrlTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,8 +73,19 @@ public class Documents {
 
   private static SoarFile readFile(URI uri) {
     try {
-      Path path = Paths.get(uri);
-      List<String> lines = Files.readAllLines(path);
+      URL url = null;
+      if (uri.getScheme().equals("classpath")) {
+        url = UrlTools.lookupClassPathURL(uri.toString());
+      } else {
+        url = UrlTools.normalize(uri.toURL());
+      }
+
+      List<String> lines = new ArrayList<>();
+      BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
+      for (String line; (line = reader.readLine()) != null; ) {
+        lines.add(line);
+      }
+
       String contents = Joiner.on("\n").join(lines);
       return new SoarFile(uri, contents);
     } catch (Exception e) {
