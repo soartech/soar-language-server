@@ -167,3 +167,11 @@ Before pushing changes, please run the Google Java formatter:
 ```bash
 $ ./gradlew googleJavaFormat
 ```
+
+# Releasing
+
+To release a new version of the language server:
+
+1. Edit the `version` field in `/integrations/vscode/package.json`.
+2. Create a tagged Git commit, using the same version number as the tag name.
+3. Push the tag to GitHub
