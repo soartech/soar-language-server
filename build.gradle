@@ -86,6 +86,8 @@ artifacts {
     archives javadocJar, sourcesJar, shadowJar
 }
 
+// TODO: When GPG signing is created, re-enable this task
+/*
 gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.allTasks.any { it instanceof Sign }) {
         allprojects {
@@ -101,6 +103,7 @@ signing {
     useGpgCmd()
     sign configurations.archives
 }
+*/
 
 uploadArchives {
     repositories {
@@ -135,7 +138,8 @@ uploadArchives {
                     }
                 }
             }
-            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            // TODO: When GPG signing is recreated, re-enable this
+            /* beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) } */
         }
     }
 }

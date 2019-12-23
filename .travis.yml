@@ -11,9 +11,11 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
-before_install:
-  - openssl aes-256-cbc -K $encrypted_2608174d164b_key -iv $encrypted_2608174d164b_iv -in .travis/secret.gpg.enc -out .travis/secret.gpg -d
-  - gpg --import .travis/secret.gpg
+# TODO: Would be nice to create a new GPG key and sign the releases again.
+# Leaving this in as an example
+# before_install:
+#  - openssl aes-256-cbc -K $encrypted_2608174d164b_key -iv $encrypted_2608174d164b_iv -in .travis/secret.gpg.enc -out .travis/secret.gpg -d
+#  - gpg --import .travis/secret.gpg
 
 install:
   # JSoar needs to be on the classpath in order for the shadow tasks
@@ -36,7 +38,7 @@ deploy:
 # Create it here: https://github.com/settings/tokens
 - provider: releases
   api_key:
-    secure: cO2gM42kllxCrIvuSpf5pGSAg1kzUUAQ5hm/0pXXTLj384vRnLnVysXXJdM1G2DYwQifcIZDFTjyBozeaIUt5AT5JJreSJJX7o+FtlEPh/OWYjqyNAFm6gbF0ANM2XNQQwaDe0rP5vB9uUsVgGUAuxmJ6ntc3TU+HnX6wA8Hc0CEH5ft+ncym5LuXaiUVm0tW5wGoEIhxsuc96xcWdyRk7r6G6BwZiYcvKhnC2BbK7EzUAm931IkWqK739awrnfDlTjqVK4f01K5bvZhfZK4vQjjkKd1BIQztBnQ+ejCn9/FIFk980RC7JIRRjy4Xbg06vi+q5cOZuxrmOWSupHqBfYs14V8M7tUfdIRBYDIn9dRnTGPHXDkqzAR1uXVVl8nrXIyZznlj5iHZh1UoDAHpFS8lSdKnvtbhwh0Sx8pxu5lhIuGUzoQj9goqYku8oHoKUFv+aiFOFrUvEIHoWqnGvxcQoovdH1btV3qXRoMZSyksz3sDQwWyBYuTJpTlu3NAQf4OqeUoRTKRLQd5FTbaaW694z9Xi2kiAURzpJfIGZZaxfJEM8PA8pIoA5K7ZOZm6127gWVWolhHlWLmwAaOVn4MU9QDqknLav7EYx3VCWO65DUW3Jym/BFlj7BVgW4VfKAlLc5NtIf3ND6oIxCaV6qKSUrSwC2DgP5MiIDwEM=
+    secure: "H0Sf9xmT2+r4MUmNEz2xg1l6gQwUnCB/ZcrBLu5MD3y3pT3V3nl74n7ZsQn2Mrdsm0JGVjnGFKVIXjtvPPp152f77h7ZK2ka425idH0CSZZXyhSPc/r543pusA0czpGn6mt0OlGyBVjhIQImWFjmNCAAU9r8L+jrRc7AVIgCvVR9DUGLIrLAJzAOhOUy2YSDwyJ0AxdiJqTl7S+XWAby9PEavgzt545Haa+leBS6l96IOvs1twTblDaofcp0AUEBpEh9Y9OSaDzcqY1Hp3ofucaiMYXUUYX+qQD3XaYoJ450/DuOOy5+nvL/jFMXU9F5+m2EmO74mHLm5thvyAlvXCtM3GAjVWr0ANNgg4Td4YtBzupj8RWcAELhX7CGiZ9Mgduk+Vawr1G+7g6sqaK55zmmm6mZd6ZEKi5PTRsgGXxc6F4c2egR9KEDlfASMEm5/RtIusjqFqZ5v4gB93P/sL6pgznNZTYmqJpmxT4/vEfmjTMUdZpNdUJPFOCXeKiuqaJBzkOFGs4h0I3SvsN/NPlrhtWc9mn8bCm9O+77tD7KbHi+dw3vxtIGy8+GQiCSNZ9G5uOy7IdR8E/+B//yvtW3x3bdE2qsBixnC/iX4wlIGdbCOfVEJ2g8hh5Oas1RhfpY3L8p+KWhqD+H5wiiJ7kZlfqNzE4Eqy6P8CdY/Vk="
   file_glob: true
   file:
     - build/distributions/*
@@ -59,7 +61,7 @@ deploy:
 # Publish the library to Maven Central.
 #
 # This usually fails because there are bugs related to Travis in the nexus-staging Gradle plugin.
-# Because of this, we run this releas *last*, so that the other steps succeed even if/when this fails.
+# Because of this, we run this release *last*, so that the other steps succeed even if/when this fails.
 # See here for more details on this bug:
 # https://github.com/Codearte/gradle-nexus-staging-plugin/#2-why-my-release-build-on-travis-suddenly-started-to-fail-with-wrong-number-of-received-repositories
 - provider: script
