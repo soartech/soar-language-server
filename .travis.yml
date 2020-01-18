@@ -18,10 +18,6 @@ cache:
 #  - gpg --import .travis/secret.gpg
 
 install:
-  # JSoar needs to be on the classpath in order for the shadow tasks
-  # to successfully be configured - it's not enough to simply declare
-  # it as a task dependency.
-  - ./gradlew compileJSoar
   - (cd integrations/vscode && npm install)
 
 script:
