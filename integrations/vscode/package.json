@@ -86,7 +86,7 @@
     ]
   },
   "dependencies": {
-    "vscode-languageclient": "^5.2.1"
+    "vscode-languageclient": "^6.0.1"
   },
   "extensionDependencies": [
     "bdegrend.soar",
