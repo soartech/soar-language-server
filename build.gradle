@@ -4,7 +4,6 @@ plugins {
     id 'application'
     id 'maven'
     id 'signing'
-    id 'com.github.dkorotych.gradle-maven-exec' version '2.2.1'
     id 'com.github.johnrengelman.shadow' version '5.1.0'
     id 'com.dorongold.task-tree' version '1.4'
     id 'io.freefair.git-version' version '2.5.11'
@@ -36,10 +35,10 @@ dependencies {
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.8.1'
 
     // We are currently depending on a JSoar version that is in flux.
-    implementation('com.soartech:jsoar-core:4.0-SNAPSHOT') {
+    implementation('com.soartech:jsoar-core:4.0.0') {
         exclude group: 'junit'
     }
-    implementation('com.soartech:jsoar-tcl:4.0-SNAPSHOT') {
+    implementation('com.soartech:jsoar-tcl:4.0.0') {
         exclude group: 'junit'
     }
 
@@ -47,19 +46,6 @@ dependencies {
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.2'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.5.2'
 }
-
-task compileJSoar(type: MavenExec) {
-    workingDir 'jsoar/'
-    goals 'install'
-    options {
-        define = [
-            'maven.test.skip': 'true',
-            'maven.javadoc.skip': 'true'
-        ]
-        batchMode true
-    }
-}
-classes.dependsOn compileJSoar
 
 googleJavaFormat {
     include 'src/'

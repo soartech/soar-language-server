@@ -39,7 +39,7 @@ import org.eclipse.lsp4j.Range;
 import org.jsoar.kernel.Agent;
 import org.jsoar.kernel.SoarException;
 import org.jsoar.kernel.exceptions.SoarInterpreterException;
-import org.jsoar.kernel.exceptions.SoftTclInterpreterException;
+import org.jsoar.kernel.exceptions.SoftInterpreterException;
 import org.jsoar.kernel.exceptions.TclInterpreterException;
 import org.jsoar.util.SourceLocation;
 import org.jsoar.util.commands.SoarCommand;
@@ -523,7 +523,7 @@ public class Analysis {
 
                   // Add diagnostics for any "soft" exceptions that were thrown and caught but not
                   // propagated up.
-                  for (SoftTclInterpreterException e :
+                  for (SoftInterpreterException e :
                       agent.getInterpreter().getExceptionsManager().getExceptions()) {
                     Range range = file.rangeForNode(ctx.currentNode);
                     String message = e.getMessage().trim();
