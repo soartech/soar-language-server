@@ -11,9 +11,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.codehaus.janino.util.Producer;
+import org.eclipse.lsp4j.ConfigurationItem;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DiagnosticSeverity;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
@@ -60,11 +63,10 @@ class SoarWorkspaceService implements WorkspaceService {
     // configurations change.
     FileSystemWatcher watcher = new FileSystemWatcher("**/soarAgents.json");
     List<FileSystemWatcher> watchers = Arrays.asList(watcher);
-    DidChangeWatchedFilesRegistrationOptions options =
-        new DidChangeWatchedFilesRegistrationOptions(watchers);
-    Registration registration =
-        new Registration("changes", "workspace/didChangeWatchedFiles", options);
-    List<Registration> registrations = Arrays.asList(registration);
+    DidChangeWatchedFilesRegistrationOptions options = new DidChangeWatchedFilesRegistrationOptions(watchers);
+    List<Registration> registrations = new ArrayList<Registration>();
+    registrations.add(new Registration("changes", "workspace/didChangeConfiguration", options));
+    registrations.add(new Registration("changes", "workspace/didChangeWatchedFiles", options));
     client.registerCapability(new RegistrationParams(registrations));
 
     processEntryPoints();
@@ -129,9 +131,18 @@ class SoarWorkspaceService implements WorkspaceService {
 
   @Override
   public void didChangeConfiguration(DidChangeConfigurationParams params) {
-    JsonObject settings = (JsonObject) params.getSettings();
-    Configuration config = new Gson().fromJson(settings.get("soar"), Configuration.class);
-    documentService.setConfiguration(config);
+    List<ConfigurationItem> configs = new ArrayList<ConfigurationItem>();
+    ConfigurationItem soarConfig = new ConfigurationItem();
+    soarConfig.setScopeUri(manifestUri().toString());
+    soarConfig.setSection("soar");
+    configs.add(soarConfig);
+    client.configuration(new ConfigurationParams(configs)).thenAccept(
+      configsReturned -> {
+        JsonObject settings = (JsonObject) configsReturned.get(0);
+        Configuration config = new Gson().fromJson(settings, Configuration.class);
+        documentService.setConfiguration(config);
+      }
+    );
   }
 
   @Override
