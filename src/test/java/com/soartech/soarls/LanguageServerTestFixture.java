@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.function.Consumer;
 import java.util.stream.Stream;
 import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
+import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.CreateFile;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
@@ -210,6 +212,14 @@ public class LanguageServerTestFixture implements LanguageClient {
     System.out.println(params.toString());
     return null;
   }
+
+  @Override
+  public CompletableFuture<List<Object>> configuration(ConfigurationParams configurationParams) {
+    JsonObject jsonObj = (new Gson()).toJsonTree(config).getAsJsonObject();
+    List<Object> config = Arrays.asList(jsonObj);
+    return CompletableFuture.completedFuture(config);
+  }
+
 
   @Override
   public void telemetryEvent(Object object) {
