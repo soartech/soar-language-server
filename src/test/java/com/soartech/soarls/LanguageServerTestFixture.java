@@ -220,7 +220,6 @@ public class LanguageServerTestFixture implements LanguageClient {
     return CompletableFuture.completedFuture(config);
   }
 
-
   @Override
   public void telemetryEvent(Object object) {
     System.out.println(object.toString());
