@@ -89,7 +89,7 @@ public class Documents {
       String contents = Joiner.on("\n").join(lines);
       return new SoarFile(uri, contents);
     } catch (Exception e) {
-      LOG.error("Failed to open file", e);
+      LOG.error("Failed to open file " + uri.toString());
       return null;
     }
   }

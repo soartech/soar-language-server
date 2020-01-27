@@ -221,7 +221,7 @@ public class Analysis {
       LOG.info("Completed analysis {}", analysis);
       return analysis.toProjectAnalysis();
     } catch (Exception e) {
-      LOG.error("running analysis", e);
+      LOG.warn("Unable to analyse " + entryPointUri.toString());
       return null;
     } finally {
       analysis.agent.dispose();

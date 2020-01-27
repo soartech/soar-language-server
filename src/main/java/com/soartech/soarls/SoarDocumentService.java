@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -152,6 +153,7 @@ public class SoarDocumentService implements TextDocumentService {
         .entryPoints()
         .map(entryPoint -> workspaceRootUri.resolve(entryPoint.path))
         .map(uri -> getAnalysis(uri))
+        .filter(Objects::nonNull)
         .collect(collector);
   }
 
