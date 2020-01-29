@@ -11,7 +11,7 @@
   },
   "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/README.md",
   "engines": {
-    "vscode": "^1.32.0"
+    "vscode": "^1.41.1"
   },
   "categories": [
     "Programming Languages"
