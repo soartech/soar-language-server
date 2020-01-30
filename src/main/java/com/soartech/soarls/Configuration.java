@@ -25,8 +25,7 @@ class Configuration {
   public Boolean hyperlinkExpansionFile = false;
 
   /**
-   * If true, then hover text will be rendered as markdown. If false, it
-   *  will be sent as raw text.
+   * If true, then hover text will be rendered as markdown. If false, it will be sent as raw text.
    */
   public Boolean renderHoverMarkdown = false;
 }
