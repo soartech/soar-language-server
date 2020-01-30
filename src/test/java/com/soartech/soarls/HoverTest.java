@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 public class HoverTest extends SingleFileTestFixture {
   public HoverTest() throws Exception {
     super("hover", "test.soar");
-    config.renderHoverVerbatim = false;
+    config.renderHoverMarkdown = false;
     sendConfiguration();
   }
 

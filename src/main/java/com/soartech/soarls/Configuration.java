@@ -25,8 +25,8 @@ class Configuration {
   public Boolean hyperlinkExpansionFile = false;
 
   /**
-   * If true, then hover text will be prepended with four leading spaces such that a markdown
-   * renderer will render thet text verbatim.
+   * If true, then hover text will be rendered as markdown. If false, it
+   *  will be sent as raw text.
    */
-  public Boolean renderHoverVerbatim = false;
+  public Boolean renderHoverMarkdown = false;
 }
