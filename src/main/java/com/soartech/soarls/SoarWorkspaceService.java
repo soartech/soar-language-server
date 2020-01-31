@@ -71,6 +71,7 @@ class SoarWorkspaceService implements WorkspaceService {
     client.registerCapability(new RegistrationParams(registrations));
 
     processEntryPoints();
+    didChangeConfiguration(new DidChangeConfigurationParams());
   }
 
   /**
