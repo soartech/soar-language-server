@@ -9,9 +9,9 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import org.codehaus.janino.util.Producer;
@@ -63,13 +63,15 @@ class SoarWorkspaceService implements WorkspaceService {
     // configurations change.
     FileSystemWatcher watcher = new FileSystemWatcher("**/soarAgents.json");
     List<FileSystemWatcher> watchers = Arrays.asList(watcher);
-    DidChangeWatchedFilesRegistrationOptions options = new DidChangeWatchedFilesRegistrationOptions(watchers);
+    DidChangeWatchedFilesRegistrationOptions options =
+        new DidChangeWatchedFilesRegistrationOptions(watchers);
     List<Registration> registrations = new ArrayList<Registration>();
     registrations.add(new Registration("changes", "workspace/didChangeConfiguration", options));
     registrations.add(new Registration("changes", "workspace/didChangeWatchedFiles", options));
     client.registerCapability(new RegistrationParams(registrations));
 
     processEntryPoints();
+    didChangeConfiguration(new DidChangeConfigurationParams());
   }
 
   /**
@@ -136,13 +138,14 @@ class SoarWorkspaceService implements WorkspaceService {
     soarConfig.setScopeUri(manifestUri().toString());
     soarConfig.setSection("soar");
     configs.add(soarConfig);
-    client.configuration(new ConfigurationParams(configs)).thenAccept(
-      configsReturned -> {
-        JsonObject settings = (JsonObject) configsReturned.get(0);
-        Configuration config = new Gson().fromJson(settings, Configuration.class);
-        documentService.setConfiguration(config);
-      }
-    );
+    client
+        .configuration(new ConfigurationParams(configs))
+        .thenAccept(
+            configsReturned -> {
+              JsonObject settings = (JsonObject) configsReturned.get(0);
+              Configuration config = new Gson().fromJson(settings, Configuration.class);
+              documentService.setConfiguration(config);
+            });
   }
 
   @Override
