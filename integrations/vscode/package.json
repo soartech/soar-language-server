@@ -2,7 +2,7 @@
   "name": "soar-language-support",
   "displayName": "Soar Language Support",
   "description": "Language server client for use with the Soar Language Server",
-  "version": "0.9.13",
+  "version": "0.9.14",
   "publisher": "soartech",
   "license": "BSD-3-Clause",
   "repository": {
@@ -11,7 +11,7 @@
   },
   "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/README.md",
   "engines": {
-    "vscode": "^1.32.0"
+    "vscode": "^1.41.1"
   },
   "categories": [
     "Programming Languages"
@@ -75,6 +75,11 @@
           "type": "string",
           "default": "",
           "description": "Absolute path to an external Soar Language Server executable. Leave blank to use the built-in executable. If you aren't developing the language server itself, you probably don't need this."
+        },
+        "soar.renderHoverMarkdown": {
+          "type": "boolean",
+          "default": false,
+          "description": "Specifies whether the language server should display comments as markdown. If false, comments will render as plain text."
         }
       }
     },
@@ -86,7 +91,7 @@
     ]
   },
   "dependencies": {
-    "vscode-languageclient": "^5.2.1"
+    "vscode-languageclient": "^6.1.0"
   },
   "extensionDependencies": [
     "bdegrend.soar",
@@ -101,7 +106,7 @@
   },
   "devDependencies": {
     "@types/mocha": "^5.2.7",
-    "@types/node": "^12.12.7",
+    "@types/node": "^13.5.0",
     "tslint": "^5.20.1",
     "typescript": "^3.7.2",
     "vsce": "^1.69.0",

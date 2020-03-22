@@ -23,3 +23,6 @@ integrations/intellij/soar-ide/out
 .classpath
 .settings/
 bin/
+
+jsoar
+
