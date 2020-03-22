@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
 import org.eclipse.lsp4j.DocumentHighlight;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.DocumentHighlightParams;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -19,7 +19,7 @@ public class DocumentHighlightTest extends SingleFileTestFixture {
 
   @Test
   public void highlightProduction() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 3, 6);
+    DocumentHighlightParams params = documentHighlightParams(file, 3, 6);
     List<? extends DocumentHighlight> contents =
         languageServer.getTextDocumentService().documentHighlight(params).get();
     assertEquals(contents.get(0).getRange(), range(2, 0, 8, 0));

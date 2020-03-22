@@ -21,7 +21,7 @@ public class DirectoriesTest extends LanguageServerTestFixture {
   Location definition(String relativePath, int line, int character) throws Exception {
     return languageServer
         .getTextDocumentService()
-        .definition(textDocumentPosition(relativePath, line, character))
+        .definition(definitionParams(relativePath, line, character))
         .get()
         .getLeft()
         .get(0);

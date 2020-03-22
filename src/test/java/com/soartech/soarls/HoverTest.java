@@ -3,8 +3,9 @@ package com.soartech.soarls;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.eclipse.lsp4j.Hover;
-import org.eclipse.lsp4j.MarkedString;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
+import org.eclipse.lsp4j.HoverParams;
+import org.eclipse.lsp4j.MarkupContent;
+import org.eclipse.lsp4j.MarkupKind;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -27,16 +28,16 @@ public class HoverTest extends SingleFileTestFixture {
 
   @Test
   public void hoverVariableValue() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 20, 44);
+    HoverParams params = hoverParams(file, 20, 44);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkedString contents = hover.getContents().getLeft().get(0).getRight();
-    assertEquals(contents.getLanguage(), "raw");
+    MarkupContent contents = hover.getContents().getRight();
+    assertEquals(contents.getKind(), MarkupKind.PLAINTEXT);
     assertEquals(contents.getValue(), "*YES*");
   }
 
   @Test
   public void hoverVariableRange() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 20, 44);
+    HoverParams params = hoverParams(file, 20, 44);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     assertEquals(hover.getRange(), range(20, 43, 20, 51));
   }
@@ -44,9 +45,9 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void hoverVariableTopLevelCommand() throws Exception {
     // The 'L' in '$ALPHA'
-    TextDocumentPositionParams params = textDocumentPosition(file, 28, 23);
+    HoverParams params = hoverParams(file, 28, 23);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkedString contents = hover.getContents().getLeft().get(0).getRight();
+    MarkupContent contents = hover.getContents().getRight();
     assertEquals(contents.getValue(), "alpha");
   }
 
@@ -54,9 +55,9 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void hoverVariableConcatenatedWithWord() throws Exception {
     // The 'E' in 'prefix-$BETA'
-    TextDocumentPositionParams params = textDocumentPosition(file, 29, 30);
+    HoverParams params = hoverParams(file, 29, 30);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkedString contents = hover.getContents().getLeft().get(0).getRight();
+    MarkupContent contents = hover.getContents().getRight();
     assertEquals(contents.getValue(), "beta");
   }
 
@@ -71,10 +72,10 @@ public class HoverTest extends SingleFileTestFixture {
     sendConfiguration();
 
     // ngs-bind
-    TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
+    HoverParams params = hoverParams(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkedString string = hover.getContents().getLeft().get(0).getRight();
-    assertEquals(string.getLanguage(), "raw");
+    MarkupContent string = hover.getContents().getRight();
+    assertEquals(string.getKind(), MarkupKind.PLAINTEXT);
     assertEquals(string.getValue(), "This is a stub for NGS bind.");
   }
 
@@ -82,10 +83,10 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void hoverProcDocsExtraSpaces() throws Exception {
     // ngs-create-attribute
-    TextDocumentPositionParams params = textDocumentPosition(file, 20, 10);
+    HoverParams params = hoverParams(file, 20, 10);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
-    MarkedString string = hover.getContents().getLeft().get(0).getRight();
-    assertEquals(string.getLanguage(), "raw");
+    MarkupContent string = hover.getContents().getRight();
+    assertEquals(string.getKind(), MarkupKind.PLAINTEXT);
     assertEquals(string.getValue(), "Create an attribute.");
   }
 
@@ -96,11 +97,11 @@ public class HoverTest extends SingleFileTestFixture {
     sendConfiguration();
 
     // ngs-bind
-    TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
+    HoverParams params = hoverParams(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkedString string = hover.getContents().getLeft().get(0).getRight();
-    assertEquals(string.getLanguage(), "raw");
+    MarkupContent string = hover.getContents().getRight();
+    assertEquals(string.getKind(), MarkupKind.PLAINTEXT);
     assertEquals(
         string.getValue(),
         "\n"
@@ -117,10 +118,10 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void hovorProcNoComment() throws Exception {
     // ngs-match-top-state
-    TextDocumentPositionParams params = textDocumentPosition(file, 17, 9);
+    HoverParams params = hoverParams(file, 17, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    MarkupContent string = hover.getContents().getRight();
     assertEquals(string.getValue(), "ngs-match-top-state");
   }
 
@@ -131,10 +132,10 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void hoverProcNoCommentAtEnd() throws Exception {
     // ngs-has-no-comment
-    TextDocumentPositionParams params = textDocumentPosition(file, 40, 9);
+    HoverParams params = hoverParams(file, 40, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkedString string = hover.getContents().getLeft().get(0).getRight();
+    MarkupContent string = hover.getContents().getRight();
     assertEquals(string.getValue(), "ngs-has-no-comment");
   }
 
@@ -145,7 +146,7 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void doNotShowForProcArguments() throws Exception {
     // The 'm' in 'matched'
-    TextDocumentPositionParams params = textDocumentPosition(file, 20, 35);
+    HoverParams params = hoverParams(file, 20, 35);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     assertNull(hover);
   }
@@ -153,7 +154,7 @@ public class HoverTest extends SingleFileTestFixture {
   /** The hover range covers the entire invocation of the procedure, including its arguments. */
   @Test
   public void hoverProcRange() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 18, 9);
+    HoverParams params = hoverParams(file, 18, 9);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
     assertEquals(hover.getRange(), range(18, 5, 18, 13));
   }
@@ -161,7 +162,7 @@ public class HoverTest extends SingleFileTestFixture {
   @Test
   public void hoverNotApplicable() throws Exception {
     // In the middle of a comment, there is nothing to hover over.
-    TextDocumentPositionParams params = textDocumentPosition(file, 8, 0);
+    HoverParams params = hoverParams(file, 8, 0);
     try {
       Hover hover = languageServer.getTextDocumentService().hover(params).get();
       assertNull(hover);

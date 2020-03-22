@@ -5,8 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.eclipse.lsp4j.ParameterInformation;
 import org.eclipse.lsp4j.SignatureHelp;
 import org.eclipse.lsp4j.SignatureHelpOptions;
+import org.eclipse.lsp4j.SignatureHelpParams;
 import org.eclipse.lsp4j.SignatureInformation;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.junit.jupiter.api.Test;
 
 public class SignatureHelpTest extends SingleFileTestFixture {
@@ -23,7 +23,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
   @Test
   public void procArguments() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 13, 7);
+    SignatureHelpParams params = signatureHelpParams(file, 13, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -38,7 +38,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
    */
   @Test
   public void procFewerArguments() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 23, 7);
+    SignatureHelpParams params = signatureHelpParams(file, 23, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -49,7 +49,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
   @Test
   public void procMoreArguments() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 14, 7);
+    SignatureHelpParams params = signatureHelpParams(file, 14, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -64,7 +64,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
   @Test
   public void procOptionalArgumentsDefault() throws Exception {
     // Call ngs-gte-lt without binding the value, so the last argument gets its default value.
-    TextDocumentPositionParams params = textDocumentPosition(file, 15, 7);
+    SignatureHelpParams params = signatureHelpParams(file, 15, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -79,7 +79,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
   @Test
   public void procOptionalArgumentsFilledIn() throws Exception {
     // Call ngs-gte-lt, binding the value.
-    TextDocumentPositionParams params = textDocumentPosition(file, 16, 7);
+    SignatureHelpParams params = signatureHelpParams(file, 16, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -94,7 +94,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
 
   @Test
   public void procNotDefined() throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(file, 18, 7);
+    SignatureHelpParams params = signatureHelpParams(file, 18, 7);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     assert (help.getSignatures().isEmpty());
@@ -103,7 +103,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
   @Test
   public void cursorOnParameter() throws Exception {
     // On the 'v' in 'value', the first parameter.
-    TextDocumentPositionParams params = textDocumentPosition(file, 16, 20);
+    SignatureHelpParams params = signatureHelpParams(file, 16, 20);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
@@ -113,10 +113,10 @@ public class SignatureHelpTest extends SingleFileTestFixture {
   @Test
   public void activeParameter() throws Exception {
     // On the '1', the third parameter.
-    TextDocumentPositionParams params = textDocumentPosition(file, 16, 26);
+    SignatureHelpParams params = signatureHelpParams(file, 16, 26);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
-    assertEquals(help.getActiveParameter(), new Integer(2));
+    assertEquals(help.getActiveParameter(), 2);
   }
 
   /**
@@ -127,7 +127,7 @@ public class SignatureHelpTest extends SingleFileTestFixture {
   @Test
   public void afterEndOfLine() throws Exception {
     // Cursor is on the second spaces after the end of ngs-bind: `[ngs-bind _]`
-    TextDocumentPositionParams params = textDocumentPosition(file, 23, 14);
+    SignatureHelpParams params = signatureHelpParams(file, 23, 14);
     SignatureHelp help = languageServer.getTextDocumentService().signatureHelp(params).get();
 
     SignatureInformation info = help.getSignatures().get(help.getActiveSignature());
