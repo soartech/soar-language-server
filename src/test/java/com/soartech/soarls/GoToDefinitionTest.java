@@ -4,9 +4,9 @@ import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
+import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.Position;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -26,7 +26,7 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
 
   List<Location> definitionsForPosition(String relativePath, int line, int character)
       throws Exception {
-    TextDocumentPositionParams params = textDocumentPosition(relativePath, line, character);
+    DefinitionParams params = definitionParams(relativePath, line, character);
     return languageServer
         .getTextDocumentService()
         .definition(params)

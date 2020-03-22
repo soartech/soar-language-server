@@ -21,10 +21,13 @@ import org.eclipse.lsp4j.ApplyWorkspaceEditParams;
 import org.eclipse.lsp4j.ApplyWorkspaceEditResponse;
 import org.eclipse.lsp4j.ConfigurationParams;
 import org.eclipse.lsp4j.CreateFile;
+import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidChangeConfigurationParams;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
+import org.eclipse.lsp4j.DocumentHighlightParams;
+import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.InitializeParams;
 import org.eclipse.lsp4j.InitializedParams;
 import org.eclipse.lsp4j.MessageActionItem;
@@ -36,11 +39,11 @@ import org.eclipse.lsp4j.RegistrationParams;
 import org.eclipse.lsp4j.ResourceOperation;
 import org.eclipse.lsp4j.ServerCapabilities;
 import org.eclipse.lsp4j.ShowMessageRequestParams;
+import org.eclipse.lsp4j.SignatureHelpParams;
 import org.eclipse.lsp4j.TextDocumentContentChangeEvent;
 import org.eclipse.lsp4j.TextDocumentEdit;
 import org.eclipse.lsp4j.TextDocumentIdentifier;
 import org.eclipse.lsp4j.TextDocumentItem;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.VersionedTextDocumentIdentifier;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -120,10 +123,28 @@ public class LanguageServerTestFixture implements LanguageClient {
     return new TextDocumentIdentifier(uri);
   }
 
-  TextDocumentPositionParams textDocumentPosition(String relativePath, int line, int column) {
+  DefinitionParams definitionParams(String relativePath, int line, int column) {
     TextDocumentIdentifier fileId = fileId(relativePath);
     Position position = new Position(line, column);
-    return new TextDocumentPositionParams(fileId, position);
+    return new DefinitionParams(fileId, position);
+  }
+
+  DocumentHighlightParams documentHighlightParams(String relativePath, int line, int column) {
+    TextDocumentIdentifier fileId = fileId(relativePath);
+    Position position = new Position(line, column);
+    return new DocumentHighlightParams(fileId, position);
+  }
+
+  HoverParams hoverParams(String relativePath, int line, int column) {
+    TextDocumentIdentifier fileId = fileId(relativePath);
+    Position position = new Position(line, column);
+    return new HoverParams(fileId, position);
+  }
+
+  SignatureHelpParams signatureHelpParams(String relativePath, int line, int column) {
+    TextDocumentIdentifier fileId = fileId(relativePath);
+    Position position = new Position(line, column);
+    return new SignatureHelpParams(fileId, position);
   }
 
   protected void open(String relativePath) throws Exception {

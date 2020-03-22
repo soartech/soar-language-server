@@ -4,14 +4,15 @@ import static java.util.stream.Collectors.toList;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
+import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.Location;
-import org.eclipse.lsp4j.MarkedString;
+import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.Position;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceContext;
 import org.eclipse.lsp4j.ReferenceParams;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.junit.jupiter.api.Test;
 
 public class MultipleEntryPointTest extends LanguageServerTestFixture {
@@ -22,10 +23,10 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
   @Test
   void hoverVariable() throws Exception {
     // The $agent_name variable
-    TextDocumentPositionParams params = textDocumentPosition("common.soar", 5, 35);
+    HoverParams params = hoverParams("common.soar", 5, 35);
     Hover hover = languageServer.getTextDocumentService().hover(params).get();
 
-    MarkedString content = hover.getContents().getLeft().get(0).getRight();
+    MarkupContent content = hover.getContents().getRight();
     assertEquals(content.getValue(), "primary: primary\nsecondary: secondary");
   }
 
@@ -59,7 +60,7 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
   @Test
   void variableDefinitions() throws Exception {
     // Usage of $agent_name variable
-    TextDocumentPositionParams params = textDocumentPosition("common.soar", 3, 30);
+    DefinitionParams params = definitionParams("common.soar", 3, 30);
     List<Location> definitions =
         languageServer
             .getTextDocumentService()
