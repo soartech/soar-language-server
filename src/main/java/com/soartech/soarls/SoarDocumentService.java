@@ -1,6 +1,5 @@
 package com.soartech.soarls;
 
-import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.groupingBy;
@@ -49,12 +48,14 @@ import org.eclipse.lsp4j.CompletionList;
 import org.eclipse.lsp4j.CompletionParams;
 import org.eclipse.lsp4j.CreateFile;
 import org.eclipse.lsp4j.CreateFileOptions;
+import org.eclipse.lsp4j.DefinitionParams;
 import org.eclipse.lsp4j.Diagnostic;
 import org.eclipse.lsp4j.DidChangeTextDocumentParams;
 import org.eclipse.lsp4j.DidCloseTextDocumentParams;
 import org.eclipse.lsp4j.DidOpenTextDocumentParams;
 import org.eclipse.lsp4j.DidSaveTextDocumentParams;
 import org.eclipse.lsp4j.DocumentHighlight;
+import org.eclipse.lsp4j.DocumentHighlightParams;
 import org.eclipse.lsp4j.DocumentLink;
 import org.eclipse.lsp4j.DocumentLinkParams;
 import org.eclipse.lsp4j.DocumentSymbol;
@@ -63,9 +64,9 @@ import org.eclipse.lsp4j.FoldingRange;
 import org.eclipse.lsp4j.FoldingRangeKind;
 import org.eclipse.lsp4j.FoldingRangeRequestParams;
 import org.eclipse.lsp4j.Hover;
+import org.eclipse.lsp4j.HoverParams;
 import org.eclipse.lsp4j.Location;
 import org.eclipse.lsp4j.LocationLink;
-import org.eclipse.lsp4j.MarkedString;
 import org.eclipse.lsp4j.MarkupContent;
 import org.eclipse.lsp4j.MarkupKind;
 import org.eclipse.lsp4j.ParameterInformation;
@@ -75,10 +76,10 @@ import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.ReferenceParams;
 import org.eclipse.lsp4j.RenameParams;
 import org.eclipse.lsp4j.SignatureHelp;
+import org.eclipse.lsp4j.SignatureHelpParams;
 import org.eclipse.lsp4j.SignatureInformation;
 import org.eclipse.lsp4j.SymbolInformation;
 import org.eclipse.lsp4j.TextDocumentItem;
-import org.eclipse.lsp4j.TextDocumentPositionParams;
 import org.eclipse.lsp4j.TextEdit;
 import org.eclipse.lsp4j.WorkspaceEdit;
 import org.eclipse.lsp4j.jsonrpc.messages.Either;
@@ -358,7 +359,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<Either<List<? extends Location>, List<? extends LocationLink>>>
-      definition(TextDocumentPositionParams params) {
+      definition(DefinitionParams params) {
 
     URI uri = uri(params.getTextDocument().getUri());
 
@@ -499,7 +500,7 @@ public class SoarDocumentService implements TextDocumentService {
 
   @Override
   public CompletableFuture<List<? extends DocumentHighlight>> documentHighlight(
-      TextDocumentPositionParams params) {
+      DocumentHighlightParams params) {
     URI uri = uri(params.getTextDocument().getUri());
     final SoarFile file = documents.get(uri);
     final int offset = file.offset(params.getPosition());
@@ -562,7 +563,7 @@ public class SoarDocumentService implements TextDocumentService {
    * codebases anyway).
    */
   @Override
-  public CompletableFuture<Hover> hover(TextDocumentPositionParams params) {
+  public CompletableFuture<Hover> hover(HoverParams params) {
     URI uri = uri(params.getTextDocument().getUri());
     SoarFile file = documents.get(uri);
     TclAstNode hoveredNode = file.tclNode(params.getPosition());
@@ -615,7 +616,7 @@ public class SoarDocumentService implements TextDocumentService {
                                   .map(name -> name + ": " + entry.getKey()))
                       .sorted()
                       .collect(joining("\n"));
-          return new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
+          return new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
         };
 
     ////////
@@ -651,7 +652,7 @@ public class SoarDocumentService implements TextDocumentService {
                     Range range = fileAnalysis.file.rangeForNode(callChildren.get(0));
                     return config.renderHoverMarkdown
                         ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
-                        : new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
+                        : new Hover(new MarkupContent(MarkupKind.PLAINTEXT, value), range);
                   });
         };
 
@@ -737,7 +738,7 @@ public class SoarDocumentService implements TextDocumentService {
   }
 
   @Override
-  public CompletableFuture<SignatureHelp> signatureHelp(TextDocumentPositionParams params) {
+  public CompletableFuture<SignatureHelp> signatureHelp(SignatureHelpParams params) {
 
     // Construct a signature including the first N arguments.
     BiFunction<ProcedureDefinition, Integer, SignatureInformation> makeSignatureInfo =
