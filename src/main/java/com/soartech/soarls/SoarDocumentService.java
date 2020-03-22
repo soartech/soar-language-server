@@ -621,10 +621,6 @@ public class SoarDocumentService implements TextDocumentService {
     ////////
     // Helpers for procedure hovers.
 
-    // If we are configured to do so, then we prefix each line with four spaces so that markdown
-    // renderers treat the text as verbatim.
-    String prefix = config.renderHoverVerbatim ? "    " : "";
-
     // Format a procedure call for the hover tooltip. We strip leading `#` comment characters and
     // optionally filter to just the first line.
     Function<ProcedureCall, Optional<String>> hoverText =
@@ -634,8 +630,7 @@ public class SoarDocumentService implements TextDocumentService {
                 .map(
                     comment ->
                         Arrays.stream(comment.split("\n"))
-                            .map(line -> line.replaceFirst("^\\s*#\\s?", ""))
-                            .map(line -> prefix + line))
+                            .map(line -> line.replaceFirst("^\\s*#\\s?", "")))
                 .flatMap(
                     lines ->
                         config.fullCommentHover
@@ -654,7 +649,7 @@ public class SoarDocumentService implements TextDocumentService {
                         hoverText.apply(call).orElse(fileAnalysis.file.getNodeInternalText(node));
                     List<TclAstNode> callChildren = call.callSiteAst.getChildren();
                     Range range = fileAnalysis.file.rangeForNode(callChildren.get(0));
-                    return config.renderHoverVerbatim
+                    return config.renderHoverMarkdown
                         ? new Hover(new MarkupContent(MarkupKind.MARKDOWN, value), range)
                         : new Hover(asList(Either.forRight(new MarkedString("raw", value))), range);
                   });
