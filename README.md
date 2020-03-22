@@ -140,17 +140,6 @@ $ git clone https://github.com/soartech/soar-language-server
 $ cd soar-language-server
 ```
 
-We currently rely on a fork of JSoar which we include as a git
-submodule, which must be initialized like so:
-
-```bash
-# The first time you clone this repository:
-$ git submodule update --init
-
-# If you pull changes that move JSoar to a new commit:
-$ git submodule update
-```
-
 After the initial setup, the language server can be built with
 Gradle. The Gradle wrapper script is included:
 
