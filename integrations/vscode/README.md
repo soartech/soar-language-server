@@ -72,7 +72,33 @@ defined by default.
 
 This extension contributes the following settings:
 
-* `soar.langaugeServer.enable`: enable/disable language server support for `.soar` files
-* `soar.languageServer.executablePath`: Absolute path to the Soar Language Server executable
-* `soar.trace.server`: Traces the communication between VS Code and the language server
-* `soar.maxNumberOfProblems`: Controls the maximum number of problems produced by the server.
+- `soar.langaugeServer.enable`: enable/disable language server support for `.soar` files
+- `soar.languageServer.executablePath`: Absolute path to the Soar Language Server executable
+- `soar.trace.server`: Traces the communication between VS Code and the language server
+- `soar.maxNumberOfProblems`: Controls the maximum number of problems produced by the server.
+
+## Developing and testing
+
+To work on the VS Code extension for the soar language server, you will need these dependencies (shown with Ubuntu install commands):
+
+- Java Developer's Kit: `sudo apt install openjdk-11-jdk`
+- Node Package Manager: `sudo apt install npm`
+- Type Script: `sudo apt install node-typescript`
+
+In soar-language-server directory execute `./gradlew build` to build the language server.
+
+In the soar-language-server/integrations/vscode folder, use these commands to build the extension.
+
+```bash
+npm install -D path vscode vscode-languageclient process assert suite test module @types/node @types/mocha
+rm -rf ./soar-language-server
+cd ../../ && ./gradlew installShadowDist && cd integrations/vscode 
+cp -r ../../build/install/soar-language-server-shadow ./soar-language-server
+npm run compile
+```
+
+Open a new VS Code window and import the folder `soar-language-server/integrations/vscode` (*not* the soar-language-server root folder) to your workspace. In the Run/Debug tab use the exiting launch configuration to run the extension.
+
+This window will allow you to test your extension with any changes you've made to the soar language server. In order to push your changes into the marketplace, check the instructions in `soar-language-server/README.md`.
+
+If you want to share your extension with someone else for testing (and not publish it to the VS Code Marketplace), you can execute `vsce package` from `soar-language-server/integrations/vscode` to create a VSIX file.
