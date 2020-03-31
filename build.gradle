@@ -73,12 +73,12 @@ artifacts {
 }
 
 // TODO: When GPG signing is created, re-enable this task
-/*
 gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.allTasks.any { it instanceof Sign }) {
         allprojects {
             // This is a workaround for https://bugs.eclipse.org/bugs/show_bug.cgi?id=541012
-            ext."signing.gnupg.useLegacyGpg" = 'true'
+            //ext."signing.gnupg.useLegacyGpg" = 'true'
+            ext."signing.gnupg.executable" = 'gpg'
             ext."signing.gnupg.keyName" = System.getenv('GPG_KEY_ID')
             ext."signing.gnupg.passphrase" = System.getenv('GPG_PASSPHRASE')
         }
@@ -89,7 +89,6 @@ signing {
     useGpgCmd()
     sign configurations.archives
 }
-*/
 
 uploadArchives {
     repositories {
@@ -125,7 +124,7 @@ uploadArchives {
                 }
             }
             // TODO: When GPG signing is recreated, re-enable this
-            /* beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) } */
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
         }
     }
 }
