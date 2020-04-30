@@ -28,7 +28,7 @@ dependencies {
     implementation 'ch.qos.logback:logback-classic:1.2.3'
 
     // This dependency is found on compile classpath of this component and consumers.
-    implementation 'com.google.guava:guava:28.2-jre'
+    implementation 'com.google.guava:guava:29.0-jre'
     implementation 'org.apache.commons:commons-lang3:3.10'
 
     // Language server protocol types.
