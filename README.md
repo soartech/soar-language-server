@@ -64,6 +64,7 @@ found on the [releases page].
 * **Intellij**: Download the server from the [releases page] and
   install the plugin found in
   [integrations/intellj](./integrations/intellij).
+* **Eclipse**: Download the server from the [releases page] and follow the instructions in [integrations/eclipse](./integrations/eclipse).
 
 Any other editor that supports the Language Server Protocol will work
 too. Some only require some configuration, while others need a small
