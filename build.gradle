@@ -7,7 +7,7 @@ plugins {
     id 'com.github.johnrengelman.shadow' version '6.1.0'
     id 'com.dorongold.task-tree' version '1.5'
     id 'io.freefair.git-version' version '5.3.0'
-    id 'com.github.sherter.google-java-format' version '0.9'
+    id "com.diffplug.spotless" version "5.9.0"
     id 'io.codearte.nexus-staging' version '0.22.0'
 }
 
@@ -46,8 +46,10 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.7.0'
 }
 
-googleJavaFormat {
-    include 'src/'
+spotless {
+    java {
+        googleJavaFormat()
+    }
 }
 
 // Define the main class for the application
