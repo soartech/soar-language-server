@@ -52,6 +52,11 @@ spotless {
     }
 }
 
+// make spotless actually fix the problems it finds, not just say there are problems
+afterEvaluate {
+    tasks.getByName('spotlessCheck').dependsOn(tasks.getByName('spotlessApply'))
+}
+
 // Define the main class for the application
 mainClassName = 'com.soartech.soarls.App'
 
