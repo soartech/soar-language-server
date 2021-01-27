@@ -86,6 +86,7 @@ To work on the VS Code extension for the soar language server, you will need the
 - Type Script: `sudo apt install node-typescript`
 
 In soar-language-server directory execute `./gradlew build` to build the language server.
+To build without signing, run `./gradlew build -x signArchives` instead.
 
 In the soar-language-server/integrations/vscode folder, use these commands to build the extension.
 
