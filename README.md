@@ -152,10 +152,16 @@ $ ./gradlew installDist
 This will create an executable at
 `./build/install/soar-language-server/bin/soar-language-server`.
 
-Before pushing changes, please run the Google Java formatter:
+Before pushing changes, please run the Spotless Java checker:
 
 ```bash
-$ ./gradlew googleJavaFormat
+$ ./gradlew spotlessJavaCheck
+```
+
+If this finds any format issues, apply them:
+
+```bash
+$ ./gradlew spotlessApply
 ```
 
 # Releasing
