@@ -11,7 +11,7 @@
   },
   "homepage": "https://github.com/soartech/soar-language-server/blob/master/integrations/vscode/README.md",
   "engines": {
-    "vscode": "^1.41.1"
+    "vscode": "^1.53.2"
   },
   "categories": [
     "Programming Languages"
@@ -91,7 +91,7 @@
     ]
   },
   "dependencies": {
-    "vscode-languageclient": "^6.1.0"
+    "vscode-languageclient": "^7.0.0"
   },
   "extensionDependencies": [
     "bdegrend.soar",
