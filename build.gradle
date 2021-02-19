@@ -22,6 +22,9 @@ repositories {
     jcenter()
 
     mavenLocal()
+
+    maven { url 'https://jitpack.io' }
+
 }
 
 dependencies {
@@ -32,7 +35,12 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.11'
 
     // Language server protocol types.
-    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.10.0'
+    // TODO: lsp4j has an error working with the latest LSP spec. This has been
+    // corrected in the latest repository but the artifact has not yet been updated.
+    // Once lsp4j 0.11.0 is released, remove the github dependency and put it back
+    // to the maven one. At the same time, remove teh jitpack.io section of repositories.
+    implementation 'com.github.eclipse:lsp4j:6aa3a82'
+//    implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.10.0'
 
     implementation('com.soartech:jsoar-core:4.0.3') {
         exclude group: 'junit'

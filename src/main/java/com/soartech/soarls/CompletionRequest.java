@@ -8,6 +8,7 @@ import org.eclipse.lsp4j.CompletionItemKind;
 import org.eclipse.lsp4j.InsertTextFormat;
 import org.eclipse.lsp4j.Range;
 import org.eclipse.lsp4j.TextEdit;
+import org.eclipse.lsp4j.jsonrpc.messages.Either;
 
 /** A helper class for responding to the textDocument/completion request. */
 public class CompletionRequest {
@@ -22,7 +23,7 @@ public class CompletionRequest {
             def -> {
               CompletionItem item = new CompletionItem(def.name);
               item.setKind(CompletionItemKind.Constant);
-              item.setTextEdit(new TextEdit(replacementRange, def.name));
+              item.setTextEdit(Either.forLeft(new TextEdit(replacementRange, def.name)));
               item.setDocumentation(def.commentText.orElse(null));
               return item;
             });
@@ -50,7 +51,7 @@ public class CompletionRequest {
                 snippet += " ${" + (i + 1) + ":" + value + "}";
               }
               snippet += "$0";
-              item.setTextEdit(new TextEdit(replacementRange, snippet));
+              item.setTextEdit(Either.forLeft(new TextEdit(replacementRange, snippet)));
 
               item.setInsertTextFormat(InsertTextFormat.Snippet);
               item.setDocumentation(def.commentText.orElse(null));
