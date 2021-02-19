@@ -5,4 +5,4 @@
 set -e
 
 REPO_ROOT_DIR="$(git rev-parse --show-toplevel)"
-${REPO_ROOT_DIR}/gradlew verifyGoogleJavaFormat
+${REPO_ROOT_DIR}/gradlew spotlessJava
