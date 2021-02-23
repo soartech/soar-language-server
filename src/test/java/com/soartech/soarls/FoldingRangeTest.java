@@ -64,8 +64,7 @@ public class FoldingRangeTest extends SingleFileTestFixture {
   /** Test for the _absence_ of a range at the given line. */
   void assertNoRange(int line) {
     boolean present =
-        ranges
-            .stream()
+        ranges.stream()
             .filter(r -> r.getStartLine() <= line)
             .filter(r -> r.getEndLine() >= line)
             .findAny()

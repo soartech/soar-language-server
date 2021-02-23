@@ -106,9 +106,7 @@ public class FileAnalysis {
     this.procedureDefinitions = ImmutableList.copyOf(procedureDefinitions);
     this.filesSourced = ImmutableList.copyOf(filesSourced);
     this.productions =
-        productions
-            .entrySet()
-            .stream()
+        productions.entrySet().stream()
             .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
     this.diagnostics = ImmutableList.copyOf(diagnostics);
   }

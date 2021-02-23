@@ -94,9 +94,7 @@ public class ProjectAnalysis {
   }
 
   static <K, V> ImmutableMap<K, ImmutableList<V>> immutableMapOfLists(Map<K, List<V>> input) {
-    return input
-        .entrySet()
-        .stream()
+    return input.entrySet().stream()
         .collect(toImmutableMap(e -> e.getKey(), e -> ImmutableList.copyOf(e.getValue())));
   }
 }

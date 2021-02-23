@@ -126,7 +126,7 @@ public class CompletionTest extends SingleFileTestFixture {
 
     CompletionItem completion = completions.get(0);
     assertEquals(completion.getLabel(), "ngs-bind");
-    assertEquals(completion.getTextEdit().getRange(), range(12, 5, 12, 10));
+    assertEquals(completion.getTextEdit().getLeft().getRange(), range(12, 5, 12, 10));
   }
 
   /** When possible, we provide doc comments. */
@@ -144,8 +144,7 @@ public class CompletionTest extends SingleFileTestFixture {
   /** Test that the completion list contains this item. */
   void assertCompletion(List<CompletionItem> completions, String expected) {
     boolean present =
-        completions
-            .stream()
+        completions.stream()
             .filter(completion -> completion.getLabel().equals(expected))
             .findAny()
             .isPresent();
@@ -164,8 +163,9 @@ public class CompletionTest extends SingleFileTestFixture {
     CompletionItem completion = completions.get(0);
     assertEquals(completion.getLabel(), "ngs-bind");
     assertEquals(completion.getInsertTextFormat(), InsertTextFormat.Snippet);
-    assertEquals(completion.getTextEdit().getRange(), range(12, 5, 12, 10));
-    assertEquals(completion.getTextEdit().getNewText(), "ngs-bind ${1:obj_id} ${2:args}$0");
+    assertEquals(completion.getTextEdit().getLeft().getRange(), range(12, 5, 12, 10));
+    assertEquals(
+        completion.getTextEdit().getLeft().getNewText(), "ngs-bind ${1:obj_id} ${2:args}$0");
   }
 
   @Test
@@ -177,17 +177,16 @@ public class CompletionTest extends SingleFileTestFixture {
 
     CompletionItem completion = completions.get(0);
     assertEquals(completion.getLabel(), "ngs-create-attribute-by-operator");
-    assertEquals(completion.getTextEdit().getRange(), range(14, 5, 14, 20));
+    assertEquals(completion.getTextEdit().getLeft().getRange(), range(14, 5, 14, 20));
     assertEquals(
-        completion.getTextEdit().getNewText(),
+        completion.getTextEdit().getLeft().getNewText(),
         "ngs-create-attribute-by-operator ${1:state_id} ${2:parent_obj_id} ${3:attribute} ${4:value} ${5:{ replacement_behavior \"\" \\}} ${6:{ add_prefs \"=\" \\}}$0");
   }
 
   /** Test that the completion list does _not_ contain this item. */
   void assertNotCompletion(List<CompletionItem> completions, String expected) {
     boolean present =
-        completions
-            .stream()
+        completions.stream()
             .filter(completion -> completion.getLabel().equals(expected))
             .findAny()
             .isPresent();

@@ -203,8 +203,7 @@ public class TclAstNode {
    */
   public boolean containsChild(TclAstNode child) {
     return this == child
-        || this.getChildren()
-            .stream()
+        || this.getChildren().stream()
             .filter(n -> n.getStart() <= child.getStart())
             .filter(n -> n.getEnd() >= child.getEnd())
             .anyMatch(n -> n.containsChild(child));

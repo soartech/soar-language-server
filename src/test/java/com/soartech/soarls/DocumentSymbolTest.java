@@ -27,11 +27,7 @@ public class DocumentSymbolTest extends SingleFileTestFixture {
   public void productionsTree() throws Exception {
     DocumentSymbolParams params = new DocumentSymbolParams(fileId(file));
     List<DocumentSymbol> symbols =
-        languageServer
-            .getTextDocumentService()
-            .documentSymbol(params)
-            .get()
-            .stream()
+        languageServer.getTextDocumentService().documentSymbol(params).get().stream()
             .map(Either::getRight)
             .collect(toList());
 

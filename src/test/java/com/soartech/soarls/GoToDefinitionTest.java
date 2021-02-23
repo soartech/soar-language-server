@@ -27,12 +27,7 @@ public class GoToDefinitionTest extends LanguageServerTestFixture {
   List<Location> definitionsForPosition(String relativePath, int line, int character)
       throws Exception {
     DefinitionParams params = definitionParams(relativePath, line, character);
-    return languageServer
-        .getTextDocumentService()
-        .definition(params)
-        .get()
-        .getLeft()
-        .stream()
+    return languageServer.getTextDocumentService().definition(params).get().getLeft().stream()
         .collect(toList());
   }
 

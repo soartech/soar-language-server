@@ -181,8 +181,7 @@ public class LanguageServerTestFixture implements LanguageClient {
     BiConsumer<String, List<TextEdit>> applyTextEdits =
         (uri, edits) -> {
           List<TextDocumentContentChangeEvent> contentChanges =
-              edits
-                  .stream()
+              edits.stream()
                   .map(
                       textEdit ->
                           new TextDocumentContentChangeEvent(

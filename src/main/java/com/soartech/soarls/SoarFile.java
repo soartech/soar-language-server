@@ -46,9 +46,7 @@ public class SoarFile {
     this.ast = parser.parse();
 
     this.diagnostics =
-        parser
-            .getErrors()
-            .stream()
+        parser.getErrors().stream()
             .map(
                 e -> {
                   int start = position(e.getStart()).getLine();
@@ -79,8 +77,7 @@ public class SoarFile {
         };
 
     String newContents =
-        changes
-            .stream()
+        changes.stream()
             .reduce(new StringBuffer(this.contents), applyChange, (u, v) -> v)
             .toString();
 
@@ -122,8 +119,7 @@ public class SoarFile {
     // node.
     while (true) {
       TclAstNode child =
-          node.getChildren()
-              .stream()
+          node.getChildren().stream()
               .filter(c -> c.getStart() <= offset)
               .filter(c -> offset < c.getEnd())
               .findFirst()

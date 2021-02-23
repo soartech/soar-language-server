@@ -93,16 +93,14 @@ public class DiagnosticsTest extends SingleFileTestFixture {
   public void missingProductionQuote() {
     // check for diagnostic created by parser at last quote due to mismatched quotes
     Diagnostic parserDiagnostic =
-        getFileDiagnostics()
-            .stream()
+        getFileDiagnostics().stream()
             .filter(d -> d.getRange().equals(range(31, 0, 31, 1)))
             .findAny()
             .get();
     assertEquals(parserDiagnostic.getMessage(), "Missing closing quote");
 
     Diagnostic sourcedDiagnostic =
-        getFileDiagnostics()
-            .stream()
+        getFileDiagnostics().stream()
             .filter(d -> d.getRange().equals(range(27, 0, 27, 16)))
             .findAny()
             .get();

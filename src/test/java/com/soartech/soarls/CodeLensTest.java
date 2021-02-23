@@ -25,8 +25,7 @@ public class CodeLensTest extends LanguageServerTestFixture {
     List<? extends CodeLens> codeLenses =
         languageServer.getTextDocumentService().codeLens(params).get();
     CodeLens codeLens =
-        codeLenses
-            .stream()
+        codeLenses.stream()
             .filter(lens -> lens.getRange().equals(range(0, 0, 0, 0)))
             .findAny()
             .get();

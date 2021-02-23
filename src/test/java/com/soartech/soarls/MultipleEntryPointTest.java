@@ -35,11 +35,7 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
     params.setTextDocument(fileId(relativePath));
     params.setPosition(new Position(line, character));
     params.setContext(new ReferenceContext(false));
-    return languageServer
-        .getTextDocumentService()
-        .references(params)
-        .get()
-        .stream()
+    return languageServer.getTextDocumentService().references(params).get().stream()
         .collect(toList());
   }
 
@@ -62,12 +58,7 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
     // Usage of $agent_name variable
     DefinitionParams params = definitionParams("common.soar", 3, 30);
     List<Location> definitions =
-        languageServer
-            .getTextDocumentService()
-            .definition(params)
-            .get()
-            .getLeft()
-            .stream()
+        languageServer.getTextDocumentService().definition(params).get().getLeft().stream()
             .collect(toList());
     System.out.println(definitions);
     assertLocation(definitions, "primary.soar", range(0, 0, 0, 22));
@@ -85,8 +76,7 @@ public class MultipleEntryPointTest extends LanguageServerTestFixture {
   /** Assert that the list of locations includes the given URI and range. */
   void assertLocation(List<Location> locations, String relativePath, Range range) {
     String uri = resolve(relativePath);
-    locations
-        .stream()
+    locations.stream()
         .filter(l -> l.getUri().equals(uri))
         .filter(l -> l.getRange().equals(range))
         .findAny()

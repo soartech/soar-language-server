@@ -35,11 +35,7 @@ public class DocumentSymbolRequest {
   }
 
   static Stream<DocumentSymbol> procedureCalls(FileAnalysis analysis) {
-    return analysis
-        .file
-        .ast
-        .getChildren()
-        .stream()
+    return analysis.file.ast.getChildren().stream()
         .map(node -> analysis.procedureCall(node))
         .filter(Optional::isPresent)
         .map(Optional::get)
@@ -47,9 +43,7 @@ public class DocumentSymbolRequest {
             call -> {
               int callLine = call.callSiteLocation.getRange().getStart().getLine();
               String name =
-                  call.callSiteAst
-                      .getChildren()
-                      .stream()
+                  call.callSiteAst.getChildren().stream()
                       .filter(
                           node -> analysis.file.rangeForNode(node).getEnd().getLine() == callLine)
                       .map(node -> analysis.file.getNodeInternalText(node))
@@ -105,9 +99,7 @@ public class DocumentSymbolRequest {
   }
 
   static Stream<DocumentSymbol> procedures(FileAnalysis analysis, TclAstNode node) {
-    return analysis
-        .procedureDefinitions
-        .stream()
+    return analysis.procedureDefinitions.stream()
         .filter(def -> def.ast == node)
         .map(
             def -> {

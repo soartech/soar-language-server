@@ -201,9 +201,7 @@ public class AnalysisTest extends LanguageServerTestFixture {
   /** Assert that a file contains the given production. */
   void assertProduction(FileAnalysis file, String name, Range range) {
     Production production =
-        file.productions
-            .values()
-            .stream()
+        file.productions.values().stream()
             .flatMap(List::stream)
             .filter(p -> p.name.equals(name))
             .findAny()

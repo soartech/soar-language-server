@@ -92,8 +92,7 @@ public class ReferencesTest extends LanguageServerTestFixture {
   /** Assert that the list of locations includes the given URI and range. */
   void assertReference(List<Location> locations, String relativePath, Range range) {
     String uri = resolve(relativePath);
-    locations
-        .stream()
+    locations.stream()
         .filter(l -> l.getUri().equals(uri))
         .filter(l -> l.getRange().equals(range))
         .findAny()

@@ -251,9 +251,7 @@ public class SoarDocumentService implements TextDocumentService {
     // need to re-analyse the project. This mainly prevents the Tcl
     // expansion buffer from triggering a continuous loop of analyses.
     List<ProjectAnalysis> analysisAffected =
-        analyses
-            .values()
-            .stream()
+        analyses.values().stream()
             .filter(analysis -> analysis.sourcedUris.contains(uri))
             .collect(toList());
     for (ProjectAnalysis analysis : analysisAffected) {
@@ -275,10 +273,7 @@ public class SoarDocumentService implements TextDocumentService {
         fileAnalysis -> {
           int startOffset = fileAnalysis.file.offset(params.getRange().getStart());
           int endOffset = fileAnalysis.file.offset(params.getRange().getEnd());
-          return fileAnalysis
-              .productions
-              .entrySet()
-              .stream()
+          return fileAnalysis.productions.entrySet().stream()
               .filter(entry -> entry.getKey().getStart() <= endOffset)
               .filter(entry -> entry.getKey().getEnd() >= startOffset)
               .sorted((a, b) -> a.getKey().getStart() - b.getKey().getStart())
@@ -508,9 +503,7 @@ public class SoarDocumentService implements TextDocumentService {
     final int offset = file.offset(params.getPosition());
 
     final List<DocumentHighlight> highlights =
-        file.ast
-            .getChildren()
-            .stream()
+        file.ast.getChildren().stream()
             .filter(node -> node.getType() != TclAstNode.COMMENT)
             .filter(node -> node.getStart() <= offset && offset <= node.getEnd())
             .map(
@@ -526,9 +519,7 @@ public class SoarDocumentService implements TextDocumentService {
     URI uri = uri(params.getTextDocument().getUri());
     SoarFile file = documents.get(uri);
     List<FoldingRange> ranges =
-        file.ast
-            .getChildren()
-            .stream()
+        file.ast.getChildren().stream()
             .map(
                 c -> {
                   FoldingRange range =
@@ -605,14 +596,10 @@ public class SoarDocumentService implements TextDocumentService {
           String value =
               values.size() == 1
                   ? values.keySet().stream().findFirst().orElse(null)
-                  : values
-                      .entrySet()
-                      .stream()
+                  : values.entrySet().stream()
                       .flatMap(
                           entry ->
-                              entry
-                                  .getValue()
-                                  .stream()
+                              entry.getValue().stream()
                                   .map(analysis -> analysis.entryPoint.name)
                                   .map(name -> name != null ? name : "<UNNAMED ENTRY POINT>")
                                   .map(name -> name + ": " + entry.getKey()))
@@ -693,10 +680,7 @@ public class SoarDocumentService implements TextDocumentService {
               fileAnalysis.variableRetrieval(astNode).flatMap(ret -> ret.definition);
           if (!varDef.isPresent()) {
             varDef =
-                analysis
-                    .variableRetrievals
-                    .keySet()
-                    .stream()
+                analysis.variableRetrievals.keySet().stream()
                     .filter(def -> def.ast.containsChild(astNode))
                     .findFirst();
           }
@@ -719,9 +703,7 @@ public class SoarDocumentService implements TextDocumentService {
               fileAnalysis.procedureCall(astNode).flatMap(call -> call.definition);
           if (!procDef.isPresent()) {
             procDef =
-                fileAnalysis
-                    .procedureDefinitions
-                    .stream()
+                fileAnalysis.procedureDefinitions.stream()
                     .filter(def -> def.ast.containsChild(astNode))
                     .findFirst();
           }
@@ -748,14 +730,12 @@ public class SoarDocumentService implements TextDocumentService {
           String label =
               def.name
                   + " "
-                  + def.arguments
-                      .stream()
+                  + def.arguments.stream()
                       .limit(argsIncluded)
                       .map(arg -> arg.name)
                       .collect(joining(" "));
           List<ParameterInformation> parameters =
-              def.arguments
-                  .stream()
+              def.arguments.stream()
                   .limit(argsIncluded)
                   .map(arg -> new ParameterInformation(arg.name))
                   .collect(toList());
@@ -926,10 +906,7 @@ public class SoarDocumentService implements TextDocumentService {
     Function<FileAnalysis, List<DocumentLink>> collectLinks =
         fileAnalysis -> {
           SoarFile file = fileAnalysis.file;
-          return fileAnalysis
-              .productions
-              .keySet()
-              .stream()
+          return fileAnalysis.productions.keySet().stream()
               .map(key -> key.getChild(TclAstNode.NORMAL_WORD))
               .map(node -> new DocumentLink(file.rangeForNode(node)))
               .peek(link -> link.setTarget(tclExpansionUri().toString()))

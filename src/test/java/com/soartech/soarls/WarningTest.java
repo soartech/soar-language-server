@@ -16,16 +16,14 @@ public class WarningTest extends SingleFileTestFixture {
   @Test
   public void noErrorsReported() {
     assertFalse(
-        this.getFileDiagnostics()
-            .stream()
+        this.getFileDiagnostics().stream()
             .anyMatch(d -> d.getSeverity() == DiagnosticSeverity.Error));
   }
 
   @Test
   public void unknownRHSFunction() {
     Diagnostic diagnostic =
-        getFileDiagnostics()
-            .stream()
+        getFileDiagnostics().stream()
             .filter(d -> d.getRange().equals(range(3, 0, 7, 1)))
             .findAny()
             .get();
@@ -45,8 +43,7 @@ public class WarningTest extends SingleFileTestFixture {
   @Test
   public void duplicateProduction() {
     Diagnostic diagnostic =
-        getFileDiagnostics()
-            .stream()
+        getFileDiagnostics().stream()
             .filter(d -> d.getRange().equals(range(15, 0, 19, 1)))
             .findAny()
             .get();

@@ -14,10 +14,7 @@ import org.eclipse.lsp4j.jsonrpc.messages.Either;
 public class CompletionRequest {
   public static Stream<CompletionItem> completeVariable(
       ProjectAnalysis analysis, String prefix, Range replacementRange) {
-    return analysis
-        .variableDefinitions
-        .values()
-        .stream()
+    return analysis.variableDefinitions.values().stream()
         .filter(def -> def.name.startsWith(prefix))
         .map(
             def -> {
@@ -31,10 +28,7 @@ public class CompletionRequest {
 
   public static Stream<CompletionItem> completeProcedure(
       ProjectAnalysis analysis, String prefix, Range replacementRange) {
-    return analysis
-        .procedureDefinitions
-        .values()
-        .stream()
+    return analysis.procedureDefinitions.values().stream()
         .filter(def -> def.name.startsWith(prefix))
         .map(
             def -> {
