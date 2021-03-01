@@ -8,7 +8,7 @@ plugins {
     id 'com.dorongold.task-tree' version '1.5'
     id 'io.freefair.git-version' version '5.3.0'
     id "com.diffplug.spotless" version "5.10.2"
-    id 'io.codearte.nexus-staging' version '0.22.0'
+    id 'io.codearte.nexus-staging' version '0.30.0'
 }
 
 // applicationDefaultJvmArgs = ['-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=9999,quiet=y']
