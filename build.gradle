@@ -37,7 +37,7 @@ dependencies {
     implementation('com.soartech:jsoar-core:4.0.3') {
         exclude group: 'junit'
     }
-    implementation('com.soartech:jsoar-tcl:4.0.3') {
+    implementation('com.soartech:jsoar-tcl:4.1.0') {
         exclude group: 'junit'
     }
 
