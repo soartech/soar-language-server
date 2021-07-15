@@ -34,7 +34,7 @@ dependencies {
     // Language server protocol types.
     implementation 'org.eclipse.lsp4j:org.eclipse.lsp4j:0.10.0'
 
-    implementation('com.soartech:jsoar-core:4.0.3') {
+    implementation('com.soartech:jsoar-core:4.1.0') {
         exclude group: 'junit'
     }
     implementation('com.soartech:jsoar-tcl:4.0.3') {
