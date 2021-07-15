@@ -1,0 +1,43 @@
+version: 2
+updates:
+- package-ecosystem: gradle
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: io.freefair.git-version
+    versions:
+    - ">= 3.7.a, < 3.8"
+  - dependency-name: io.freefair.git-version
+    versions:
+    - "> 3.8.0, < 3.9"
+  - dependency-name: io.freefair.git-version
+    versions:
+    - ">= 3.8.a, < 3.9"
+  - dependency-name: io.freefair.git-version
+    versions:
+    - ">= 4.0.a, < 4.1"
+  - dependency-name: io.freefair.git-version
+    versions:
+    - ">= 4.1.a, < 4.2"
+  - dependency-name: org.eclipse.lsp4j:org.eclipse.lsp4j
+    versions:
+    - 0.11.0
+- package-ecosystem: gradle
+  directory: "/integrations/intellij/soar-ide"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+- package-ecosystem: npm
+  directory: "/integrations/vscode"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: vscode-languageclient
+    versions:
+    - 7.0.0
